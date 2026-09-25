@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Casa Llavaneras" />
+  <meta name="application-name" content="Casa Llavaneras" />
+  <meta name="theme-color" content="#000000" />
+  <title>Casa Llavaneras</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
+  <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="device">
+    <div class="status">
+      <span id="clock">00:26</span>
+      <div class="island"></div>
+      <span>5G · 86%</span>
+    </div>
+    <div class="app">
+      <div id="splash" class="splash">
+        <div class="mark">J.G.C.</div>
+        <p class="brand-sub">Casa Llavaneras</p>
+        <h1>Vinotecas</h1>
+        <p class="muted">Escanea. Conserva. Sirve en su momento.</p>
+      </div>
+
+      <section id="home" class="screen active">
+        <div class="scroll">
+          <div class="hero">
+            <p class="eyebrow">Casa Llavaneras · v23</p>
+            <h1>Tu cava, en orden.</h1>
+                      </div>
+          <div id="home-kpis" class="kpi-grid"></div>
+          <h2>Avisos de evolución</h2>
+          <div id="home-alerts" style="margin-top:10px"></div>
+          <h2 style="margin-top:8px">Toca un vino</h2>
+          <div id="home-ready" style="margin-top:10px"></div>
+          <div id="home-notify"></div>
+        </div>
+      </section>
+
+      <section id="caves" class="screen">
+        <div class="scroll">
+          <div class="hero">
+            <p class="eyebrow">Casa Llavaneras</p>
+            <h1>Vinotecas</h1>
+            <p>Temperatura, humedad y ocupación de cada zona.</p>
+          </div>
+          <div id="caves-list"></div>
+          <button class="btn btn-gold" style="width:100%;margin-top:4px" onclick="showSheet('cave-sheet')">Añadir vinoteca</button>
+        </div>
+      </section>
+
+      <section id="cave-detail-screen" class="screen">
+        <div class="scroll">
+          <button class="back" onclick="show('caves')">‹ Vinotecas</button>
+          <p class="eyebrow" id="cave-house"></p>
+          <h1 id="cave-title">Vinoteca</h1>
+          <div id="cave-detail"></div>
+        </div>
+      </section>
+
+      <section id="cellar" class="screen">
+        <div class="scroll">
+          <div class="hero">
+            <p class="eyebrow">Inventario</p>
+            <h1>Botellas</h1>
+                      </div>
+          <div class="search">
+            <span>⌕</span>
+            <input id="cellar-q" placeholder="Buscar botellas…" oninput="renderCellar()" />
+          </div>
+          <div class="chip-row">
+            <button class="chip on" onclick="setFilter('todos', this)">Todos</button>
+            <button class="chip" onclick="setFilter('tinto', this)">Tinto</button>
+            <button class="chip" onclick="setFilter('blanco', this)">Blanco</button>
+            <button class="chip" onclick="setFilter('espumoso', this)">Espumoso</button>
+            <button class="chip" onclick="setFilter('rosado', this)">Rosado</button>
+          </div>
+          <div id="cellar-list"></div>
+        </div>
+      </section>
+
+      <section id="calendar" class="screen">
+        <div class="scroll">
+          <div class="hero">
+            <p class="eyebrow">Consumo</p>
+            <h1>Cuándo abrirlo</h1>
+          </div>
+          <div id="calendar-list"></div>
+        </div>
+      </section>
+
+      <section id="scan" class="screen">
+        <div class="scroll">
+          <button class="back" onclick="show('home')">‹ Inicio</button>
+          <p class="eyebrow">Un toque</p>
+          <h1>Escanear</h1>
+          <div class="card">
+            <h3>Etiqueta</h3>
+            <p class="muted">Foto de la botella. Se guarda en la vinoteca.</p>
+          </div>
+          <div class="card">
+            <h3>Carta o lineal</h3>
+            <p class="muted">Foto de una carta o de un estante. Buscamos coincidencias en el catálogo.</p>
+          </div>
+          <div class="scan-stage" onclick="captureLabel()">
+            <video id="cam" playsinline autoplay muted></video>
+            <img id="scan-preview" alt="Etiqueta capturada" hidden />
+            <canvas id="scan-canvas" hidden></canvas>
+            <div class="viewfinder" id="scan-finder"></div>
+          </div>
+          <input id="scan-file" type="file" accept="image/*" capture="environment" hidden />
+          <button class="btn btn-gold" style="width:100%" onclick="captureLabel()">Foto y guardar</button>
+          <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="pickFromRoll()">Elegir de fotos</button>
+          <div id="scan-status" class="tiny" style="margin-top:10px"></div>
+          <div id="scan-results" style="margin-top:14px"></div>
+          <div class="search" style="margin-top:12px">
+            <span>⌕</span>
+            <input id="scan-q" placeholder="O escribe bodega / añada" onkeydown="if(event.key==='Enter')runIdentify()" />
+          </div>
+        </div>
+      </section>
+
+      <section id="pairings" class="screen">
+        <div class="scroll">
+          <div class="hero">
+            <p class="eyebrow">Mesa</p>
+            <h1>Maridajes</h1>
+            <p>Explora armonías pensadas para cada momento.</p>
+          </div>
+          <div class="seg" id="pair-seg">
+            <button onclick="setPairMode('vinos', this)">Catálogo</button>
+            <button class="on" onclick="setPairMode('cava', this)">Tu cava</button>
+            <button onclick="setPairMode('platos', this)">Por plato</button>
+          </div>
+          <div class="search">
+            <span>⌕</span>
+            <input id="pair-q" placeholder="Vino, bodega o plato…" oninput="setPairQuery(this.value)" />
+          </div>
+          <div id="pair-body" style="margin-top:10px"></div>
+        </div>
+      </section>
+
+      <section id="dish" class="screen">
+        <div class="scroll" id="dish-body">
+          <h1 id="dish-title">Plato</h1>
+        </div>
+      </section>
+
+      <section id="wine" class="screen">
+        <div class="scroll" id="wine-body"></div>
+      </section>
+
+      <section id="wine-sub" class="screen">
+        <div class="scroll" id="wine-sub-body"></div>
+      </section>
+
+      <button class="scan-fab" onclick="startScan()" aria-label="Escanear">
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" width="28" height="28"><path d="M4 8V5a1 1 0 0 1 1-1h3M20 8V5a1 1 0 0 0-1-1h-3M4 16v3a1 1 0 0 0 1 1h3M20 16v3a1 1 0 0 1-1 1h-3"/><path d="M8 12h8"/></svg>
+      </button>
+      <nav class="tabbar">
+        <button class="tab active" data-go="home" onclick="show('home')"><span></span>Inicio</button>
+        <button class="tab" data-go="caves" onclick="show('caves')"><span></span>Vinotecas</button>
+        <button class="tab" data-go="cellar" onclick="show('cellar')"><span></span>Botellas</button>
+        <button class="tab" data-go="pairings" onclick="show('pairings')"><span></span>Mesa</button>
+        <button class="tab" data-go="calendar" onclick="show('calendar')"><span></span>Fechas</button>
+      </nav>
+    </div>
+
+    <div id="add-sheet" class="modal-bg" onclick="if(event.target===this)hideSheets()">
+      <div class="sheet">
+        <div class="handle"></div>
+        <h3>Añadir a vinoteca</h3>
+        <label class="field"><span>Vinoteca</span><select id="add-cellar"></select></label>
+        <label class="field"><span>Hueco / bandeja</span><input id="add-bin" placeholder="A-14" /></label>
+        <label class="field"><span>Botellas</span><input id="add-qty" type="number" min="1" value="1" /></label>
+        <label class="field"><span>Precio € / botella</span><input id="add-price" type="number" step="0.01" /></label>
+        <label class="field"><span>Nota</span><textarea id="add-note" placeholder="Caja, ocasión, proveedor…"></textarea></label>
+        <button class="btn btn-gold" style="width:100%" onclick="addCurrentToCellar()">Guardar en la cava</button>
+      </div>
+    </div>
+
+    <div id="move-sheet" class="modal-bg" onclick="if(event.target===this)hideSheets()">
+      <div class="sheet">
+        <div class="handle"></div>
+        <h3>Mover botella</h3>
+        <label class="field"><span>Vinoteca</span><select id="move-cellar"></select></label>
+        <label class="field"><span>Nuevo hueco</span><input id="move-bin" placeholder="G-02" /></label>
+        <button class="btn btn-gold" style="width:100%" onclick="moveBottle()">Actualizar ubicación</button>
+      </div>
+    </div>
+
+    <div id="cave-sheet" class="modal-bg" onclick="if(event.target===this)hideSheets()">
+      <div class="sheet">
+        <div class="handle"></div>
+        <h3>Nueva vinoteca</h3>
+        <label class="field"><span>Casa</span><input id="new-cave-house" placeholder="Selecciona o introduce la casa" autocomplete="off" /></label>
+        <label class="field"><span>Nombre</span><input id="new-cave-name" placeholder="Ej. Bodega principal" autocomplete="off" /></label>
+        <label class="field"><span>Marca / modelo</span><input id="new-cave-brand" placeholder="Ej. EuroCave Professional" autocomplete="off" /></label>
+        <label class="field"><span>Sitio / estancia</span><input id="new-cave-place" placeholder="Ej. cocina, sótano, office" autocomplete="off" /></label>
+        <label class="field"><span>Huecos (referencia)</span><input id="new-cave-bins" placeholder="Ej. A-01 a C-12" autocomplete="off" /></label>
+        <label class="field"><span>Capacidad (botellas)</span><input id="new-cave-cap" type="number" placeholder="24" /></label>
+        <label class="field"><span>Temp. zona 1 °C</span><input id="new-cave-th" type="number" step="0.1" placeholder="13.0" /></label>
+        <label class="field"><span>Temp. zona 2 °C</span><input id="new-cave-tl" type="number" step="0.1" placeholder="10.5" /></label>
+        <label class="field"><span>Humedad relativa %</span><input id="new-cave-hr" type="number" placeholder="68" /></label>
+        <button class="btn btn-gold" style="width:100%" onclick="addCave()">Crear</button>
+        <p class="tiny" style="margin-top:10px;text-align:center">Se creará en la casa que indiques. Los huecos sirven para localizar cada botella.</p>
+      </div>
+    </div>
+
+    <div id="wine-menu-sheet" class="modal-bg" onclick="if(event.target===this)hideSheets()">
+      <div class="sheet">
+        <div class="handle"></div>
+        <h3>Más de este vino</h3>
+        <button class="btn btn-ghost" style="width:100%;margin-top:8px;text-align:left" onclick="hideSheets();openWineSub('ratings')">Calificaciones</button>
+        <button class="btn btn-ghost" style="width:100%;margin-top:8px;text-align:left" onclick="hideSheets();openWineSub('pairings')">Maridajes</button>
+        <button class="btn btn-ghost" style="width:100%;margin-top:8px;text-align:left" onclick="hideSheets();openWineSub('keep')">Conservación</button>
+        <button class="btn btn-ghost" style="width:100%;margin-top:8px;text-align:left" onclick="hideSheets();openWineSub('evolve')">Evolución y fechas</button>
+        <button class="btn btn-ghost" style="width:100%;margin-top:8px;text-align:left" onclick="hideSheets();openWineSub('origen')">Origen y hueco</button>
+        <button class="btn btn-ghost" style="width:100%;margin-top:8px;text-align:left" onclick="hideSheets();openWineSub('mapa')">Mapa y bodega</button>
+        <button class="btn btn-ghost" style="width:100%;margin-top:8px;text-align:left" onclick="hideSheets();openWineSub('profile')">Perfil</button>
+        <button class="btn btn-ghost" style="width:100%;margin-top:8px;text-align:left" onclick="hideSheets();openWineSub('taste')">Cuaderno de cata</button>
+        <button class="btn btn-ghost" style="width:100%;margin-top:8px;text-align:left" onclick="hideSheets();openWineSub('bottle')">Esta botella</button>
+      </div>
+    </div>
+
+    <div id="notify-sheet" class="modal-bg" onclick="if(event.target===this)hideSheets()">
+      <div class="sheet">
+        <div class="handle"></div>
+        <h3>Avisos</h3>
+        <p class="muted" style="margin:6px 0 14px">En el iPhone solo llegan si la app está en la pantalla de inicio. Un toque activa el permiso.</p>
+        <label class="switch-row"><span>Activar avisos</span><input id="n-on" type="checkbox" onchange="setNotify('on', this.checked)" /></label>
+        <label class="switch-row"><span>Beber pronto / maduros</span><input id="n-evolve" type="checkbox" onchange="setNotify('evolve', this.checked)" /></label>
+        <label class="switch-row"><span>En apogeo esta semana</span><input id="n-ready" type="checkbox" onchange="setNotify('ready', this.checked)" /></label>
+        <label class="switch-row"><span>Temperatura alta</span><input id="n-temp" type="checkbox" onchange="setNotify('temp', this.checked)" /></label>
+        <p id="notify-perm" class="tiny" style="margin:12px 0"></p>
+        <button class="btn btn-gold" style="width:100%" onclick="enableNotifications()">Permitir en el iPhone</button>
+        <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="testNotification()">Probar aviso</button>
+      </div>
+    </div>
+
+    <div id="toast" style="position:absolute;left:24px;right:24px;bottom:96px;background:#111;border:1px solid #2a2a2a;color:#fff;padding:12px 14px;border-radius:14px;opacity:0;transition:opacity .3s;z-index:60;font-size:13px;text-align:center;pointer-events:none"></div>
+  </div>
+
+  <script src="wines.js"></script>
+  <script src="pairings.js"></script>
+  <script src="app.js"></script>
+  <script>
+    document.querySelectorAll(".tab").forEach((t, i) => {
+      const icons = [
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 11.5 12 4l8 7.5V20a1 1 0 0 1-1 1h-5v-6H10v6H5a1 1 0 0 1-1-1z"/></svg>',
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M8 4v16M16 4v16"/></svg>',
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M8 7h12M8 12h12M8 17h12"/><circle cx="4" cy="7" r="1.2" fill="currentColor"/><circle cx="4" cy="12" r="1.2" fill="currentColor"/><circle cx="4" cy="17" r="1.2" fill="currentColor"/></svg>',
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 9h16l-2 11H6L4 9z"/><path d="M8 9V7a4 4 0 0 1 8 0v2"/></svg>',
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>'
+      ];
+      t.querySelector("span").outerHTML = icons[i];
+    });
+    if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+  </script>
+</body>
+</html>
