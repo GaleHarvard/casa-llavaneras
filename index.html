@@ -34,15 +34,16 @@
 
       <section id="home" class="screen active">
         <div class="scroll">
-          <div class="hero">
-            <p class="eyebrow">Casa Llavaneras · v23</p>
-            <h1>Tu cava, en orden.</h1>
-                      </div>
+          <div class="hero home-hero">
+            <img class="home-hero-photo" src="cave-principal.jpg" alt="Cava">
+            <p class="eyebrow">Mi Vinoteca</p>
+            <h1>Casa Llavaneras</h1>
+          </div>
           <div id="home-kpis" class="kpi-grid"></div>
-          <h2>Avisos de evolución</h2>
-          <div id="home-alerts" style="margin-top:10px"></div>
-          <h2 style="margin-top:8px">Toca un vino</h2>
-          <div id="home-ready" style="margin-top:10px"></div>
+          <div id="home-featured"></div>
+          <div id="home-ready"></div>
+          <div id="home-tasting"></div>
+          <div id="home-alerts"></div>
           <div id="home-notify"></div>
         </div>
       </section>
@@ -61,7 +62,7 @@
 
       <section id="cave-detail-screen" class="screen">
         <div class="scroll">
-          <button class="back" onclick="show('caves')">‹ Vinotecas</button>
+          <button class="back" onclick="goBack()">‹ Vinotecas</button>
           <p class="eyebrow" id="cave-house"></p>
           <h1 id="cave-title">Vinoteca</h1>
           <div id="cave-detail"></div>
@@ -89,6 +90,13 @@
         </div>
       </section>
 
+      <section id="perfil" class="screen">
+        <div class="scroll" id="perfil-body"></div>
+      </section>
+      <section id="perfil-sub" class="screen">
+        <div class="scroll" id="perfil-sub-body"></div>
+      </section>
+
       <section id="calendar" class="screen">
         <div class="scroll">
           <div class="hero">
@@ -99,9 +107,16 @@
         </div>
       </section>
 
+      <section id="zonas" class="screen">
+        <div class="scroll" id="zonas-body"></div>
+      </section>
+      <section id="catas" class="screen">
+        <div class="scroll" id="catas-body"></div>
+      </section>
+
       <section id="scan" class="screen">
         <div class="scroll">
-          <button class="back" onclick="show('home')">‹ Inicio</button>
+          <button class="back" onclick="goBack()">‹ Inicio</button>
           <p class="eyebrow">Un toque</p>
           <h1>Escanear</h1>
           <div class="card">
@@ -168,11 +183,11 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" width="28" height="28"><path d="M4 8V5a1 1 0 0 1 1-1h3M20 8V5a1 1 0 0 0-1-1h-3M4 16v3a1 1 0 0 0 1 1h3M20 16v3a1 1 0 0 1-1 1h-3"/><path d="M8 12h8"/></svg>
       </button>
       <nav class="tabbar">
-        <button class="tab active" data-go="home" onclick="show('home')"><span></span>Inicio</button>
-        <button class="tab" data-go="caves" onclick="show('caves')"><span></span>Vinotecas</button>
-        <button class="tab" data-go="cellar" onclick="show('cellar')"><span></span>Botellas</button>
-        <button class="tab" data-go="pairings" onclick="show('pairings')"><span></span>Mesa</button>
-        <button class="tab" data-go="calendar" onclick="show('calendar')"><span></span>Fechas</button>
+        <button class="tab active" data-go="home" onclick="show('home',{tab:true})"><span></span>Inicio</button>
+        <button class="tab" data-go="caves" onclick="show('caves',{tab:true})"><span></span>Vinotecas</button>
+        <button class="tab" data-go="cellar" onclick="show('cellar',{tab:true})"><span></span>Botellas</button>
+        <button class="tab" data-go="pairings" onclick="show('pairings',{tab:true})"><span></span>Mesa</button>
+        <button class="tab" data-go="calendar" onclick="show('calendar',{tab:true})"><span></span>Fechas</button>
       </nav>
     </div>
 
@@ -180,7 +195,8 @@
       <div class="sheet">
         <div class="handle"></div>
         <h3>Añadir a vinoteca</h3>
-        <label class="field"><span>Vinoteca</span><select id="add-cellar"></select></label>
+        <p class="tiny" id="add-keep-hint" style="margin:0 0 10px"></p>
+        <label class="field"><span>Vinoteca</span><select id="add-cellar" onchange="refreshAddKeep()"></select></label>
         <label class="field"><span>Hueco / bandeja</span><input id="add-bin" placeholder="A-14" /></label>
         <label class="field"><span>Botellas</span><input id="add-qty" type="number" min="1" value="1" /></label>
         <label class="field"><span>Precio € / botella</span><input id="add-price" type="number" step="0.01" /></label>
@@ -192,10 +208,12 @@
     <div id="move-sheet" class="modal-bg" onclick="if(event.target===this)hideSheets()">
       <div class="sheet">
         <div class="handle"></div>
-        <h3>Mover botella</h3>
-        <label class="field"><span>Vinoteca</span><select id="move-cellar"></select></label>
+        <h3>Mover lote</h3>
+        <p class="tiny" id="move-hint"></p>
+        <label class="field"><span>Vinoteca destino</span><select id="move-cellar"></select></label>
         <label class="field"><span>Nuevo hueco</span><input id="move-bin" placeholder="G-02" /></label>
-        <button class="btn btn-gold" style="width:100%" onclick="moveBottle()">Actualizar ubicación</button>
+        <label class="field"><span>Botellas a mover</span><input id="move-qty" type="number" min="1" value="1" /></label>
+        <button class="btn btn-gold" style="width:100%" onclick="moveBottle()">Mover</button>
       </div>
     </div>
 
@@ -224,12 +242,18 @@
         <button class="btn btn-ghost" style="width:100%;margin-top:8px;text-align:left" onclick="hideSheets();openWineSub('ratings')">Calificaciones</button>
         <button class="btn btn-ghost" style="width:100%;margin-top:8px;text-align:left" onclick="hideSheets();openWineSub('pairings')">Maridajes</button>
         <button class="btn btn-ghost" style="width:100%;margin-top:8px;text-align:left" onclick="hideSheets();openWineSub('keep')">Conservación</button>
+        <button class="btn btn-ghost" style="width:100%;margin-top:8px;text-align:left" onclick="hideSheets();openWineSub('servicio')">Servicio en copa</button>
+        <button class="btn btn-ghost" style="width:100%;margin-top:8px;text-align:left" onclick="hideSheets();openWineSub('tecnica')">Ficha técnica</button>
+        <button class="btn btn-ghost" style="width:100%;margin-top:8px;text-align:left" onclick="hideSheets();openWineSub('historia')">Historia</button>
+        <button class="btn btn-ghost" style="width:100%;margin-top:8px;text-align:left" onclick="hideSheets();openWineSub('mercado')">Valor de mercado</button>
         <button class="btn btn-ghost" style="width:100%;margin-top:8px;text-align:left" onclick="hideSheets();openWineSub('evolve')">Evolución y fechas</button>
         <button class="btn btn-ghost" style="width:100%;margin-top:8px;text-align:left" onclick="hideSheets();openWineSub('origen')">Origen y hueco</button>
         <button class="btn btn-ghost" style="width:100%;margin-top:8px;text-align:left" onclick="hideSheets();openWineSub('mapa')">Mapa y bodega</button>
         <button class="btn btn-ghost" style="width:100%;margin-top:8px;text-align:left" onclick="hideSheets();openWineSub('profile')">Perfil</button>
         <button class="btn btn-ghost" style="width:100%;margin-top:8px;text-align:left" onclick="hideSheets();openWineSub('taste')">Cuaderno de cata</button>
-        <button class="btn btn-ghost" style="width:100%;margin-top:8px;text-align:left" onclick="hideSheets();openWineSub('bottle')">Esta botella</button>
+        <button class="btn btn-ghost" style="width:100%;margin-top:8px;text-align:left" onclick="hideSheets();openWineSub('bottle')">Ubicación física</button>
+        <button class="btn btn-ghost" style="width:100%;margin-top:8px;text-align:left" onclick="hideSheets();openWineSub('compras')">Compras e historial</button>
+        <button class="btn btn-ghost" style="width:100%;margin-top:8px;text-align:left" onclick="hideSheets();openWineSub('anadas')">Añadas</button>
       </div>
     </div>
 
@@ -245,6 +269,12 @@
         <p id="notify-perm" class="tiny" style="margin:12px 0"></p>
         <button class="btn btn-gold" style="width:100%" onclick="enableNotifications()">Permitir en el iPhone</button>
         <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="testNotification()">Probar aviso</button>
+        <h3 style="margin-top:22px">Precios de mercado</h3>
+        <p class="muted" style="margin:6px 0 10px">Vivino no tiene API. Demo = dossier. Live = Wine-Searcher si pegas la clave.</p>
+        <label class="switch-row"><span>Usar API live</span><input id="p-live" type="checkbox" onchange="setPriceMode(this.checked)" /></label>
+        <label class="field"><span>API URL</span><input id="p-url" placeholder="https://www.wine-searcher.com/ws_api.php" /></label>
+        <label class="field"><span>API key</span><input id="p-key" placeholder="Tu clave (no se comparte)" autocomplete="off" /></label>
+        <button class="btn btn-gold" style="width:100%" onclick="savePriceCfg()">Guardar precios</button>
       </div>
     </div>
 
@@ -252,6 +282,8 @@
   </div>
 
   <script src="wines.js"></script>
+  <script src="dossiers.js"></script>
+  <script src="providers/wineProvider.js"></script>
   <script src="pairings.js"></script>
   <script src="app.js"></script>
   <script>

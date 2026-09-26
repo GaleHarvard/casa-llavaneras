@@ -15,13 +15,14 @@ const defaultState = () => ({
     {
       id: "v1",
       name: "Vinoteca principal",
-      brand: "La Sommelière · 2 zonas",
-      capacity: 180,
+      brand: "La Sommelière VIP 185",
+      capacity: 185,
       used: 0,
       tHigh: 16.7,
       tLow: 12.0,
       humidity: 65,
-      zones: ["Lectura actual · 16,7 °C", "SET 1 / SET 2"],
+      role: "prestige",
+      zones: ["VIP 185 · botellas prestigiosas", "Lectura 16,7 °C"],
       photo: "cave-principal.jpg"
     },
     { id: "v2", name: "Cava de guarda", brand: "Eurocave", capacity: 32, used: 0, tHigh: 12.6, tLow: 12.6, humidity: 72, zones: ["Zona única · 12,5 °C"] }
@@ -37,7 +38,20 @@ const defaultState = () => ({
   ],
   favorites: ["tondonia-reserva-2011"],
   notify: { on: false, evolve: true, ready: true, temp: true, last: {} },
-  tasting: {}
+  tasting: {},
+  houses: [{ id: "h1", name: "Casa Llavaneras", type: "Casa", note: "" }],
+  prefs: {
+    hideValue: false,
+    hidePrices: false,
+    hideBin: false,
+    scale: 10,
+    decimals: true,
+    currency: "EUR",
+    demo: true,
+    lastBackup: null,
+    sources: { vivino: true, penin: true, parker: true, spectator: true, decanter: true, vinous: true, suckling: true }
+  },
+  activity: []
 });
 
 let state = load();
@@ -49,6 +63,9 @@ let pairingMode = "cava";
 let pairingDish = null;
 let pairingQuery = "";
 let lastList = "home";
+let screenId = "home";
+let navStack = [];
+let currentSub = "";
 let lastLabelData = null;
 let ocrBusy = false;
 let tesseractReady = null;
@@ -63,11 +80,22 @@ function load() {
     if (!parsed.notify) parsed.notify = { on: false, evolve: true, ready: true, temp: true, last: {} };
     if (!parsed.notify.last) parsed.notify.last = {};
     if (!parsed.tasting) parsed.tasting = {};
+    if (!parsed.houses) parsed.houses = [{ id: "h1", name: "Casa Llavaneras", type: "Casa", note: "" }];
+    if (!parsed.prefs) parsed.prefs = {};
+    parsed.prefs = Object.assign({
+      hideValue: false, hidePrices: false, hideBin: false, scale: 10, decimals: true,
+      currency: "EUR", demo: true, lastBackup: null,
+      sources: { vivino: true, penin: true, parker: true, spectator: true, decanter: true, vinous: true, suckling: true }
+    }, parsed.prefs);
+    if (!parsed.prefs.sources) parsed.prefs.sources = { vivino: true, penin: true, parker: true, spectator: true, decanter: true, vinous: true, suckling: true };
+    if (!parsed.activity) parsed.activity = [];
+    parsed.vinotecas.forEach(v => { if (!v.houseId) v.houseId = "h1"; });
     const main = parsed.vinotecas.find(v => v.id === "v1");
     if (main) {
-      main.brand = "La Sommelière · 2 zonas";
+      main.brand = "La Sommelière VIP 185";
       main.photo = "cave-principal.jpg";
-      if (main.capacity < 100) main.capacity = 180;
+      main.capacity = 185;
+      main.role = "prestige";
       if (!main.zones || main.zones.join("").includes("Pando") || main.zones.join("").includes("Tintos")) {
         main.zones = ["Lectura actual · 16,7 °C", "SET 1 / SET 2"];
       }
@@ -130,10 +158,27 @@ function bottlesReady() {
 function $ (sel, root = document) { return root.querySelector(sel); }
 function $$ (sel, root = document) { return [...root.querySelectorAll(sel)]; }
 
-function show(id) {
+function snapNav() {
+  return {
+    id: screenId || "home",
+    wineId: currentWine && currentWine.id,
+    bottleUid: currentBottle && currentBottle.uid,
+    sub: currentSub || ""
+  };
+}
+function show(id, opts) {
+  opts = opts || {};
+  if (!id) id = "home";
+  if (opts.tab) navStack = [];
+  else if (!opts.replace && !opts.pop && screenId && screenId !== id) {
+    navStack.push(snapNav());
+    if (navStack.length > 24) navStack.shift();
+  }
+  screenId = id;
   if (!["wine", "wine-sub", "dish"].includes(id)) lastList = id;
   $$(".screen").forEach(s => s.classList.toggle("active", s.id === id));
-  $$(".tab").forEach(t => t.classList.toggle("active", t.dataset.go === id));
+  const tabId = id === "cave-detail-screen" ? "caves" : id === "wine" || id === "wine-sub" ? lastList : id;
+  $$(".tab").forEach(t => t.classList.toggle("active", t.dataset.go === tabId || t.dataset.go === id));
   document.querySelector(".app")?.classList.toggle("fiche", id === "wine" || id === "wine-sub");
   if (id !== "scan") stopCam();
   if (id === "home") renderHome();
@@ -141,45 +186,210 @@ function show(id) {
   if (id === "cellar") renderCellar();
   if (id === "calendar") renderCalendar();
   if (id === "pairings") renderPairings();
+  if (id === "perfil") renderPerfil();
+  if (id === "zonas") renderZonas();
+  if (id === "catas") renderCatas();
+}
+function backCaption() {
+  const p = navStack[navStack.length - 1];
+  if (!p) return "Inicio";
+  const names = {
+    home: "Inicio", caves: "Vinotecas", "cave-detail-screen": "Vinoteca",
+    cellar: "Botellas", calendar: "Fechas", pairings: "Mesa", scan: "Escanear",
+    perfil: "Perfil", "perfil-sub": "Perfil", zonas: "Zonas", catas: "Catas",
+    dish: "Plato", wine: "Ficha", "wine-sub": "Ficha"
+  };
+  if (p.id === "wine" && p.wineId) {
+    const w = wineById(p.wineId);
+    return w ? w.producer.split(" ").slice(0, 2).join(" ") : "Ficha";
+  }
+  return names[p.id] || "Atrás";
+}
+function goBack() {
+  hideSheets();
+  const prev = navStack.pop();
+  if (!prev) return show("home", { replace: true });
+  restoreNav(prev);
+}
+function restoreNav(p) {
+  if (!p) return show("home", { replace: true });
+  if ((p.id === "wine" || p.id === "wine-sub") && p.wineId) {
+    const bot = p.bottleUid ? state.bottles.find(b => b.uid === p.bottleUid) : null;
+    currentWine = wineById(p.wineId);
+    currentBottle = bot || state.bottles.find(b => b.wineId === p.wineId) || null;
+    if (p.id === "wine-sub" && p.sub) {
+      openWine(p.wineId, currentBottle);
+      openWineSub(p.sub);
+      navStack.pop();
+      return;
+    }
+    openWine(p.wineId, currentBottle);
+    navStack.pop();
+    return;
+  }
+  show(p.id, { replace: true });
 }
 
 function renderHome() {
   const ready = bottlesReady();
-  const alerts = state.bottles.filter(b => {
-    const w = wineById(b.wineId);
-    return w && (phaseOf(w).key === "warn" || phaseOf(w).key === "late");
-  });
   const main = state.vinotecas.find(v => v.id === "v1");
   syncUsed();
   const cap = state.vinotecas.reduce((n, v) => n + (v.capacity || 0), 0);
   $("#home-kpis").innerHTML = `
     <div class="kpi"><b>${totalBottles()}/${cap}</b><span>En cava</span></div>
-    <div class="kpi"><b>${cellarValue()} €</b><span>Valor</span></div>
+    <div class="kpi"><b>${state.prefs.hideValue ? "—" : cellarValue() + " €"}</b><span>Valor</span></div>
     <div class="kpi"><b>${ready.reduce((n,b)=>n+b.qty,0)}</b><span>Para servir</span></div>
-    <div class="kpi"><b>${main ? main.tHigh.toFixed(1) + "°" : "—"}</b><span>Sommelière</span></div>`;
+    <div class="kpi"><b>${main ? main.tHigh.toFixed(1) + "°" : "—"}</b><span>VIP 185</span></div>`;
 
-  const tempNote = main && main.tHigh >= 15
-    ? `<div class="card warn-card" role="button" onclick="openCave('v1')"><strong>Temperatura elevada</strong><p class="muted" style="margin-top:6px">Tu cava está a ${main.tHigh.toFixed(1)} °C. El rango ideal es 12–16 °C.</p><p class="tiny gold" style="margin-top:8px">Revisar cava ›</p></div>`
-    : "";
-  $("#home-alerts").innerHTML = tempNote + (alerts.length ? alerts.map(b => {
-    const w = wineById(b.wineId);
-    const p = phaseOf(w);
-    return `<div class="card" role="button" onclick="openBottle('${b.uid}')">
-      <div class="row"><span class="muted"><i class="alert-dot"></i>${p.label}</span><span class="badge ${p.key}">${p.hint}</span></div>
-      <h3 style="margin-top:6px">${w.producer} ${w.name} ${w.vintage}</h3>
-      <p class="muted">${b.qty} ud · ${b.bin}</p>
-    </div>`;
-  }).join("") : (tempNote ? "" : `<div class="card muted">Sin urgencias.</div>`));
+  const featured = pickFeaturedWine();
+  $("#home-featured").innerHTML = featured ? `
+    <h2 style="margin-top:8px">Vino destacado</h2>
+    <div class="card" role="button" onclick="openWine('${featured.id}')" style="margin-top:10px">
+      <p class="tiny">${phaseOf(featured).label}</p>
+      <h3 style="margin-top:4px">${featured.producer}</h3>
+      <p>${featured.name} ${featured.vintage}</p>
+      <p class="muted" style="margin-top:6px">${featured.region} · Parker ${featured.ratings.parker.score}</p>
+    </div>` : "";
 
-  const featured = [...new Set(state.bottles.map(b => b.wineId))].map(wineById).filter(Boolean).slice(0, 6);
-  $("#home-ready").innerHTML = `<div class="tile-row">${featured.map(homeWineTile).join("")}</div>` || `<p class="empty">Escanea una botella con el círculo.</p>`;
+  const drinkNow = ready.slice(0, 4);
+  $("#home-ready").innerHTML = `
+    <h2 style="margin-top:16px">Para beber ahora</h2>
+    ${drinkNow.length
+      ? `<div class="tile-row" style="margin-top:10px">${drinkNow.map(b => homeWineTile(wineById(b.wineId))).join("")}</div>`
+      : `<p class="empty">Nada en ventana de consumo.</p>`}`;
+
+  const lastT = lastTastings(3);
+  $("#home-tasting").innerHTML = `
+    <h2 style="margin-top:16px" role="button" onclick="show('catas')">Últimas catas</h2>
+    ${lastT.length ? lastT.map(t => `
+      <div class="card" role="button" onclick="openWineThenTaste('${t.wine.id}')" style="margin-top:10px">
+        <div class="row"><h3>${t.wine.producer}</h3><span class="tiny">${t.when}</span></div>
+        <p class="muted">${t.wine.name} ${t.wine.vintage}</p>
+        <p class="tiny" style="margin-top:4px">${t.note || "Sin recuerdo escrito"}</p>
+      </div>`).join("") : `<p class="empty">Aún no hay cata personal.</p>`}`;
+
+  $("#home-alerts").innerHTML = homeAlertsHtml(main);
   const perm = typeof Notification !== "undefined" ? Notification.permission : "denied";
   const on = state.notify && state.notify.on && perm === "granted";
   $("#home-notify").innerHTML = `
-    <div class="card" role="button" onclick="openNotify()">
+    <div class="chip-row" style="margin-top:14px">
+      <button class="chip on" onclick="startScan()">Escanear</button>
+      <button class="chip" onclick="quickTaste()">Cata rápida</button>
+      <button class="chip" onclick="openHomeMap()">Mapa</button>
+    </div>
+    <div class="card" role="button" onclick="openNotify()" style="margin-top:12px">
       <div class="row"><h2>Avisos</h2><span class="badge ${on ? "ok" : "wait"}">${on ? "Activos" : "Configurar"}</span></div>
-      <p class="muted" style="margin-top:6px">${on ? "Te avisamos de apogeo, beber pronto y temperatura." : "Actívalos para no perder la ventana de un vino."}</p>
+      <p class="muted" style="margin-top:6px">${on ? "Apogeo, beber pronto y temperatura." : "Actívalos para no perder la ventana."}</p>
+    </div>
+    <div class="card" role="button" onclick="show('perfil')" style="margin-top:10px">
+      <div class="row"><h2>Perfil</h2><span class="tiny">›</span></div>
+      <p class="muted" style="margin-top:6px">Casas, privacidad, copias y fuentes.</p>
     </div>`;
+}
+
+function pickFeaturedWine() {
+  const wines = [...new Set(state.bottles.map(b => b.wineId))].map(wineById).filter(Boolean);
+  if (!wines.length) return null;
+  const peak = wines.filter(w => phaseOf(w).key === "ok");
+  const pool = peak.length ? peak : wines;
+  return pool.slice().sort((a, b) => (b.ratings.parker.score || 0) - (a.ratings.parker.score || 0))[0];
+}
+
+function lastTastings(n) {
+  return Object.keys(state.tasting || {}).map(id => {
+    const t = state.tasting[id];
+    const w = wineById(id);
+    if (!w || !t) return null;
+    return { wine: w, note: t.note || "", at: t.at || 0, when: t.at ? fmtBackup(t.at).split(" · ")[0] : "—" };
+  }).filter(Boolean).sort((a, b) => b.at - a.at).slice(0, n);
+}
+
+function homeAlertsHtml(main) {
+  const items = [];
+  if (main && main.tHigh >= 15) {
+    items.push(`<div class="card warn-card" role="button" onclick="openCave('v1')"><strong>Temperatura elevada</strong><p class="muted" style="margin-top:6px">${main.tHigh.toFixed(1)} °C · ideal 12–16 °C</p></div>`);
+  }
+  state.bottles.forEach(b => {
+    const w = wineById(b.wineId);
+    if (!w) return;
+    const p = phaseOf(w);
+    const bin = state.prefs.hideBin ? "" : (b.bin || "");
+    if (p.key === "warn" || p.key === "late") {
+      items.push(`<div class="card" role="button" onclick="openBottle('${b.uid}')">
+        <div class="row"><span class="muted"><i class="alert-dot"></i>Ventana de consumo</span><span class="badge ${p.key}">${p.label}</span></div>
+        <h3 style="margin-top:6px">${w.producer} ${w.name} ${w.vintage}</h3>
+        <p class="muted">${b.qty} ud${bin ? " · " + bin : ""}</p>
+      </div>`);
+    }
+    if (b.qty <= 1) {
+      items.push(`<div class="card" role="button" onclick="openBottle('${b.uid}')">
+        <div class="row"><span class="muted">Stock bajo</span><span class="badge warn">1 ud</span></div>
+        <h3 style="margin-top:6px">${w.producer} ${w.name}</h3>
+      </div>`);
+    }
+    if (!b.bin || !state.tasting[b.wineId]) {
+      items.push(`<div class="card" role="button" onclick="openBottle('${b.uid}')">
+        <div class="row"><span class="muted">Información pendiente</span></div>
+        <h3 style="margin-top:6px">${w.producer} ${w.name}</h3>
+        <p class="tiny">${!b.bin ? "Sin hueco" : "Sin cata personal"}</p>
+      </div>`);
+    }
+  });
+  const uniq = [];
+  const seen = new Set();
+  items.forEach(html => { if (!seen.has(html)) { seen.add(html); uniq.push(html); } });
+  return `<h2 style="margin-top:16px">Alertas</h2><div style="margin-top:10px">${uniq.slice(0, 6).join("") || `<div class="card muted">Sin urgencias.</div>`}</div>`;
+}
+
+function openWineThenTaste(id) {
+  openWine(id);
+  setTimeout(() => openWineSub("taste"), 0);
+}
+function quickTaste() {
+  const w = pickFeaturedWine();
+  if (!w) return startScan();
+  openWineThenTaste(w.id);
+}
+function openHomeMap() { show("zonas"); }
+
+function renderZonas() {
+  const zones = [
+    { name: "Rioja", country: "España", img: "vinedo-rioja.jpg", map: "mapa-rioja.jpg" },
+    { name: "Ribera del Duero", country: "España", img: "vinedo-ribera.jpg", map: "mapa-ribera.jpg" },
+    { name: "Priorat", country: "España", img: "vinedo-priorat.jpg", map: "mapa-priorat.jpg" },
+    { name: "Rías Baixas", country: "España", img: "vinedo-rias.jpg", map: "mapa-rioja.jpg" },
+    { name: "Champagne", country: "Francia", img: "vinedo-champagne.jpg", map: "mapa-medoc.jpg" },
+    { name: "Médoc", country: "Francia", img: "vinedo-margaux.jpg", map: "mapa-medoc.jpg" },
+    { name: "Bolgheri", country: "Italia", img: "vinedo-bolgheri.jpg", map: "mapa-medoc.jpg" }
+  ];
+  const html = zones.map(z => {
+    const n = WINE_CATALOG.filter(w => (w.region + " " + w.appellation).toLowerCase().includes(z.name.split(" ")[0].toLowerCase()) || (z.name === "Médoc" && /margaux|médoc|medoc/i.test(w.region + w.appellation))).length;
+    const sample = WINE_CATALOG.find(w => (w.region + w.appellation).toLowerCase().includes(z.name.split(" ")[0].toLowerCase()) || (z.name === "Médoc" && /margaux|médoc|medoc/i.test(w.region)));
+    return `<button class="zone-tile" onclick="${sample ? `openWine('${sample.id}');setTimeout(()=>openWineSub('mapa'),0)` : "show('cellar')"}">
+      <img src="${z.img}" alt="${z.name}">
+      <span><b>${z.name}</b><small>${z.country} · ${n} vinos</small></span>
+    </button>`;
+  }).join("");
+  $("#zonas-body").innerHTML = `
+    <button class="back" onclick="goBack()">‹ ${backCaption()}</button>
+    <p class="eyebrow">Mi Vinoteca</p>
+    <h1>Zonas vinícolas</h1>
+    <p class="muted">Explora la región y abre el mapa de la bodega.</p>
+    <div class="zone-grid">${html}</div>`;
+}
+
+function renderCatas() {
+  const list = lastTastings(20);
+  $("#catas-body").innerHTML = `
+    <button class="back" onclick="goBack()">‹ ${backCaption()}</button>
+    <p class="eyebrow">Mi Vinoteca</p>
+    <h1>Catas</h1>
+    <button class="btn btn-gold" style="width:100%;margin:10px 0" onclick="quickTaste()">Cata rápida</button>
+    ${list.length ? list.map(t => `<div class="card" role="button" onclick="openWineThenTaste('${t.wine.id}')">
+      <div class="row"><h3>${t.wine.producer}</h3><span class="tiny">${t.when}</span></div>
+      <p class="muted">${t.wine.name} ${t.wine.vintage}</p>
+      <p class="tiny" style="margin-top:6px">${t.note || "Cuaderno sin recuerdo"}</p>
+    </div>`).join("") : `<p class="empty">Todavía no hay catas. Usa Cata rápida.</p>`}`;
 }
 
 function cellarName(id) {
@@ -216,8 +426,9 @@ function bottleCard(b) {
         <span class="badge ${p.key}">${p.label}</span>
       </div>
       <p class="inv-title">${title}</p>
-      <p class="muted">${w.region} · ${kind} · ${w.vintage}</p>
+      <p class="muted">${w.region} · ${kind} · ${w.vintage}${state.prefs.hideBin ? "" : (b.bin ? " · " + b.bin : "")} · ${b.qty} botella${b.qty>1?"s":""}</p>
     </div>
+    <div class="inv-score">★ ${w.ratings.parker.score}</div>
   </div>`;
 }
 
@@ -228,7 +439,7 @@ function renderCaves() {
       <div class="cave-ico" aria-hidden="true"></div>
       <div>
         <h3>${v.name}</h3>
-        <p class="muted">${v.brand}${v.house ? " · " + v.house : ""}</p>
+        <p class="muted">${v.brand}${v.house ? " · " + v.house : ""}${v.role === "prestige" ? " · prestigiosas" : ""}</p>
         <p class="cave-meta"><span>${v.used}/${v.capacity}</span><span>${v.tHigh.toFixed(1)}°</span></p>
       </div>
     </div>`;
@@ -246,10 +457,11 @@ function openCave(id) {
   $("#cave-house").textContent = v.house || v.brand || "Casa Llavaneras";
   $("#cave-title").textContent = v.name;
   $("#cave-detail").innerHTML = `
-    <p class="muted">${v.brand}</p>
+    <p class="muted">${v.brand}${v.role === "prestige" ? " · reserva de las botellas más caras" : ""}</p>
     ${v.photo ? `<img class="cave-photo" src="${v.photo}" alt="${v.name}" />` : ""}
     <h2>Mapa de huecos</h2>
     ${rackGrid(id)}
+    <button class="btn btn-ghost" style="width:100%;margin:12px 0" onclick="deleteCave('${v.id}')">Dar de baja esta vinoteca</button>
     <div class="temp-ring-row">
       <div class="temp-ring"><b>${v.tHigh.toFixed(1)}</b><span>°C</span></div>
       <div>
@@ -269,7 +481,27 @@ function renderCellar() {
     const typeOk = filterType === "todos" || w.type === filterType;
     return typeOk && hay.includes(q);
   });
-  $("#cellar-list").innerHTML = list.map(bottleCard).join("") || `<p class="empty">Sin coincidencias. Escanea o añade a mano.</p>`;
+  const byWine = {};
+  list.forEach(b => { (byWine[b.wineId] || (byWine[b.wineId] = [])).push(b); });
+  $("#cellar-list").innerHTML = Object.keys(byWine).map(id => wineStockCard(byWine[id])).join("") || `<p class="empty">Sin coincidencias. Escanea o añade a mano.</p>`;
+}
+
+function wineStockCard(lots) {
+  const b = lots[0];
+  const w = wineById(b.wineId);
+  const p = phaseOf(w);
+  const qty = lots.reduce((n, x) => n + x.qty, 0);
+  const locs = lots.map(x => `${cellarName(x.cellarId)} ${state.prefs.hideBin ? "" : (x.bin || "")} ×${x.qty}`.trim()).join(" · ");
+  return `<div class="inv-card" role="button" onclick="openWine('${w.id}')">
+    <div class="inv-sil" style="--c:${w.color}"></div>
+    <div class="inv-meta">
+      <div class="row"><h3>${w.producer.split(" ").slice(0,3).join(" ")}</h3><span class="badge ${p.key}">${p.label}</span></div>
+      <p class="inv-title">${w.name} ${w.vintage}</p>
+      <p class="muted">${qty} botella${qty>1?"s":""} · ${lots.length} lote${lots.length>1?"s":""}</p>
+      <p class="tiny">${locs}</p>
+    </div>
+    <div class="inv-score">★ ${w.ratings.parker.score}</div>
+  </div>`;
 }
 
 function renderCalendar() {
@@ -407,7 +639,7 @@ function openWine(wineId, bottle) {
 
   $("#wine-body").innerHTML = `
     <div class="wine-top">
-      <button class="back" onclick="show('${backTo}')">‹</button>
+      <button class="back" onclick="goBack()">‹ ${backCaption()}</button>
       <div class="spacer"></div>
       <button class="icon-btn fav ${isFav(w.id) ? "on" : ""}" onclick="toggleFav('${w.id}')" aria-label="Favorito">${isFav(w.id) ? "♥" : "♡"}</button>
       <button class="icon-btn" onclick="openWineMenu()">···</button>
@@ -416,6 +648,13 @@ function openWine(wineId, bottle) {
     <h1 class="wine-producer">${w.producer}</h1>
     <p class="wine-cuvee">${w.name} ${w.vintage}</p>
     <div class="peak-pill">${pill}</div>
+    ${currentBottle ? `<p class="tiny" style="text-align:center;margin:6px 0 4px">En mi bodega · ${currentBottle.qty} botella${currentBottle.qty>1?"s":""}</p>` : ""}
+    <div class="wine-tabs">
+      <button type="button" onclick="openWineSub('profile')">General</button>
+      <button type="button" onclick="openWineSub('taste')">Cata</button>
+      <button type="button" onclick="openWineSub('mapa')">Bodega</button>
+      <button type="button" onclick="openWineSub('anadas')">Añadas</button>
+    </div>
     ${zoneStrip(w)}
 
     <div class="sec-head" role="button" onclick="openWineSub('ratings')"><h2>Calificaciones</h2><span class="sec-ico">▦</span></div>
@@ -469,6 +708,15 @@ function openWine(wineId, bottle) {
         <div><div class="lbl">Servicio</div><div class="val">${w.conservation.serveMin}–${w.conservation.serveMax} °C</div></div>
       </div>
     </div>
+    <div class="dossier-grid">
+      <button type="button" onclick="openWineSub('tecnica')">Técnica</button>
+      <button type="button" onclick="openWineSub('servicio')">Copa</button>
+      <button type="button" onclick="openWineSub('evolve')">Evolución</button>
+      <button type="button" onclick="openWineSub('mercado')">Mercado</button>
+      <button type="button" onclick="openWineSub('historia')">Historia</button>
+      <button type="button" onclick="openWineSub('origen')">Hueco</button>
+      <button type="button" onclick="openWineSub('compras')">Compras</button>
+    </div>
     ${cataPersonalCard(w)}
   `;
   show("wine");
@@ -494,6 +742,7 @@ function openWineMenu() {
 }
 
 function openWineSub(kind) {
+  currentSub = kind;
   const w = currentWine;
   if (!w) return;
   const p = phaseOf(w);
@@ -503,25 +752,33 @@ function openWineSub(kind) {
     ratings: "Calificaciones",
     pairings: "Maridajes",
     keep: "Conservación",
+    servicio: "Servicio en copa",
+    tecnica: "Ficha técnica",
+    historia: "Historia",
+    mercado: "Valor de mercado",
     evolve: "Evolución",
     profile: "Perfil",
     origen: "Origen y hueco",
     mapa: "Mapa y bodega",
     taste: "Cuaderno de cata",
-    bottle: currentBottle ? "Esta botella" : "Añadir a vinoteca"
+    anadas: "Añadas",
+    compras: "Compras e historial",
+    bottle: currentBottle ? "Ubicación física" : "Añadir a vinoteca"
   };
   let body = "";
   if (kind === "ratings") {
+    const empty = "Sin comentario de cata publicado para esta añada.";
+    const noteCard = (fuente, texto) => {
+      const t = (texto || "").trim();
+      return `<div class="card" style="margin-top:10px"><p class="tiny">${fuente}</p><p class="muted" style="margin-top:8px;line-height:1.45">${t || empty}</p></div>`;
+    };
     body = `
-      <p class="tiny" style="margin:6px 0 8px">Fuentes públicas. Vivino en escala 5; crítica en 100 puntos.</p>
-      <div class="ratings">
-        <div class="rate"><b>${r.vivino.score.toFixed(1)}</b><span>Vivino · ${r.vivino.count.toLocaleString("es")} opiniones · ${score100(r.vivino)}/100</span></div>
-        <div class="rate"><b>${r.penin.score}</b><span>Guía Peñín / 100</span></div>
-        <div class="rate"><b>${r.parker.score}</b><span>${r.parker.reviewer}</span></div>
-        <div class="rate"><b>${r.spectator.score}</b><span>Wine Spectator / 100</span></div>
-        <div class="rate"><b>${r.decanter.score}</b><span>Decanter / 100</span></div>
-        <div class="rate"><b>${w.priceHint}</b><span>Horquilla de mercado</span></div>
-      </div>`;
+      <p class="tiny" style="margin:6px 0 8px">Comentarios de cata. Las puntuaciones están en la ficha.</p>
+      ${noteCard("Guía Peñín", r.penin && r.penin.note)}
+      ${noteCard(r.parker && r.parker.reviewer ? r.parker.reviewer : "Luis Gutiérrez / WA", r.parker && r.parker.note)}
+      ${noteCard("Wine Spectator", r.spectator && r.spectator.note)}
+      ${noteCard("Vivino · usuarios", r.vivino && r.vivino.note)}
+      ${r.decanter && r.decanter.note ? noteCard("Decanter", r.decanter.note) : ""}`;
   } else if (kind === "pairings") {
     body = pairingBlock(w);
   } else if (kind === "keep") {
@@ -533,13 +790,44 @@ function openWineSub(kind) {
         <div class="temp"><span class="tiny">Posición</span><b style="font-size:16px">${w.conservation.position}</b></div>
       </div>
       <div class="card">
-        <p class="muted">Luz: ${w.conservation.light}. Evita vibración. El corcho no es hermético al aroma.</p>
+        <p class="muted">Luz: ${w.conservation.light}. El corcho vive con humedad ${corkHumidity(w)}: por debajo se reseca y entra oxígeno; por encima hay moho en la cápsula.</p>
         ${adviseCave(w)}
       </div>
       <div class="card">
         <strong>Cómo conservarlo</strong>
         <p class="muted" style="margin-top:6px">Horizontal, oscuro, sin UV ni vibración de electrodomésticos. Estabilidad antes que la cifra exacta: más de 2 °C de oscilación acelera la evolución.</p>
-      </div>`;
+      </div>
+      <button class="btn btn-ghost" style="width:100%;margin-top:10px" onclick="openWineSub('servicio')">Protocolo de servicio ›</button>`;
+  } else if (kind === "servicio") {
+    const d = dossierOf(w);
+    body = `
+      <div class="temp-grid" style="margin:10px 0">
+        <div class="temp"><span class="tiny">Servir</span><b>${w.conservation.serveMin}–${w.conservation.serveMax} °C</b></div>
+        <div class="temp"><span class="tiny">Decantar</span><b style="font-size:16px">${d.decant}</b></div>
+      </div>
+      <div class="card"><p class="tiny">Copa</p><p>${d.glass}</p></div>
+      <div class="card"><p class="tiny">Oxígeno</p><p class="muted" style="margin-top:6px">${d.oxygen}</p></div>
+      <div class="card"><p class="tiny">Guarda en cava</p><p class="muted" style="margin-top:6px">${w.conservation.cellarMin}–${w.conservation.cellarMax} °C · ${w.conservation.humidity} · ${w.conservation.position}</p></div>`;
+  } else if (kind === "tecnica") {
+    const d = dossierOf(w);
+    body = `
+      <div class="fact"><span>Uvas</span><b>${w.grapes.join(", ")}</b></div>
+      <div class="fact"><span>Alcohol</span><b>${w.abv}% vol.</b></div>
+      <div class="fact"><span>Estilo</span><b>${w.style} · ${w.type}</b></div>
+      <div class="fact"><span>Altitud</span><b>${d.elevation}</b></div>
+      <div class="card" style="margin-top:12px"><p class="tiny">Suelos</p><p class="muted" style="margin-top:6px">${d.soils}</p></div>
+      <div class="card"><p class="tiny">Viñedo</p><p class="muted" style="margin-top:6px">${d.vineyard}</p></div>
+      <div class="card"><p class="tiny">Vinificación</p><p class="muted" style="margin-top:6px">${d.vinification}</p></div>
+      <div class="card"><p class="tiny">Crianza</p><p class="muted" style="margin-top:6px">${d.elevage}</p></div>`;
+  } else if (kind === "historia") {
+    const d = dossierOf(w);
+    body = `
+      <div class="card"><p>${d.history}</p></div>
+      ${d.awards && d.awards.length ? `<div class="card"><p class="tiny">Crítica</p><p style="margin-top:8px">${d.awards.join(" · ")}</p></div>` : ""}
+      <p class="muted" style="margin-top:12px">${w.appellation} · ${w.country}</p>`;
+  } else if (kind === "mercado") {
+    body = `<div id="mercado-box">${mercadoSkeleton(w)}</div>`;
+    setTimeout(() => fillMercado(w), 0);
   } else if (kind === "evolve") {
     body = `
       <p class="muted" style="margin:6px 0">Añada ${w.vintage}. Beber desde ${w.aging.drinkFrom}. Apogeo ${w.aging.peakStart}–${w.aging.peakEnd}. Límite prudente ${w.aging.holdTo}.</p>
@@ -556,13 +844,18 @@ function openWineSub(kind) {
       <h3 style="margin:8px 0 6px">${w.producer}</h3>
       <p>${w.name} ${w.vintage}</p>
       <div class="card" style="margin-top:12px">
-        <h2>Cata</h2>
+        <h2>Cata publicada</h2>
         <p style="margin-top:8px">${w.tasting}</p>
       </div>
       <div class="card">
         <p>Uvas: ${w.grapes.join(", ")}</p>
         <p class="muted">${w.abv}% vol. · ${w.type} · ${w.style} · ${w.priceHint}</p>
-      </div>`;
+      </div>
+      <div class="card">
+        <p class="tiny">Suelos</p>
+        <p class="muted" style="margin-top:6px">${dossierOf(w).soils}</p>
+      </div>
+      <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="openWineSub('tecnica')">Ficha técnica completa ›</button>`;
   } else if (kind === "origen") {
     const b = currentBottle;
     body = `
@@ -576,7 +869,35 @@ function openWineSub(kind) {
       ${b && b.price ? `<div class="fact"><span>Precio</span><b>${b.price} €</b></div>` : ""}
       <button class="btn btn-ghost" style="width:100%;margin-top:14px" onclick="openWineSub('mapa')">Ver mapa de la zona</button>`;
   } else if (kind === "mapa") {
-    body = mapaBlock(w);
+    body = mapaBlock(w) + `<div class="wine-tabs" style="margin-top:12px">
+      <button type="button" class="on">Mapa</button>
+      <button type="button" onclick="openWineSub('historia')">Historia</button>
+      <button type="button" onclick="openWineSub('profile')">Vinos</button>
+    </div>`;
+  } else if (kind === "anadas") {
+    const sibs = WINE_CATALOG.filter(x => x.producer === w.producer && x.name === w.name);
+    body = sibs.length ? sibs.map(s => `<div class="card" role="button" onclick="openWine('${s.id}')">
+      <div class="row"><h3>${s.vintage}</h3><span class="badge">Parker ${s.ratings.parker.score}</span></div>
+      <p class="muted">${s.priceHint} · ${phaseOf(s).label}</p>
+    </div>`).join("") : `<p class="muted">No hay otras añadas en el catálogo.</p>`;
+  } else if (kind === "compras") {
+    const b = currentBottle;
+    const d = dossierOf(w);
+    const cost = b && b.price && !state.prefs.hidePrices ? b.price : null;
+    const est = d.market && d.market.mid ? d.market.mid : null;
+    const pct = cost && est ? Math.round(((est - cost) / cost) * 100) : null;
+    body = state.prefs.hideValue ? `<p class="muted">Valor oculto en Privacidad.</p>` : `
+      <div class="temp-grid">
+        <div class="temp"><span class="tiny">Compra</span><b>${cost ? cost + " €" : "—"}</b></div>
+        <div class="temp"><span class="tiny">Estimado</span><b>${est ? est + " €" : "—"}</b></div>
+        <div class="temp"><span class="tiny">Δ</span><b>${pct == null ? "—" : (pct>=0?"+":"")+pct+"%"}</b></div>
+        <div class="temp"><span class="tiny">Uds</span><b>${b ? b.qty : 0}</b></div>
+      </div>
+      <div class="card"><p class="tiny">Movimientos</p>
+        ${b ? `<p style="margin-top:8px">Compra · ${b.qty} bot. · ${b.bought || "fecha n/d"} ${cost ? "· "+cost+" €/bot." : ""}</p>
+        ${b.note ? `<p class="muted">${b.note}</p>` : ""}` : `<p class="muted">Aún no está en cava.</p>`}
+      </div>
+      <button class="btn btn-ghost" style="width:100%" onclick="openWineSub('mercado')">Horquilla de mercado ›</button>`;
   } else if (kind === "taste") {
     const t = getTaste(w.id);
     const axis = (left, right, field, val) => `
@@ -598,17 +919,26 @@ function openWineSub(kind) {
       </label>
       <p class="cata-foot">Casa Llavaneras</p>`;
   } else {
+    const cave = currentBottle && state.vinotecas.find(v => v.id === currentBottle.cellarId);
     body = currentBottle ? `
-      <div class="card">
-        <p>Ubicación: ${cellarName(currentBottle.cellarId)} · ${currentBottle.bin || "sin hueco"}</p>
-        <p class="muted">Compra ${currentBottle.bought || "—"} · ${currentBottle.price ? currentBottle.price + " €" : "precio no indicado"} · ${currentBottle.qty} ud</p>
-        ${currentBottle.note ? `<p style="margin-top:6px">${currentBottle.note}</p>` : ""}
-        ${currentBottle.labelPhoto ? `<img class="cave-photo" src="${currentBottle.labelPhoto}" alt="Etiqueta escaneada" />` : ""}
-        <div class="btn-row">
-          <button class="btn btn-gold" onclick="consumeBottle()">Servir 1</button>
-          <button class="btn btn-ghost" onclick="showSheet('move-sheet')">Mover</button>
-        </div>
-      </div>` : `
+      <p class="tiny">${houseName(cave && cave.houseId)} · ${cellarName(currentBottle.cellarId)}</p>
+      ${cave && cave.photo ? `<img class="estate-wide" src="${cave.photo}" alt="Vinoteca">` : `<img class="estate-wide" src="cave-principal.jpg" alt="Cava">`}
+      <div class="fact"><span>Estantería / hueco</span><b>${state.prefs.hideBin ? "Oculto" : (currentBottle.bin || "sin hueco")}</b></div>
+      <div class="fact"><span>Cantidad</span><b>${currentBottle.qty}</b></div>
+      <div class="fact"><span>Entrada</span><b>${currentBottle.bought || "—"}</b></div>
+      ${!state.prefs.hidePrices && currentBottle.price ? `<div class="fact"><span>Precio</span><b>${currentBottle.price} €</b></div>` : ""}
+      ${currentBottle.note ? `<div class="card"><p>${currentBottle.note}</p></div>` : ""}
+      ${currentBottle.labelPhoto ? `<img class="cave-photo" src="${currentBottle.labelPhoto}" alt="Etiqueta escaneada" />` : ""}
+      <div class="btn-row">
+        <button class="btn btn-ghost" onclick="addToLot(1)">+1</button>
+        <button class="btn btn-gold" onclick="consumeBottle(1)">Servir 1</button>
+        <button class="btn btn-ghost" onclick="consumeMany()">Servir N</button>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-ghost" onclick="showSheet('move-sheet')">Mover lote</button>
+        <button class="btn btn-ghost" onclick="showSheet('add-sheet')">Otra ubicación</button>
+      </div>
+      <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="openWineSub('compras')">Compras e historial ›</button>` : `
       <p class="muted" style="margin-bottom:12px">Este vino aún no está en tu cava.</p>
       <div class="btn-row">
         <button class="btn btn-gold" onclick="quickAdd('${w.id}')">Añadir a vinoteca</button>
@@ -616,7 +946,7 @@ function openWineSub(kind) {
       </div>`;
   }
   $("#wine-sub-body").innerHTML = `
-    <button class="back" onclick="show('wine')">‹ ${w.producer}</button>
+    <button class="back" onclick="goBack()">‹ ${backCaption()}</button>
     <p class="eyebrow">${w.name} ${w.vintage}</p>
     <h1>${titles[kind] || "Ficha"}</h1>
     ${body}`;
@@ -695,7 +1025,7 @@ function openDish(id) {
   const inCava = wines.filter(x => state.bottles.some(b => b.wineId === x.wine.id));
   $("#dish-title").textContent = d.icon + " " + d.name;
   $("#dish-body").innerHTML = `
-    <button class="back" onclick="show('pairings')">‹ Maridajes</button>
+    <button class="back" onclick="goBack()">‹ ${backCaption()}</button>
     <p class="eyebrow">${d.family}</p>
     <h1>${d.icon} ${d.name}</h1>
     <p class="muted">${d.heat} · ${d.tags.join(" · ")}</p>
@@ -741,17 +1071,91 @@ function currentAdvice(w, p) {
   return `Fuera de ventana prudente. Ábrelo solo si aceptas un perfil muy evolucionado. Revisa corcho y nivel.`;
 }
 
-function consumeBottle() {
+function stockOf(wineId) {
+  return state.bottles.filter(b => b.wineId === wineId).reduce((n, b) => n + b.qty, 0);
+}
+function logAct(text) {
+  state.activity = state.activity || [];
+  state.activity.unshift({ at: Date.now(), text });
+  state.activity = state.activity.slice(0, 40);
+}
+function refreshAddKeep() {
+  const hint = $("#add-keep-hint");
+  if (!hint) return;
+  if (!currentWine) { hint.textContent = ""; return; }
+  hint.textContent = keepHint(currentWine, ($("#add-cellar") && $("#add-cellar").value) || "v1");
+}
+function corkHumidity(w) {
+  return (w && w.conservation && w.conservation.humidity) || "65–75%";
+}
+function keepHint(w, cellarId) {
+  if (!w || !w.conservation) return "";
+  const c = w.conservation;
+  const hrIdeal = corkHumidity(w);
+  const cave = state.vinotecas.find(v => v.id === cellarId);
+  const nowT = cave ? cave.tHigh : null;
+  const nowH = cave && cave.humidity != null ? cave.humidity : null;
+  const okT = nowT == null || (nowT >= c.cellarMin - 1 && nowT <= c.cellarMax + 1);
+  const nums = String(hrIdeal).match(/\d+/g) || ["65", "75"];
+  const hMin = Number(nums[0]);
+  const hMax = Number(nums[1] || nums[0]);
+  const okH = nowH == null || (nowH >= hMin - 5 && nowH <= hMax + 5);
+  let line = `Guarda ${c.cellarMin}–${c.cellarMax} °C · humedad corcho ${hrIdeal} · ${c.position || "horizontal"}`;
+  if (nowT != null) line += ` · cava ${nowT.toFixed(1)} °C${okT ? "" : " fuera de rango"}`;
+  if (nowH != null) line += ` · ${nowH}% HR${okH ? "" : " seca para el corcho"}`;
+  return line;
+}
+function preferredCellar(w, price) {
+  const vip = state.vinotecas.find(v => v.role === "prestige") || state.vinotecas[0];
+  const other = state.vinotecas.find(v => v.id !== (vip && vip.id)) || vip;
+  const p = Number(price) || 0;
+  const score = w && w.ratings && w.ratings.parker ? w.ratings.parker.score : 0;
+  if ((p >= 80 || score >= 95) && vip) return vip.id;
+  return (other && other.id) || (vip && vip.id) || "v1";
+}
+function mergeOrCreateLot({ wineId, cellarId, bin, qty, price, note, photo }) {
+  const hit = state.bottles.find(b => b.wineId === wineId && b.cellarId === cellarId && (b.bin || "") === (bin || ""));
+  if (hit) {
+    hit.qty += qty;
+    if (price) hit.price = price;
+    if (photo) hit.labelPhoto = photo;
+    if (note) hit.note = [hit.note, note].filter(Boolean).join(" · ");
+    return hit;
+  }
+  const lot = {
+    uid: "b" + Date.now() + Math.random().toString(16).slice(2, 6),
+    wineId, qty, cellarId, bin: bin || nextBin(cellarId),
+    bought: NOW.toISOString().slice(0, 10),
+    price: price || 0, note: note || "", labelPhoto: photo || ""
+  };
+  state.bottles.push(lot);
+  return lot;
+}
+function consumeBottle(n) {
   if (!currentBottle) return;
+  const take = Math.max(1, parseInt(n || 1, 10));
   const wineId = currentBottle.wineId;
-  currentBottle.qty -= 1;
+  const have = currentBottle.qty;
+  const used = Math.min(take, have);
+  currentBottle.qty -= used;
+  logAct(`Servidas ${used} · ${wineById(wineId).producer} ${wineById(wineId).name}`);
   if (currentBottle.qty <= 0) {
-    state.bottles = state.bottles.filter(b => b.uid !== currentBottle.uid);
+    const uid = currentBottle.uid;
+    state.bottles = state.bottles.filter(b => b.uid !== uid);
     currentBottle = state.bottles.find(b => b.wineId === wineId) || null;
   }
   save();
-  toast("Servida");
+  toast(currentBottle ? `${used} servida${used>1?"s":""} · quedan ${currentBottle.qty}` : `${used} servida${used>1?"s":""} · lote vacío`);
   openWine(wineId, currentBottle);
+}
+function addToLot(n) {
+  if (!currentBottle) return showSheet("add-sheet");
+  const add = Math.max(1, parseInt(n || 1, 10));
+  currentBottle.qty += add;
+  logAct(`Entrada +${add} · ${cellarName(currentBottle.cellarId)} ${currentBottle.bin||""}`);
+  save();
+  toast(`+${add} · lote ${currentBottle.qty}`);
+  openWine(currentBottle.wineId, currentBottle);
 }
 
 function addCurrentToCellar() {
@@ -761,37 +1165,45 @@ function addCurrentToCellar() {
   const bin = $("#add-bin").value.trim() || nextBin(cellarId);
   const price = parseFloat($("#add-price").value || "0");
   const note = $("#add-note").value.trim();
-  const existing = state.bottles.find(b => b.wineId === currentWine.id && b.cellarId === cellarId && b.bin === bin);
-  if (existing) {
-    existing.qty += qty;
-    if (lastLabelData) existing.labelPhoto = lastLabelData;
-    currentBottle = existing;
-  } else {
-    const bottle = {
-      uid: "b" + Date.now(),
-      wineId: currentWine.id,
-      qty, cellarId, bin,
-      bought: NOW.toISOString().slice(0, 10),
-      price, note,
-      labelPhoto: lastLabelData || ""
-    };
-    state.bottles.push(bottle);
-    currentBottle = bottle;
-  }
+  currentBottle = mergeOrCreateLot({
+    wineId: currentWine.id, cellarId, bin, qty, price, note, photo: lastLabelData || ""
+  });
+  logAct(`Alta +${qty} ${currentWine.producer} ${currentWine.name} → ${cellarName(cellarId)} ${bin}`);
   save();
   hideSheets();
-  toast("Guardada en " + cellarName(cellarId));
+  toast(`${qty} en ${cellarName(cellarId)} · ${currentWine.conservation.cellarMin}–${currentWine.conservation.cellarMax} °C · HR ${corkHumidity(currentWine)}`);
   openWine(currentWine.id, currentBottle);
 }
 
 function moveBottle() {
   if (!currentBottle) return;
-  currentBottle.cellarId = $("#move-cellar").value;
-  currentBottle.bin = $("#move-bin").value.trim();
+  const dest = $("#move-cellar").value;
+  const bin = $("#move-bin").value.trim();
+  const qty = Math.max(1, parseInt(($("#move-qty") && $("#move-qty").value) || currentBottle.qty, 10));
+  const take = Math.min(qty, currentBottle.qty);
+  const from = cellarName(currentBottle.cellarId) + " " + (currentBottle.bin || "");
+  if (take >= currentBottle.qty) {
+    const merged = state.bottles.find(b => b.uid !== currentBottle.uid && b.wineId === currentBottle.wineId && b.cellarId === dest && (b.bin || "") === bin);
+    if (merged) {
+      merged.qty += currentBottle.qty;
+      state.bottles = state.bottles.filter(b => b.uid !== currentBottle.uid);
+      currentBottle = merged;
+    } else {
+      currentBottle.cellarId = dest;
+      currentBottle.bin = bin;
+    }
+  } else {
+    currentBottle.qty -= take;
+    currentBottle = mergeOrCreateLot({
+      wineId: currentBottle.wineId, cellarId: dest, bin, qty: take,
+      price: currentBottle.price, note: "Traslado", photo: currentBottle.labelPhoto || ""
+    });
+  }
+  logAct(`Traslado ${take} · ${from} → ${cellarName(dest)} ${bin}`);
   save();
   hideSheets();
   openBottle(currentBottle.uid);
-  toast("Ubicación actualizada");
+  toast(`Movidas ${take}`);
 }
 
 function addCave() {
@@ -809,6 +1221,7 @@ function addCave() {
     humidity: parseInt($("#new-cave-hr").value || "68", 10),
     bins: ($("#new-cave-bins") && $("#new-cave-bins").value.trim()) || "",
     place: ($("#new-cave-place") && $("#new-cave-place").value.trim()) || "",
+    houseId: ensureHouse(($("#new-cave-house") && $("#new-cave-house").value.trim()) || "Casa Llavaneras"),
     zones: ["Personalizada"]
   });
   save();
@@ -1038,30 +1451,35 @@ function quickAdd(wineId) {
   const w = wineById(wineId);
   if (!w) return;
   currentWine = w;
-  const cellarId = "v1";
-  const existing = state.bottles.find(b => b.wineId === wineId && b.cellarId === cellarId);
-  if (existing) {
-    existing.qty += 1;
-    if (lastLabelData) existing.labelPhoto = lastLabelData;
-    currentBottle = existing;
-  } else {
-    const bottle = {
-      uid: "b" + Date.now(),
-      wineId,
-      qty: 1,
-      cellarId,
-      bin: nextBin(cellarId),
-      bought: NOW.toISOString().slice(0, 10),
-      price: 0,
-      note: "Añadido por escaneo",
-      labelPhoto: lastLabelData || ""
-    };
-    state.bottles.push(bottle);
-    currentBottle = bottle;
-  }
+  const cellarId = preferredCellar(w, 0);
+  currentBottle = mergeOrCreateLot({
+    wineId, cellarId, bin: nextBin(cellarId), qty: 1, price: 0,
+    note: "Alta rápida", photo: lastLabelData || ""
+  });
+  logAct(`Alta rápida ${w.producer} ${w.name} → ${cellarName(cellarId)}`);
   save();
-  toast("Guardado en " + cellarName(cellarId));
+  toast("1 en " + cellarName(cellarId) + " · " + w.conservation.cellarMin + "–" + w.conservation.cellarMax + " °C · HR " + corkHumidity(w));
   openWine(wineId, currentBottle);
+}
+function consumeMany() {
+  if (!currentBottle) return;
+  const n = parseInt(prompt("¿Cuántas sirves de este lote? (hay " + currentBottle.qty + ")", "1"), 10);
+  if (!n || n < 1) return;
+  consumeBottle(n);
+}
+function deleteCave(id) {
+  const v = state.vinotecas.find(x => x.id === id);
+  if (!v) return;
+  if (state.vinotecas.length < 2) return toast("Deja al menos una vinoteca");
+  const used = state.bottles.filter(b => b.cellarId === id);
+  const dest = state.vinotecas.find(x => x.id !== id);
+  if (used.length && !confirm(`${v.name} tiene ${used.reduce((n,b)=>n+b.qty,0)} botellas. ¿Pasarlas a ${dest.name} y dar de baja?`)) return;
+  used.forEach(b => { b.cellarId = dest.id; });
+  state.vinotecas = state.vinotecas.filter(x => x.id !== id);
+  logAct("Baja vinoteca " + v.name);
+  save();
+  toast("Vinoteca dada de baja");
+  show("caves");
 }
 
 function renderHits(hits, title, withAdd) {
@@ -1094,14 +1512,19 @@ function fillSelects() {
 function showSheet(id) {
   fillSelects();
   if (id === "add-sheet") {
-    $("#add-cellar").value = "v1";
-    $("#add-bin").value = nextBin("v1");
+    const cellar = currentWine ? preferredCellar(currentWine, currentBottle && currentBottle.price) : "v1";
+    $("#add-cellar").value = cellar;
+    $("#add-bin").value = nextBin(cellar);
     $("#add-qty").value = "1";
+    refreshAddKeep();
   }
   if (id === "move-sheet" && currentBottle) {
     $("#move-cellar").value = currentBottle.cellarId;
     $("#move-bin").value = currentBottle.bin || "";
+    if ($("#move-qty")) $("#move-qty").value = currentBottle.qty;
+    if ($("#move-hint")) $("#move-hint").textContent = `${currentBottle.qty} ud en ${cellarName(currentBottle.cellarId)} ${currentBottle.bin || ""}`;
   }
+  if (id === "add-sheet") refreshAddKeep();
   $$(".modal-bg").forEach(m => m.classList.remove("show"));
   const el = document.getElementById(id);
   if (el) el.classList.add("show");
@@ -1135,6 +1558,7 @@ function openNotify() {
     unsupported: "Este navegador no admite avisos."
   };
   $("#notify-perm").textContent = tip[perm] || tip.default;
+  hydratePriceFields();
   showSheet("notify-sheet");
 }
 
@@ -1337,10 +1761,304 @@ function mapaBlock(w) {
     ${g.web ? `<a class="btn btn-gold" style="width:100%;margin-top:8px;display:block;text-align:center" href="${g.web}" target="_blank" rel="noopener">Web de la bodega</a>` : ""}`;
 }
 
+function mercadoSkeleton(w) {
+  const d = dossierOf(w);
+  const mine = currentBottle && currentBottle.price ? currentBottle.price + " €" : "—";
+  return `
+    <p class="muted" style="margin:6px 0 10px">Vivino no tiene API oficial. Ahora: dossier demo. Si activas live (Wine-Searcher), se sustituye esta horquilla.</p>
+    <div class="temp-grid">
+      <div class="temp"><span class="tiny">Baja</span><b>${d.market.low ? d.market.low + " €" : "—"}</b></div>
+      <div class="temp"><span class="tiny">Media</span><b>${d.market.mid ? d.market.mid + " €" : "—"}</b></div>
+      <div class="temp"><span class="tiny">Alta</span><b>${d.market.high ? d.market.high + " €" : "—"}</b></div>
+      <div class="temp"><span class="tiny">Tu coste</span><b>${mine}</b></div>
+    </div>
+    <p class="tiny" id="mercado-src">Cargando fuente…</p>`;
+}
+
+async function fillMercado(w) {
+  const box = document.getElementById("mercado-box");
+  if (!box || !window.WineDataProvider) return;
+  const quote = await WineDataProvider.priceOf(w);
+  const d = dossierOf(w);
+  const mine = currentBottle && currentBottle.price ? currentBottle.price + " €" : "—";
+  const euro = (n) => n ? n + " €" : "—";
+  box.innerHTML = `
+    <p class="muted" style="margin:6px 0 10px">${quote.note}</p>
+    <div class="temp-grid">
+      <div class="temp"><span class="tiny">Baja</span><b>${euro(quote.low)}</b></div>
+      <div class="temp"><span class="tiny">Media</span><b>${euro(quote.mid)}</b></div>
+      <div class="temp"><span class="tiny">Alta</span><b>${euro(quote.high)}</b></div>
+      <div class="temp"><span class="tiny">Tu coste</span><b>${mine}</b></div>
+    </div>
+    <div class="card"><p class="tiny">${quote.source === "live" ? "Live" : "Dossier"} · ${quote.currency}</p>
+      <p class="muted" style="margin-top:6px">${quote.trend || ""}</p></div>
+    ${d.similar && d.similar.length ? `<h2 style="margin:16px 0 8px">Parecidos en catálogo</h2>${d.similar.map(id => {
+      const s = wineById(id);
+      if (!s) return "";
+      return `<div class="card" role="button" onclick="openWine('${s.id}')"><h3>${s.producer} ${s.name} ${s.vintage}</h3><p class="muted">${s.region} · ${s.priceHint}</p></div>`;
+    }).join("")}` : ""}
+    <button class="btn btn-ghost" style="width:100%;margin-top:12px" onclick="openNotify()">Configurar fuente de precios</button>`;
+}
+
+function setPriceMode(on) {
+  if (!window.WineDataProvider) return;
+  WineDataProvider.saveCfg({ mode: on ? "live" : "demo" });
+}
+function savePriceCfg() {
+  if (!window.WineDataProvider) return;
+  const url = ($("#p-url") && $("#p-url").value.trim()) || "";
+  const key = ($("#p-key") && $("#p-key").value.trim()) || "";
+  const live = $("#p-live") && $("#p-live").checked;
+  WineDataProvider.saveCfg({
+    mode: live && key ? "live" : "demo",
+    apiUrl: url || "https://www.wine-searcher.com/ws_api.php",
+    apiKey: key
+  });
+  hideSheets();
+  toast(live && key ? "Precios: modo live" : "Precios: dossier demo");
+}
+function hydratePriceFields() {
+  if (!window.WineDataProvider) return;
+  const cfg = WineDataProvider.loadCfg();
+  if ($("#p-live")) $("#p-live").checked = cfg.mode === "live" && !!cfg.apiKey;
+  if ($("#p-url")) $("#p-url").value = cfg.apiUrl || "";
+  if ($("#p-key")) $("#p-key").value = cfg.apiKey || "";
+}
+
+function prefs() { return state.prefs || (state.prefs = {}); }
+function houseName(id) {
+  return (state.houses.find(h => h.id === id) || { name: "Casa Llavaneras" }).name;
+}
+function ensureHouse(name) {
+  const n = (name || "").trim() || "Casa Llavaneras";
+  let h = state.houses.find(x => x.name.toLowerCase() === n.toLowerCase());
+  if (!h) {
+    h = { id: "h" + Date.now(), name: n, type: "Casa", note: "" };
+    state.houses.push(h);
+  }
+  return h.id;
+}
+function fmtBackup(ts) {
+  if (!ts) return "Aún no";
+  const d = new Date(ts);
+  const p = n => String(n).padStart(2, "0");
+  return `${p(d.getDate())}/${p(d.getMonth()+1)}/${d.getFullYear()} · ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+function uniqueWines() {
+  return new Set(state.bottles.map(b => b.wineId)).size;
+}
+function renderPerfil() {
+  const p = prefs();
+  const house = (state.houses[0] && state.houses[0].name) || "Casa Llavaneras";
+  $("#perfil-body").innerHTML = `
+    <div class="hero">
+      <p class="eyebrow">Mi Vinoteca</p>
+      <h1>Perfil</h1>
+      <p>Colección, preferencias y configuración</p>
+    </div>
+    <div class="card">
+      <p class="tiny">Colección</p>
+      <h3 style="margin-top:4px">Mi Vinoteca</h3>
+      <p class="muted">${house}</p>
+      <div class="temp-grid" style="margin-top:12px">
+        <div class="temp"><span class="tiny">Botellas</span><b>${totalBottles()}</b></div>
+        <div class="temp"><span class="tiny">Vinos</span><b>${uniqueWines()}</b></div>
+      </div>
+      <p class="tiny" style="margin-top:12px">Última copia de seguridad</p>
+      <p>${fmtBackup(p.lastBackup)}</p>
+    </div>
+    ${p.demo ? `<div class="card"><div class="row"><strong>Modo demostración</strong><button class="btn btn-ghost" onclick="exitDemo()">Salir</button></div><p class="tiny" style="margin-top:6px">Los vinos de ejemplo no son tu colección real.</p></div>` : ""}
+    <div class="card" role="button" onclick="openPerfilSub('casas')"><div class="row"><h3>Mis casas y vinotecas</h3><span>›</span></div><p class="muted">Gestionar ubicaciones físicas.</p></div>
+    <div class="card" role="button" onclick="openPerfilSub('cata')"><div class="row"><h3>Preferencias de cata</h3><span>›</span></div><p class="muted">Escala 0–${p.scale}. El cuaderno aprobado no cambia.</p></div>
+    <div class="card" role="button" onclick="openPerfilSub('fuentes')"><div class="row"><h3>Puntuaciones externas</h3><span>›</span></div><p class="muted">Qué guías se ven en la ficha.</p></div>
+    <div class="card" role="button" onclick="openPerfilSub('privacidad')"><div class="row"><h3>Privacidad y seguridad</h3><span>›</span></div><p class="muted">Valor, precios, hueco.</p></div>
+    <div class="card" role="button" onclick="openPerfilSub('backup')"><div class="row"><h3>Copias de seguridad</h3><span>›</span></div><p class="muted">Exportar y restaurar JSON / CSV.</p></div>
+    <div class="card" role="button" onclick="openPerfilSub('acerca')"><div class="row"><h3>Acerca de</h3><span>›</span></div><p class="muted">v1.0.0 · esquema localStorage</p></div>
+    <input id="restore-file" type="file" accept="application/json,.json" hidden onchange="reviewRestore(this.files[0])" />
+    <input id="import-csv" type="file" accept=".csv,text/csv" hidden onchange="importCsv(this.files[0])" />`;
+}
+function openPerfilSub(kind) {
+  const p = prefs();
+  const titles = {
+    casas: "Mis ubicaciones",
+    cata: "Preferencias de cata",
+    fuentes: "Fuentes externas",
+    privacidad: "Privacidad y seguridad",
+    backup: "Copias de seguridad",
+    acerca: "Acerca de"
+  };
+  let body = "";
+  if (kind === "casas") {
+    body = state.houses.map(h => {
+      const caves = state.vinotecas.filter(v => (v.houseId || "h1") === h.id);
+      return `<div class="card"><p class="tiny">${h.type || "Casa"}</p><h3>${h.name}</h3>
+        ${caves.map(v => `<p class="muted" style="margin-top:6px">· ${v.name} · ${v.used || 0}/${v.capacity} · ${v.tHigh} °C</p>`).join("") || `<p class="muted">Sin vinotecas</p>`}
+      </div>`;
+    }).join("") + `<button class="btn btn-gold" style="width:100%" onclick="showSheet('cave-sheet')">Añadir vinoteca</button>
+      <p class="tiny" style="margin-top:10px">La casa se indica en el campo Casa. No pedimos dirección postal.</p>`;
+  } else if (kind === "cata") {
+    body = `
+      <div class="card"><p class="tiny">Escala principal</p>
+        <div class="btn-row" style="margin-top:8px">
+          <button class="btn ${p.scale===10?"btn-gold":"btn-ghost"}" onclick="setPref('scale',10)">0–10</button>
+          <button class="btn ${p.scale===100?"btn-gold":"btn-ghost"}" onclick="setPref('scale',100)">0–100</button>
+        </div>
+        <p class="muted" style="margin-top:8px">El cuaderno sigue Débil–Ácido / Seco–Dulce / Suave–Tánico / Ligero–Poderoso.</p>
+      </div>
+      <label class="switch-row"><span>Permitir decimales</span><input type="checkbox" ${p.decimals?"checked":""} onchange="setPref('decimals', this.checked)" /></label>`;
+  } else if (kind === "fuentes") {
+    const rows = [
+      ["vivino","Vivino"],["penin","Peñín"],["parker","Parker"],
+      ["spectator","Wine Spectator"],["decanter","Decanter"],["vinous","Vinous"],["suckling","James Suckling"]
+    ];
+    body = `<p class="muted" style="margin-bottom:10px">Solo ocultan o muestran la guía. No hay API de Vivino.</p>` +
+      rows.map(([k,l]) => `<label class="switch-row"><span>${l}</span><input type="checkbox" ${p.sources[k]!==false?"checked":""} onchange="setSource('${k}', this.checked)" /></label>`).join("");
+  } else if (kind === "privacidad") {
+    body = `
+      <label class="switch-row"><span>Mostrar valor de la colección</span><input type="checkbox" ${p.hideValue?"":"checked"} onchange="setPref('hideValue', !this.checked)" /></label>
+      <label class="switch-row"><span>Mostrar precios en las fichas</span><input type="checkbox" ${p.hidePrices?"":"checked"} onchange="setPref('hidePrices', !this.checked)" /></label>
+      <label class="switch-row"><span>Mostrar hueco exacto</span><input type="checkbox" ${p.hideBin?"":"checked"} onchange="setPref('hideBin', !this.checked)" /></label>
+      <div class="card" style="margin-top:12px"><p class="tiny">Face ID</p><p class="muted" style="margin-top:6px">En PWA no hay Face ID nativo. Más adelante: PIN o passkey. La colección no se publica.</p></div>`;
+  } else if (kind === "backup") {
+    body = `
+      <div class="card"><p class="tiny">Última copia</p><h3 style="margin-top:4px">${fmtBackup(p.lastBackup)}</h3><p class="muted">${p.lastBackup ? "Correcta" : "Pendiente"}</p></div>
+      <button class="btn btn-gold" style="width:100%" onclick="exportBackup()">Crear copia ahora · JSON</button>
+      <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="exportCsv()">Exportar inventario · CSV</button>
+      <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="exportTastingCsv()">Exportar catas · CSV</button>
+      <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="$('#restore-file').click()">Restaurar copia JSON</button>
+      <p class="tiny" style="margin:12px 0">La restauración pide confirmación. No se mezcla a ciegas.</p>
+      <button class="btn btn-ghost" style="width:100%" onclick="askWipe()">Eliminar colección</button>`;
+  } else {
+    body = `
+      <div class="card"><h3>Mi Vinoteca</h3><p class="muted" style="margin-top:6px">Versión 1.0.0</p>
+        <p class="tiny" style="margin-top:10px">Esquema vinoteca.pro.max.v3 · ${totalBottles()} botellas · ${uniqueWines()} vinos · ${state.vinotecas.length} vinotecas</p>
+        <p class="tiny">Última copia: ${fmtBackup(p.lastBackup)}</p>
+      </div>
+      <p class="muted">Colección privada. No se indexa ni se comparte sola.</p>`;
+  }
+  $("#perfil-sub-body").innerHTML = `
+    <button class="back" onclick="goBack()">‹ ${backCaption()}</button>
+    <p class="eyebrow">Mi Vinoteca</p>
+    <h1>${titles[kind]}</h1>
+    ${body}`;
+  show("perfil-sub");
+}
+function setPref(key, val) {
+  prefs()[key] = val;
+  save();
+  renderPerfil();
+  if (document.getElementById("perfil-sub").classList.contains("active")) {
+    const t = ($("#perfil-sub-body h1") || {}).textContent;
+    const map = { "Preferencias de cata":"cata", "Privacidad y seguridad":"privacidad" };
+    if (map[t]) openPerfilSub(map[t]);
+  }
+  if (key === "hideValue" || key === "hidePrices" || key === "hideBin") renderHome();
+}
+function setSource(key, on) {
+  prefs().sources[key] = !!on;
+  save();
+}
+function exportBackup() {
+  const payload = {
+    version: "1.0.0",
+    savedAt: new Date().toISOString(),
+    houses: state.houses,
+    vinotecas: state.vinotecas,
+    bottles: state.bottles,
+    tasting: state.tasting,
+    favorites: state.favorites,
+    prefs: state.prefs,
+    notify: state.notify
+  };
+  downloadFile("MiVinoteca_Backup_" + new Date().toISOString().slice(0,10) + ".json", JSON.stringify(payload, null, 2), "application/json");
+  prefs().lastBackup = Date.now();
+  save();
+  toast("Copia JSON descargada");
+  if ($("#perfil-sub").classList.contains("active")) openPerfilSub("backup");
+}
+function exportCsv() {
+  const head = ["Nombre","Bodega","Añada","Región","País","Tipo","Cantidad","Ubicación","Puntuación","Estado","Precio"];
+  const rows = state.bottles.map(b => {
+    const w = wineById(b.wineId) || {};
+    const loc = state.prefs.hideBin ? houseName(state.vinotecas.find(v=>v.id===b.cellarId)?.houseId) : (cellarName(b.cellarId) + " " + (b.bin||""));
+    const price = state.prefs.hidePrices ? "" : (b.price || "");
+    return [w.name, w.producer, w.vintage, w.region, w.country, w.type, b.qty, loc, w.ratings && w.ratings.parker ? w.ratings.parker.score : "", phaseOf(w).label, price];
+  });
+  const csv = [head].concat(rows).map(r => r.map(x => `"${String(x??"").replace(/"/g,'""')}"`).join(";")).join("\n");
+  downloadFile("MiVinoteca_Inventario_" + new Date().toISOString().slice(0,10) + ".csv", csv, "text/csv");
+  toast("CSV de inventario");
+}
+function exportTastingCsv() {
+  const head = ["Vino","Añada","Acidez","Dulzor","Tanino","Cuerpo","Recuerdo"];
+  const rows = Object.keys(state.tasting||{}).map(id => {
+    const w = wineById(id) || {};
+    const t = state.tasting[id] || {};
+    return [w.producer + " " + w.name, w.vintage, t.acidez, t.dulzor, t.tanino, t.cuerpo, t.note||""];
+  });
+  const csv = [head].concat(rows).map(r => r.map(x => `"${String(x??"").replace(/"/g,'""')}"`).join(";")).join("\n");
+  downloadFile("MiVinoteca_Catas_" + new Date().toISOString().slice(0,10) + ".csv", csv, "text/csv");
+  toast("CSV de catas");
+}
+function downloadFile(name, text, mime) {
+  const blob = new Blob([text], { type: mime });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1500);
+}
+function reviewRestore(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const data = JSON.parse(reader.result);
+      const nB = (data.bottles||[]).length;
+      const nW = new Set((data.bottles||[]).map(b => b.wineId)).size;
+      const nT = Object.keys(data.tasting||{}).length;
+      if (!confirm(`COPIA ENCONTRADA\n${nW} vinos\n${nB} lotes de botellas\n${nT} catas\nFecha: ${data.savedAt||"—"}\n\nEsto REEMPLAZA la colección actual. ¿Continuar?`)) return;
+      if (!data.bottles || !data.vinotecas) return toast("Archivo no válido");
+      state.houses = data.houses || state.houses;
+      state.vinotecas = data.vinotecas;
+      state.bottles = data.bottles;
+      state.tasting = data.tasting || {};
+      state.favorites = data.favorites || [];
+      if (data.prefs) state.prefs = Object.assign(prefs(), data.prefs);
+      if (data.notify) state.notify = data.notify;
+      prefs().lastBackup = Date.now();
+      save();
+      toast("Colección restaurada");
+      show("perfil");
+    } catch {
+      toast("JSON ilegible");
+    }
+  };
+  reader.readAsText(file);
+}
+function importCsv() { toast("Importar CSV: siguiente pase. Usa JSON de copia."); }
+function askWipe() {
+  const ok = prompt("Esto borra botellas y catas de este iPhone.\nEscribe ELIMINAR para confirmar.");
+  if (ok !== "ELIMINAR") return toast("No se ha borrado");
+  state.bottles = [];
+  state.tasting = {};
+  state.favorites = [];
+  prefs().demo = false;
+  save();
+  toast("Colección vacía");
+  show("perfil");
+}
+function exitDemo() {
+  prefs().demo = false;
+  save();
+  toast("Fuera de demostración. Los datos de este teléfono siguen aquí.");
+  renderPerfil();
+}
+
 function setTaste(id, field, val) {
   if (!state.tasting) state.tasting = {};
   const cur = getTaste(id);
   cur[field] = field === "note" ? val : Number(val);
+  cur.at = Date.now();
   state.tasting[id] = cur;
   save();
   const el = document.getElementById("tv-" + field);
@@ -1359,6 +2077,26 @@ window.quickAdd = quickAdd;
 window.toggleFav = toggleFav;
 window.addCurrentToCellar = addCurrentToCellar;
 window.openNotify = openNotify;
+window.openPerfilSub = openPerfilSub;
+window.setPref = setPref;
+window.setSource = setSource;
+window.exportBackup = exportBackup;
+window.exportCsv = exportCsv;
+window.exportTastingCsv = exportTastingCsv;
+window.reviewRestore = reviewRestore;
+window.importCsv = importCsv;
+window.askWipe = askWipe;
+window.exitDemo = exitDemo;
+window.quickTaste = quickTaste;
+window.openHomeMap = openHomeMap;
+window.openWineThenTaste = openWineThenTaste;
+window.addToLot = addToLot;
+window.consumeMany = consumeMany;
+window.deleteCave = deleteCave;
+window.goBack = goBack;
+window.refreshAddKeep = refreshAddKeep;
+window.setPriceMode = setPriceMode;
+window.savePriceCfg = savePriceCfg;
 window.setNotify = setNotify;
 window.enableNotifications = enableNotifications;
 window.testNotification = testNotification;
