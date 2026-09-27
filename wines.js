@@ -218,11 +218,11 @@ window.WINE_CATALOG = [
     abv: 13.0,
     color: "#e8d9a0",
     ratings: {
-      vivino: { score: 4.1, count: 22100, scale: 5 },
-      penin: { score: 92, scale: 100 },
-      parker: { score: 91, scale: 100, reviewer: "Wine Advocate" },
-      spectator: { score: 90, scale: 100 },
-      decanter: { score: 91, scale: 100 }
+      vivino: { score: 4.1, count: 22100, scale: 5, note: "Usuarios: cítrico, salino, fácil de beber. Lo sitúan como albariño de aperitivo más que de guarda." },
+      penin: { score: 92, scale: 100, note: "Color pajizo. Nariz de pomelo y hierba fresca. Boca seca, acidez alta, final amargoso de cáscara." },
+      parker: { score: 91, scale: 100, reviewer: "Wine Advocate", note: "Albariño directo, sin madera. Fruta de hueso blanca y un punto de CO2 residual que alarga el paso." },
+      spectator: { score: 90, scale: 100, note: "Crisp apple and sea spray. Light body, clean finish. Best young." },
+      decanter: { score: 91, scale: 100, note: "Atlantic albariño: grapefruit, wet stone, short lees. Drink 2024–2027." }
     },
     priceHint: "16–22 €",
     tasting: "Pomelo, manzana verde, flor de saúco y sal marina. Acidez crujiente, final largo y atlántico.",

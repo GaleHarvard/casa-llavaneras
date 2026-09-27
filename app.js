@@ -892,7 +892,11 @@ function openWineSub(kind) {
   if (kind === "ratings") {
     const d = dossierOf(w);
     const casa = (w.tasting || "").trim();
-    const noteOf = (obj, extra) => ((obj && obj.note) || extra || casa || "Sin párrafo publicado para esta añada.").trim();
+    const noteOf = (obj, extra) => {
+      const n = ((obj && obj.note) || extra || "").trim();
+      if (n && n !== casa) return n;
+      return "Sin párrafo propio de esta guía para la añada. La nota de la casa está abajo.";
+    };
     const card = (fuente, puntos, texto) => `
       <div class="card" style="margin-top:10px">
         <div class="row"><p class="tiny">${fuente}</p><b>${puntos || "—"}</b></div>
