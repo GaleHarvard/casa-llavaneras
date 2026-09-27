@@ -1098,10 +1098,17 @@ function openWineSub(kind) {
         <button class="btn btn-ghost" onclick="showSheet('add-sheet')">Elegir hueco</button>
       </div>`;
   }
+  const art = estateArt(w);
+  const bodegaImg = kind === "mapa" && art.land
+    ? `<img class="estate-wide" src="${art.land}" alt="${w.producer}" style="margin:6px 0 10px;height:210px;object-fit:contain">`
+    : "";
+  const titleCss = kind === "mapa" ? "font-size:22px;margin:4px 0 10px;line-height:1.15" : "margin-bottom:16px";
+  const eyeCss = kind === "mapa" ? "font-size:10px;margin:0" : "";
   $("#wine-sub-body").innerHTML = `
     <button class="back" onclick="goBack()">‹ ${backCaption()}</button>
-    <p class="eyebrow">${w.name} ${w.vintage}</p>
-    <h1 style="margin-bottom:16px">${titles[kind] || "Ficha"}</h1>
+    ${bodegaImg}
+    <p class="eyebrow" style="${eyeCss}">${w.name} ${w.vintage}</p>
+    <h1 style="${titleCss}">${titles[kind] || "Ficha"}</h1>
     ${body}`;
   show("wine-sub");
 }
@@ -1915,13 +1922,12 @@ function mapaBlock(w) {
   const osm = `https://www.openstreetmap.org/?mlat=${g.lat}&mlon=${g.lng}#map=12/${g.lat}/${g.lng}`;
   const gmaps = `https://maps.google.com/?q=${encodeURIComponent(w.producer + " " + g.zone)}`;
   return `
-    <p class="muted" style="margin:0 0 14px">${w.appellation} · ${w.region}</p>
-    ${art.land ? `<img class="estate-wide" src="${art.land}" alt="${w.producer}">` : ""}
+    <p class="muted" style="margin:0 0 16px">${w.appellation} · ${w.region}</p>
     <div class="card">
       <h3>${w.producer}</h3>
       <p class="muted" style="margin-top:4px">${g.zone}</p>
     </div>
-    ${art.map && art.map !== art.land ? `<img class="map-art" src="${art.map}" alt="Mapa de ${g.zone}">` : `<div class="map-frame"><iframe title="Mapa de la bodega" src="${embed}" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe></div>`}
+    ${art.map ? `<img class="map-art" src="${art.map}" alt="Mapa de ${g.zone}">` : `<div class="map-frame"><iframe title="Mapa de la bodega" src="${embed}" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe></div>`}
     <a class="btn btn-ghost" style="width:100%;margin-top:10px;display:block;text-align:center" href="${gmaps}" target="_blank" rel="noopener">Abrir en Mapas</a>
     <a class="btn btn-ghost" style="width:100%;margin-top:8px;display:block;text-align:center" href="${osm}" target="_blank" rel="noopener">OpenStreetMap</a>
     ${g.web ? `<a class="btn btn-gold" style="width:100%;margin-top:8px;display:block;text-align:center" href="${g.web}" target="_blank" rel="noopener">Web de la bodega</a>` : ""}`;
