@@ -370,23 +370,32 @@ function quickTaste() {
 }
 function openHomeMap() { show("zonas"); }
 
-function renderZonas() {
-  const zones = [
-    { name: "Rioja", country: "España", img: "vinedo-rioja.jpg", map: "mapa-rioja.jpg" },
-    { name: "Ribera del Duero", country: "España", img: "vinedo-ribera.jpg", map: "mapa-ribera.jpg" },
-    { name: "Priorat", country: "España", img: "vinedo-priorat.jpg", map: "mapa-priorat.jpg" },
-    { name: "Rías Baixas", country: "España", img: "vinedo-rias.jpg", map: "mapa-rias.jpg" },
-    { name: "Champagne", country: "Francia", img: "vinedo-champagne.jpg", map: "mapa-champagne.jpg" },
-    { name: "Médoc", country: "Francia", img: "vinedo-margaux.jpg", map: "mapa-medoc.jpg" },
-    { name: "Bolgheri", country: "Italia", img: "vinedo-bolgheri.jpg", map: "mapa-bolgheri.jpg" },
-    { name: "Corpinnat", country: "España", img: "vinedo-champagne.jpg", map: "mapa-penedes.jpg" },
-    { name: "Toro", country: "España", img: "vinedo-ribera.jpg", map: "mapa-ribera.jpg" },
-    { name: "Alicante", country: "España", img: "vinedo.jpg", map: "vinedo.jpg" }
-  ];
-  const html = zones.map(z => {
-    const n = WINE_CATALOG.filter(w => (w.region + " " + w.appellation).toLowerCase().includes(z.name.split(" ")[0].toLowerCase()) || (z.name === "Médoc" && /margaux|médoc|medoc/i.test(w.region + w.appellation))).length;
-    const sample = WINE_CATALOG.find(w => (w.region + w.appellation).toLowerCase().includes(z.name.split(" ")[0].toLowerCase()) || (z.name === "Médoc" && /margaux|médoc|medoc/i.test(w.region)));
-    return `<button class="zone-tile" onclick="${sample ? `openWine('${sample.id}');setTimeout(()=>openWineSub('mapa'),0)` : "show('cellar')"}">
+const ZONES = [
+  { name: "Rioja", country: "España", img: "vinedo-rioja.jpg", map: "mapa-rioja.jpg", keys: "rioja haro alavesa alta" },
+  { name: "Ribera del Duero", country: "España", img: "vinedo-ribera.jpg", map: "mapa-ribera.jpg", keys: "ribera duero valbuena pingus vega" },
+  { name: "Priorat", country: "España", img: "vinedo-priorat.jpg", map: "mapa-priorat.jpg", keys: "priorat prior gratallops" },
+  { name: "Rías Baixas", country: "España", img: "vinedo-rias.jpg", map: "mapa-rias.jpg", keys: "rías rias baixas albariño albarino salnés" },
+  { name: "Champagne", country: "Francia", img: "vinedo-champagne.jpg", map: "mapa-champagne.jpg", keys: "champagne pérignon perignon" },
+  { name: "Médoc", country: "Francia", img: "vinedo-margaux.jpg", map: "mapa-medoc.jpg", keys: "médoc medoc margaux bordeaux" },
+  { name: "Bolgheri", country: "Italia", img: "vinedo-bolgheri.jpg", map: "mapa-bolgheri.jpg", keys: "bolgheri sassicaia toscana" },
+  { name: "Corpinnat", country: "España", img: "vinedo-champagne.jpg", map: "mapa-penedes.jpg", keys: "corpinnat penedès penedes gramona cava" },
+  { name: "Toro", country: "España", img: "vinedo-ribera.jpg", map: "mapa-ribera.jpg", keys: "toro numanthia" },
+  { name: "Alicante", country: "España", img: "vinedo.jpg", map: "vinedo.jpg", keys: "alicante mendoza" },
+  { name: "South Australia", country: "Australia", img: "vinedo-margaux.jpg", map: "mapa-medoc.jpg", keys: "australia barossa grange penfolds" }
+];
+function winesInZone(z) {
+  const keys = (z.keys || z.name).toLowerCase().split(/\s+/);
+  return WINE_CATALOG.filter(w => {
+    const blob = (w.region + " " + w.appellation + " " + w.country + " " + w.producer + " " + w.name).toLowerCase();
+    return keys.some(k => k.length > 2 && blob.includes(k));
+  });
+}
+function renderZonas(q) {
+  const query = (q || "").trim().toLowerCase();
+  const list = ZONES.filter(z => !query || (z.name + " " + z.country + " " + z.keys).toLowerCase().includes(query));
+  const html = list.map(z => {
+    const n = winesInZone(z).length;
+    return `<button class="zone-tile" onclick="openZona('${z.name.replace(/'/g, "\\'")}')">
       <img src="${z.img}" alt="${z.name}">
       <span><b>${z.name}</b><small>${z.country} · ${n} vinos</small></span>
     </button>`;
@@ -395,8 +404,27 @@ function renderZonas() {
     <button class="back" onclick="goBack()">‹ ${backCaption()}</button>
     <p class="eyebrow">Mi Vinoteca</p>
     <h1>Zonas vinícolas</h1>
-    <p class="muted">Explora la región y abre el mapa de la bodega.</p>
-    <div class="zone-grid">${html}</div>`;
+    <div class="search" style="margin:12px 0"><input id="zona-q" type="search" placeholder="Buscar Rioja, Champagne, Toro…" value="${(q || "").replace(/"/g, "")}" oninput="renderZonas(this.value)"></div>
+    <p class="muted">Toca una zona para ver el mapa y los vinos.</p>
+    <div class="zone-grid">${html || "<p class='empty'>Ninguna zona con ese nombre.</p>"}</div>`;
+  const box = $("#zona-q");
+  if (box && query) { box.focus(); box.setSelectionRange(query.length, query.length); }
+}
+function openZona(name) {
+  const z = ZONES.find(x => x.name === name);
+  if (!z) return renderZonas();
+  const wines = winesInZone(z);
+  $("#zonas-body").innerHTML = `
+    <button class="back" onclick="renderZonas()">‹ Zonas</button>
+    <p class="eyebrow">${z.country}</p>
+    <h1>${z.name}</h1>
+    ${z.map ? `<img class="map-art" src="${z.map}" alt="Mapa ${z.name}">` : ""}
+    <p class="muted" style="margin:10px 0">${wines.length} vino${wines.length === 1 ? "" : "s"} en catálogo</p>
+    ${wines.map(w => `<div class="card" role="button" onclick="openWine('${w.id}')">
+      <div class="row"><h3>${w.producer}</h3><span class="tiny">${w.vintage}</span></div>
+      <p class="muted">${w.name} · ${w.appellation}</p>
+    </div>`).join("") || "<p class='empty'>Aún no hay botellas de esta zona.</p>"}
+    ${wines[0] ? `<button class="btn btn-ghost" style="width:100%;margin-top:12px" onclick="openWine('${wines[0].id}');setTimeout(()=>openWineSub('mapa'),80)">Mapa de bodega ›</button>` : ""}`;
 }
 
 function renderCatas() {
@@ -805,18 +833,31 @@ function openWineSub(kind) {
   };
   let body = "";
   if (kind === "ratings") {
-    const empty = "Sin comentario de cata publicado para esta añada.";
-    const noteCard = (fuente, texto) => {
-      const t = (texto || "").trim();
-      return `<div class="card" style="margin-top:10px"><p class="tiny">${fuente}</p><p class="muted" style="margin-top:8px;line-height:1.45">${t || empty}</p></div>`;
-    };
+    const d = dossierOf(w);
+    const casa = (w.tasting || "").trim();
+    const noteOf = (obj, extra) => ((obj && obj.note) || extra || casa || "Sin párrafo publicado para esta añada.").trim();
+    const card = (fuente, puntos, texto) => `
+      <div class="card" style="margin-top:10px">
+        <div class="row"><p class="tiny">${fuente}</p><b>${puntos || "—"}</b></div>
+        <p style="margin-top:8px;line-height:1.5">${texto}</p>
+      </div>`;
     body = `
-      <p class="tiny" style="margin:6px 0 8px">Comentarios de cata. Las puntuaciones están en la ficha.</p>
-      ${noteCard("Guía Peñín", r.penin && r.penin.note)}
-      ${noteCard(r.parker && r.parker.reviewer ? r.parker.reviewer : "Luis Gutiérrez / WA", r.parker && r.parker.note)}
-      ${noteCard("Wine Spectator", r.spectator && r.spectator.note)}
-      ${noteCard("Vivino · usuarios", r.vivino && r.vivino.note)}
-      ${r.decanter && r.decanter.note ? noteCard("Decanter", r.decanter.note) : ""}`;
+      <p class="tiny" style="margin:6px 0 8px">Guías del sector + nota de la casa. Vivino no tiene API: la media es de dossier, no de la web en vivo.</p>
+      <div class="temp-grid" style="margin:8px 0 12px">
+        <div class="temp"><span class="tiny">Vivino</span><b>${r.vivino.score.toFixed(1)}</b></div>
+        <div class="temp"><span class="tiny">Peñín</span><b>${r.penin.score}</b></div>
+        <div class="temp"><span class="tiny">Parker / WA</span><b>${r.parker.score}</b></div>
+        <div class="temp"><span class="tiny">Spectator</span><b>${r.spectator.score}</b></div>
+      </div>
+      ${card("Guía Peñín", r.penin.score + "/100", noteOf(r.penin))}
+      ${card(r.parker.reviewer || "Luis Gutiérrez / Wine Advocate", r.parker.score + "/100", noteOf(r.parker))}
+      ${card("Wine Spectator", r.spectator.score + "/100", noteOf(r.spectator, r.spectator.note))}
+      ${card("Decanter", (r.decanter && r.decanter.score ? r.decanter.score + "/100" : "—"), noteOf(r.decanter))}
+      ${card("Vivino · usuarios", r.vivino.score.toFixed(1) + "/5 · " + (r.vivino.count || "—") + " valoraciones", noteOf(r.vivino))}
+      ${card("Nota de cata (casa)", "ficha", casa)}
+      ${d.awards && d.awards.length ? `<div class="card"><p class="tiny">Referencias</p><p style="margin-top:8px">${d.awards.join(" · ")}</p></div>` : ""}
+      <button class="btn btn-ghost" style="width:100%;margin-top:12px" onclick="openWineSub('taste')">Cata personal ›</button>
+      <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="openWineSub('historia')">Historia y añada ›</button>`;
   } else if (kind === "pairings") {
     body = pairingBlock(w);
   } else if (kind === "keep") {
