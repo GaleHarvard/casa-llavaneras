@@ -1,23 +1,20 @@
-if (typeof window.dossierOf !== "function") {
-  window.dossierOf = function (w) {
-    const d = (window.WINE_DOSSIERS && w && window.WINE_DOSSIERS[w.id]) || {};
-    return Object.assign({
-      soils: "Suelo de la denominación.",
-      elevation: "—",
-      vineyard: w ? (w.appellation + " · " + (w.grapes || []).join(", ")) : "",
-      vinification: "Elaboración de la casa.",
-      elevage: "Crianza en bodega.",
-      glass: "Copa adecuada al tipo",
-      decant: w && w.type === "espumoso" ? "No" : "30–60 min",
-      oxygen: "Servir en su temperatura.",
-      history: w ? (w.producer + " se elabora en " + w.region + " (" + w.appellation + ").") : "",
-      market: { low: 0, mid: 0, high: 0, trend: "—" },
-      similar: [],
-      awards: []
-    }, d);
-  };
+function dossierOf(w) {
+  const packed = (window.WINE_DOSSIERS && w && window.WINE_DOSSIERS[w.id]) || {};
+  return Object.assign({
+    soils: "Suelo de la denominación.",
+    elevation: "—",
+    vineyard: w ? (w.appellation + " · " + (w.grapes || []).join(", ")) : "",
+    vinification: "Elaboración de la casa.",
+    elevage: "Crianza en bodega.",
+    glass: "Copa adecuada al tipo",
+    decant: w && w.type === "espumoso" ? "No" : "30–60 min",
+    oxygen: "Servir en su temperatura.",
+    history: w ? (w.producer + " se elabora en " + w.region + " (" + w.appellation + ").") : "",
+    market: { low: 0, mid: 0, high: 0, trend: "—" },
+    similar: [],
+    awards: []
+  }, packed);
 }
-function dossierOf(w) { return window.dossierOf(w); }
 
 const NOW = new Date(2026, 8, 22);
 const YEAR = NOW.getFullYear();
@@ -719,6 +716,11 @@ function openWine(wineId, bottle) {
           <svg class="rate-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M18 6l-2.5 2.5M6 18l2.5-2.5"/></svg>
         </div>
       </div>
+    </div>
+    <div class="card" role="button" onclick="openWineSub('ratings')" style="margin:8px 0 12px">
+      <p class="tiny">Crítica publicada</p>
+      <p style="margin-top:8px;line-height:1.45">${(r.parker && r.parker.note) || w.tasting}</p>
+      <p class="muted" style="margin-top:8px">${r.parker && r.parker.reviewer ? r.parker.reviewer + " · " : ""}WA ${r.parker.score} · Peñín ${r.penin.score} · WS ${r.spectator.score}${r.decanter && r.decanter.score ? " · Decanter " + r.decanter.score : ""} · Vivino ${r.vivino.score.toFixed(1)}</p>
     </div>
 
     <div class="sec-head" role="button" onclick="openWineSub('pairings')"><h2>Maridajes</h2><span class="sec-ico">
