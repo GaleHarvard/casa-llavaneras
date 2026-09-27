@@ -127,21 +127,21 @@ window.WINE_CATALOG = [
     abv: 13.0,
     color: "#7a2430",
     ratings: {
-      vivino: { score: 4.4, count: 12600, scale: 5 },
-      penin: { score: 94, scale: 100 },
-      parker: { score: 94, scale: 100, reviewer: "Luis Gutiérrez / WA" },
-      spectator: { score: 93, scale: 100 },
-      decanter: { score: 95, scale: 100 }
+      vivino: { score: 4.4, count: 12600, scale: 5, note: "Media de usuarios: fresa, cuero y naranja confitada. Reserva clásica de Haro, muy bien valorada." },
+      penin: { score: 94, scale: 100, note: "Cereza picota. Nariz compleja de crianza: cedro, té y fruta roja. Boca viva, tanino pulido, final largo." },
+      parker: { score: 94, scale: 100, reviewer: "Luis Gutiérrez / WA", note: "La 2011 está en meseta: acidez brillante, tanino de Rioja Alta, sin maquillaje de roble nuevo." },
+      spectator: { score: 93, scale: 100, note: "Dried cherry, orange peel and cedar. Elegant, traditional Rioja with a long, savory finish." },
+      decanter: { score: 95, scale: 100, note: "Classic López de Heredia: tea, wild strawberry, fine leather. Drink now–2036." }
     },
     priceHint: "38–55 €",
-    tasting: "Fresa silvestre, cuero fino, naranja confitada, té y cedro. Acidez brillante, tanino clásico de Rioja.",
+    tasting: "Nariz de fresa silvestre, naranja confitada, té negro, cedro y cuero de talabartería. En boca la acidez manda: tanino de Rioja Alta, no de barrica nueva. Final largo, salino, con poso de té. No es un vino de puntuación explosiva; es un reserva de calado que pide cordero o bacalao, no un filete a la pimienta.",
     pairing: ["Cordero lechal", "Setas", "Bacalao a la riojana"],
     conservation: { cellarMin: 12, cellarMax: 14, serveMin: 16, serveMax: 17, humidity: "60–75%", position: "horizontal", light: "oscura" },
     aging: { drinkFrom: 2019, peakStart: 2024, peakEnd: 2036, holdTo: 2045, structure: 88 },
     evolutionNotes: [
-      { year: 2017, phase: "Salida", text: "Larga crianza en barrica usada y botella en calados de Haro." },
-      { year: 2026, phase: "Madurez", text: "En meseta: fruta viva + terciarios. Momento excelente." },
-      { year: 2034, phase: "Elegancia", text: "Más seda y menos fruta; gran vino de mesa." }
+      { year: 2017, phase: "Salida", text: "Tras 6 años de barrica usada y reposo en calado. Aún cerrado, mucha acidez." },
+      { year: 2026, phase: "Meseta", text: "Ahora: fruta roja viva + cuero y té. El momento de abrir si hay cordero o bacalao." },
+      { year: 2034, phase: "Terciario", text: "Más seda, menos fresa. Sigue bebiéndose si la botella ha estado quieta y húmeda." }
     ]
   },
   {

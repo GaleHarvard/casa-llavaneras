@@ -51,7 +51,7 @@ window.WINE_DOSSIERS = {
     glass: "Copa Rioja / Borgoña media",
     decant: "20–30 min (quitar posos)",
     oxygen: "Ya abierto. Un rato en copa basta.",
-    history: "López de Heredia no cambia el método desde María Martínez-Lacuesta. Reserva clásica de Rioja Alta.",
+    history: "R. López de Heredia Viña Tondonia nace en Haro en 1877. La finca Tondonia —un meandro del Ebro— se planta en 1913 y da nombre al vino de la casa. No hay consultor externo ni roble nuevo de moda: fermentación en tinos, seis años en barrica usada de 225 litros, trasiego a mano y clarificado con claras. Luego años de botella en calados bajo la bodega.\n\nLa Reserva 2011 salió al mercado cuando otras bodegas ya vendían la 2018. Por eso hoy (2026) está en meseta, no en arranque. Es el estilo que María José López de Heredia mantiene: acidez, cuero fino y fruta roja, sin maquillaje.\n\nPara la mesa: decantar 20 minutos por los posos. Servir a 16–17 °C. Ventana seria 2024–2036; más allá gana terciario y pierde fruta.",
     market: { low: 38, mid: 46, high: 55, trend: "Estable. Muy demandado en restauración." },
     similar: ["muga-prado-enea-2015", "cvne-monopole-2022"],
     awards: ["WA 94", "Decanter 95", "Peñín 94"]

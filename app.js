@@ -859,12 +859,19 @@ function openWineSub(kind) {
       <div class="card"><p class="tiny">Crianza</p><p class="muted" style="margin-top:6px">${d.elevage}</p></div>`;
   } else if (kind === "historia") {
     const d = dossierOf(w);
+    const paras = String(d.history || (w.producer + " se elabora en " + w.region + ".")).split("\n").filter(Boolean);
     body = `
       ${mapTabs("historia")}
-      <div class="card"><p>${d.history || (w.producer + " · " + w.region)}</p></div>
-      ${d.awards && d.awards.length ? `<div class="card"><p class="tiny">Crítica</p><p style="margin-top:8px">${d.awards.join(" · ")}</p></div>` : ""}
-      <p class="muted" style="margin-top:12px">${w.appellation} · ${w.country}</p>
-      <button class="btn btn-ghost" style="width:100%;margin-top:12px" onclick="openWineSub('mapa')">Volver al mapa</button>`;
+      ${paras.map(t => `<div class="card"><p style="line-height:1.5">${t}</p></div>`).join("")}
+      <div class="card"><p class="tiny">Elaboración</p><p style="margin-top:8px">${d.vinification}</p><p class="muted" style="margin-top:8px">${d.elevage}</p></div>
+      <div class="card"><p class="tiny">Crítica de añada ${w.vintage}</p>
+        <p style="margin-top:8px;line-height:1.45">${(r.parker && r.parker.note) || w.tasting}</p>
+        <p class="muted" style="margin-top:8px">${r.parker && r.parker.reviewer ? r.parker.reviewer + " · " : ""}WA ${r.parker.score} · Peñín ${r.penin.score} · WS ${r.spectator.score}${r.decanter && r.decanter.score ? " · Decanter " + r.decanter.score : ""}</p>
+        ${(r.penin && r.penin.note) ? `<p class="muted" style="margin-top:10px">${r.penin.note}</p>` : ""}
+      </div>
+      ${d.awards && d.awards.length ? `<div class="card"><p class="tiny">Referencias</p><p style="margin-top:8px">${d.awards.join(" · ")}</p></div>` : ""}
+      <button class="btn btn-ghost" style="width:100%;margin-top:12px" onclick="openWineSub('evolve')">Evolución y fechas ›</button>
+      <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="openWineSub('mapa')">Volver al mapa</button>`;
   } else if (kind === "mercado") {
     body = `<div id="mercado-box">${mercadoSkeleton(w)}</div>`;
     setTimeout(() => fillMercado(w), 0);
