@@ -1,3 +1,24 @@
+if (typeof window.dossierOf !== "function") {
+  window.dossierOf = function (w) {
+    const d = (window.WINE_DOSSIERS && w && window.WINE_DOSSIERS[w.id]) || {};
+    return Object.assign({
+      soils: "Suelo de la denominación.",
+      elevation: "—",
+      vineyard: w ? (w.appellation + " · " + (w.grapes || []).join(", ")) : "",
+      vinification: "Elaboración de la casa.",
+      elevage: "Crianza en bodega.",
+      glass: "Copa adecuada al tipo",
+      decant: w && w.type === "espumoso" ? "No" : "30–60 min",
+      oxygen: "Servir en su temperatura.",
+      history: w ? (w.producer + " se elabora en " + w.region + " (" + w.appellation + ").") : "",
+      market: { low: 0, mid: 0, high: 0, trend: "—" },
+      similar: [],
+      awards: []
+    }, d);
+  };
+}
+function dossierOf(w) { return window.dossierOf(w); }
+
 const NOW = new Date(2026, 8, 22);
 const YEAR = NOW.getFullYear();
 const STORE = "vinoteca.pro.max.v3";
@@ -357,10 +378,13 @@ function renderZonas() {
     { name: "Rioja", country: "España", img: "vinedo-rioja.jpg", map: "mapa-rioja.jpg" },
     { name: "Ribera del Duero", country: "España", img: "vinedo-ribera.jpg", map: "mapa-ribera.jpg" },
     { name: "Priorat", country: "España", img: "vinedo-priorat.jpg", map: "mapa-priorat.jpg" },
-    { name: "Rías Baixas", country: "España", img: "vinedo-rias.jpg", map: "mapa-rioja.jpg" },
-    { name: "Champagne", country: "Francia", img: "vinedo-champagne.jpg", map: "mapa-medoc.jpg" },
+    { name: "Rías Baixas", country: "España", img: "vinedo-rias.jpg", map: "mapa-rias.jpg" },
+    { name: "Champagne", country: "Francia", img: "vinedo-champagne.jpg", map: "mapa-champagne.jpg" },
     { name: "Médoc", country: "Francia", img: "vinedo-margaux.jpg", map: "mapa-medoc.jpg" },
-    { name: "Bolgheri", country: "Italia", img: "vinedo-bolgheri.jpg", map: "mapa-medoc.jpg" }
+    { name: "Bolgheri", country: "Italia", img: "vinedo-bolgheri.jpg", map: "mapa-bolgheri.jpg" },
+    { name: "Corpinnat", country: "España", img: "vinedo-champagne.jpg", map: "mapa-penedes.jpg" },
+    { name: "Toro", country: "España", img: "vinedo-ribera.jpg", map: "mapa-ribera.jpg" },
+    { name: "Alicante", country: "España", img: "vinedo.jpg", map: "vinedo.jpg" }
   ];
   const html = zones.map(z => {
     const n = WINE_CATALOG.filter(w => (w.region + " " + w.appellation).toLowerCase().includes(z.name.split(" ")[0].toLowerCase()) || (z.name === "Médoc" && /margaux|médoc|medoc/i.test(w.region + w.appellation))).length;
@@ -582,17 +606,28 @@ function estateArt(w) {
     "CVNE": { land: "vinedo-rioja.jpg", cap: "capsula.jpg", map: "mapa-rioja.jpg" },
     "Bodegas Muga": { land: "vinedo-rioja.jpg", cap: "capsula.jpg", map: "mapa-rioja.jpg" },
     "Marqués de Murrieta": { land: "vinedo-rioja.jpg", cap: "capsula.jpg", map: "mapa-rioja.jpg" },
-    "Pazo de Señoráns": { land: "vinedo-rias.jpg", cap: "capsula.jpg", map: "mapa-rioja.jpg" },
+    "Pazo de Señoráns": { land: "vinedo-rias.jpg", cap: "capsula.jpg", map: "mapa-rias.jpg" },
     "Álvaro Palacios": { land: "vinedo-priorat.jpg", cap: "capsula.jpg", map: "mapa-priorat.jpg" },
     "Scala Dei": { land: "vinedo-priorat.jpg", cap: "capsula.jpg", map: "mapa-priorat.jpg" },
-    "Moët & Chandon": { land: "vinedo-champagne.jpg", cap: "capsula.jpg", map: "mapa-medoc.jpg" },
-    "Gramona": { land: "vinedo-champagne.jpg", cap: "capsula.jpg", map: "mapa-rioja.jpg" },
-    "Tenuta San Guido": { land: "vinedo-bolgheri.jpg", cap: "capsula.jpg", map: "mapa-medoc.jpg" },
-    "Penfolds": { land: "vinedo-ribera.jpg", cap: "capsula.jpg", map: "mapa-ribera.jpg" },
-    "Enrique Mendoza": { land: "vinedo-rias.jpg", cap: "capsula.jpg", map: "mapa-rioja.jpg" },
+    "Moët & Chandon": { land: "vinedo-champagne.jpg", cap: "capsula.jpg", map: "mapa-champagne.jpg" },
+    "Gramona": { land: "vinedo-champagne.jpg", cap: "capsula.jpg", map: "mapa-penedes.jpg" },
+    "Tenuta San Guido": { land: "vinedo-bolgheri.jpg", cap: "capsula.jpg", map: "mapa-bolgheri.jpg" },
+    "Penfolds": { land: "vinedo.jpg", cap: "capsula.jpg", map: "vinedo.jpg" },
+    "Enrique Mendoza": { land: "vinedo.jpg", cap: "capsula.jpg", map: "vinedo.jpg" },
     "Numanthia": { land: "vinedo-ribera.jpg", cap: "capsula.jpg", map: "mapa-ribera.jpg" }
   };
-  return byProducer[w.producer] || { land: "vinedo.jpg", cap: "capsula.jpg", map: "" };
+  const hit = byProducer[w.producer];
+  if (hit) return hit;
+  const zone = (w.region + " " + (w.appellation || "")).toLowerCase();
+  if (/rías|rias baixas|albariño|albarino/.test(zone)) return { land: "vinedo-rias.jpg", cap: "capsula.jpg", map: "mapa-rias.jpg" };
+  if (/rioja/.test(zone)) return { land: "vinedo-rioja.jpg", cap: "capsula.jpg", map: "mapa-rioja.jpg" };
+  if (/ribera|duero/.test(zone)) return { land: "vinedo-ribera.jpg", cap: "capsula.jpg", map: "mapa-ribera.jpg" };
+  if (/priorat|priorato/.test(zone)) return { land: "vinedo-priorat.jpg", cap: "capsula.jpg", map: "mapa-priorat.jpg" };
+  if (/médoc|medoc|margaux|pauillac/.test(zone)) return { land: "vinedo-margaux.jpg", cap: "capsula.jpg", map: "mapa-medoc.jpg" };
+  if (/corpinnat|penedès|penedes|cava/.test(zone)) return { land: "vinedo-champagne.jpg", cap: "capsula.jpg", map: "mapa-penedes.jpg" };
+  if (/champagne/.test(zone)) return { land: "vinedo-champagne.jpg", cap: "capsula.jpg", map: "mapa-champagne.jpg" };
+  if (/bolgheri|toscana/.test(zone)) return { land: "vinedo-bolgheri.jpg", cap: "capsula.jpg", map: "mapa-bolgheri.jpg" };
+  return { land: "vinedo.jpg", cap: "capsula.jpg", map: "vinedo.jpg" };
 }
 
 function estateSVG(w) {
@@ -760,6 +795,7 @@ function openWineSub(kind) {
     profile: "Perfil",
     origen: "Origen y hueco",
     mapa: "Mapa y bodega",
+    vinos: "Vinos de la zona",
     taste: "Cuaderno de cata",
     anadas: "Añadas",
     compras: "Compras e historial",
@@ -822,9 +858,11 @@ function openWineSub(kind) {
   } else if (kind === "historia") {
     const d = dossierOf(w);
     body = `
-      <div class="card"><p>${d.history}</p></div>
+      ${mapTabs("historia")}
+      <div class="card"><p>${d.history || (w.producer + " · " + w.region)}</p></div>
       ${d.awards && d.awards.length ? `<div class="card"><p class="tiny">Crítica</p><p style="margin-top:8px">${d.awards.join(" · ")}</p></div>` : ""}
-      <p class="muted" style="margin-top:12px">${w.appellation} · ${w.country}</p>`;
+      <p class="muted" style="margin-top:12px">${w.appellation} · ${w.country}</p>
+      <button class="btn btn-ghost" style="width:100%;margin-top:12px" onclick="openWineSub('mapa')">Volver al mapa</button>`;
   } else if (kind === "mercado") {
     body = `<div id="mercado-box">${mercadoSkeleton(w)}</div>`;
     setTimeout(() => fillMercado(w), 0);
@@ -869,11 +907,19 @@ function openWineSub(kind) {
       ${b && b.price ? `<div class="fact"><span>Precio</span><b>${b.price} €</b></div>` : ""}
       <button class="btn btn-ghost" style="width:100%;margin-top:14px" onclick="openWineSub('mapa')">Ver mapa de la zona</button>`;
   } else if (kind === "mapa") {
-    body = mapaBlock(w) + `<div class="wine-tabs" style="margin-top:12px">
-      <button type="button" class="on">Mapa</button>
-      <button type="button" onclick="openWineSub('historia')">Historia</button>
-      <button type="button" onclick="openWineSub('profile')">Vinos</button>
-    </div>`;
+    body = mapaBlock(w) + mapTabs("mapa");
+  } else if (kind === "vinos") {
+    const house = WINE_CATALOG.filter(x => x.producer === w.producer);
+    const zone = WINE_CATALOG.filter(x => x.producer !== w.producer && (x.region === w.region || x.appellation === w.appellation));
+    body = mapTabs("vinos") + `
+      <h2>${w.producer}</h2>
+      ${house.map(s => `<div class="card" role="button" onclick="openWine('${s.id}')">
+        <div class="row"><h3>${s.name} ${s.vintage}</h3><span class="badge">Parker ${s.ratings.parker.score}</span></div>
+        <p class="muted">${s.appellation}</p>
+      </div>`).join("") || `<p class="muted">Solo esta referencia de la casa.</p>`}
+      ${zone.length ? `<h2 style="margin-top:16px">Misma zona</h2>` + zone.map(s => `<div class="card" role="button" onclick="openWine('${s.id}')">
+        <div class="row"><h3>${s.producer} ${s.name}</h3><span class="badge">${s.vintage}</span></div>
+      </div>`).join("") : ""}`;
   } else if (kind === "anadas") {
     const sibs = WINE_CATALOG.filter(x => x.producer === w.producer && x.name === w.name);
     body = sibs.length ? sibs.map(s => `<div class="card" role="button" onclick="openWine('${s.id}')">
@@ -1741,6 +1787,13 @@ function zoneStrip(w) {
   </div>`;
 }
 
+function mapTabs(on) {
+  return `<div class="wine-tabs" style="margin-top:12px">
+    <button type="button" class="${on === "mapa" ? "on" : ""}" onclick="openWineSub('mapa')">Mapa</button>
+    <button type="button" class="${on === "historia" ? "on" : ""}" onclick="openWineSub('historia')">Historia</button>
+    <button type="button" class="${on === "vinos" ? "on" : ""}" onclick="openWineSub('vinos')">Vinos</button>
+  </div>`;
+}
 function mapaBlock(w) {
   const art = estateArt(w);
   const g = bodegaGeo(w);
