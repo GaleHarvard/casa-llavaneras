@@ -1150,10 +1150,12 @@ function renderPairings() {
     $("#pair-body").innerHTML = dishes.map(d => {
       const wines = winesForDish(d.id);
       const best = wines[0];
-      return `<div class="card" role="button" onclick="openDish('${d.id}')">
-        <div class="row"><h3>${d.icon} ${d.name}</h3><span class="badge">${wines.length} vinos</span></div>
+      const label = best ? `${best.wine.producer} ${shortWineName(best.wine)}` : "";
+      return `<div class="card">
+        <div class="row" role="button" onclick="openDish('${d.id}')"><h3>${d.icon} ${d.name}</h3><span class="badge">${wines.length} vinos ›</span></div>
         <p class="muted">${d.family} · ${d.heat}</p>
-        ${best ? `<p class="tiny" style="margin-top:6px">Mejor encaje: ${best.wine.producer} ${best.wine.name} · ${best.score}</p>` : ""}
+        ${best ? `<p class="tiny" role="button" style="margin-top:8px;color:#c9a227" onclick="openWine('${best.wine.id}')">Mejor encaje: ${label} · ${best.score} ›</p>` : ""}
+        <button class="btn btn-ghost" style="width:100%;margin-top:10px" onclick="openDish('${d.id}')">Ver vinos del plato</button>
       </div>`;
     }).join("");
     return;
@@ -1200,7 +1202,7 @@ function openDish(id) {
     <h1>${d.icon} ${d.name}</h1>
     <p class="muted">${d.heat} · ${d.tags.join(" · ")}</p>
     ${inCava.length ? `<div class="card" style="margin-top:12px"><h2>En tu vinoteca ahora</h2>
-      ${inCava.map(x => `<p style="margin-top:8px"><strong>${x.wine.producer} ${x.wine.name} ${x.wine.vintage}</strong> · ${x.score}/100<br><span class="muted">${x.why}</span></p>`).join("")}
+      ${inCava.map(x => `<p role="button" style="margin-top:8px" onclick="openWine('${x.wine.id}')"><strong>${x.wine.producer} ${x.wine.name} ${x.wine.vintage}</strong> · ${x.score}/100 ›<br><span class="muted">${x.why}</span></p>`).join("")}
     </div>` : `<p class="muted" style="margin-top:12px">Ninguna botella de este maridaje está en stock. Abajo, el catálogo.</p>`}
     <h2 style="margin-top:16px">Ranking por encaje</h2>
     ${wines.map(x => {
