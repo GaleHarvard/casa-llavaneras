@@ -9,7 +9,7 @@ window.WINE_DOSSIERS = {
     glass: "Copa Burdeos amplia (Zalto Universal / Riedel Bordeaux)",
     decant: "90 minutos",
     oxygen: "Necesita aire. Abrir y decantar; no servir del cuello.",
-    history: "Único es el gran vino de Vega Sicilia desde 1915. La 2009, añada cálida, se mostró más fresca de lo esperado en cata a ciegas de Luis Gutiérrez.",
+    history: "Vega Sicilia elabora Único en Valbuena de Duero desde 1915. No es un Ribera de extracción: Tinto Fino de pago, un resto histórico de Cabernet, y una década de barrica y botella en la propia finca antes de salir.\n\nLa 2009 fue año cálido en el Duero. Gutiérrez la encontró más fresca de lo que el verano prometía: 97 WA. En 2026 ya se puede decantar 90 minutos y servir; no es pecado abrirla si hay un asado que lo pida. Sigue aguantando hasta bien entrada la década de 2040 si el corcho está sano.\n\nCopa Burdeos amplia. 17–18 °C. No servir del cuello.",
     market: { low: 480, mid: 600, high: 720, trend: "Firme. Pocas botellas en mercado secundario." },
     similar: ["vs-unico-2014", "vega-valbuena-2019", "pingus-2018"],
     awards: ["WA 97 (Gutiérrez)", "WS 96", "Decanter 97", "Peñín 97"]
@@ -23,7 +23,7 @@ window.WINE_DOSSIERS = {
     glass: "Copa Burdeos amplia",
     decant: "2 horas",
     oxygen: "Todavía primario. Decantar largo si se abre ahora.",
-    history: "Estilo más tenso que 2009. Añada de guarda.",
+    history: "Misma receta de Único: viñas viejas de Valbuena, crianza larga en finca, salida al mercado cuando la casa lo decide. La 2014 es más tensa y menos opulenta que la 2009.\n\nEn 2026 todavía está en arranque de meseta. Si abres ahora, decanta 2 horas. Si puedes esperar a 2028–2038, la seda llega sola. Peñín 97, WA 96.\n\nMisma copa y temperatura que la 2009. Reserva las botellas de 2014 para ocasiones; la 2009, si hay dos, es la de esta noche.",
     market: { low: 450, mid: 560, high: 650, trend: "Al alza al ir saliendo al mercado." },
     similar: ["vs-unico-2009", "pingus-2018"],
     awards: ["WA 96", "Peñín 97", "Decanter 96"]
@@ -37,7 +37,7 @@ window.WINE_DOSSIERS = {
     glass: "Copa Borgoña o Burdeos amplio",
     decant: "60–90 min (solo si se abre joven)",
     oxygen: "Textura ya sedosa; no airear en exceso en apogeo.",
-    history: "Pingus nació en 1995 y se convirtió en el mito moderno de Ribera.",
+    history: "Peter Sisseck embotella Pingus desde 1995 en Quintanilla de Onésimo: parcelas mínimas, vaso prefiloxérico, biodinámica. Pocas miles de botellas. No es un vino de carta; es asignación.\n\nLa 2018 (WA 99) tiene textura ya sedosa. En 2026 se puede beber con 60 minutos de decantación, o guardar sin prisa hasta 2035. No la airees como un Priorat cerrado: se cansa.\n\nCopa Borgoña o Burdeos amplio. 16–17 °C. Un plato de caza menor o un chuletón sin pimienta.",
     market: { low: 1200, mid: 1500, high: 1800, trend: "Muy ilíquido. Asignación." },
     similar: ["vs-unico-2009", "lermita-2019"],
     awards: ["WA 99", "Peñín 99", "Decanter 98"]
@@ -65,7 +65,7 @@ window.WINE_DOSSIERS = {
     glass: "Copa Rioja estándar",
     decant: "15 min",
     oxygen: "Listo. Servir sin ceremonia.",
-    history: "Marqués de Riscal elabora Reserva desde el s. XIX. Estilo más moderno que Tondonia.",
+    history: "Marqués de Riscal trabaja en Elciego desde 1858. El Reserva es el vino de diario noble de la casa: Tempranillo con Graciano y Mazuelo, 24 meses de barrica americana y francesa, estilo más pulido que Tondonia.\n\nLa 2019 está lista. No hay que esperar a 2030. Peñín 92. Si tienes Tondonia 2011 y Riscal 2019 en la misma cena, el Riscal abre; el Tondonia cierra.\n\n15 minutos en jarra como mucho. 16 °C. Chuletillas, bacalao o un arroz de setas.",
     market: { low: 18, mid: 22, high: 26, trend: "Estable, gran liquidez." },
     similar: ["tondonia-reserva-2011"],
     awards: ["Peñín 92", "WA 91"]
@@ -79,7 +79,7 @@ window.WINE_DOSSIERS = {
     glass: "Copa Borgoña",
     decant: "45–60 min",
     oxygen: "Aún contenido. Gana con aire.",
-    history: "L'Ermita es el vino de culto de Álvaro Palacios en Priorat.",
+    history: "Álvaro Palacios embotella L'Ermita en Gratallops: Garnacha centenaria en llicorella, pendientes que se trabajan a mano. Es el Priorat de culto, no el de volumen.\n\nLa 2019 aún va cerrada. 45–60 minutos de decantación si la abres ahora; mejor 2027–2035. WA 98, Peñín 99. La pizarra se nota más que la madera.\n\nCopa Borgoña. 16–17 °C. Cordero al romero o un arroz de montaña. No la mates con salsas dulces.",
     market: { low: 1100, mid: 1350, high: 1600, trend: "Coleccionista." },
     similar: ["pingus-2018"],
     awards: ["WA 98", "Peñín 99"]
@@ -93,7 +93,7 @@ window.WINE_DOSSIERS = {
     glass: "Copa Riesling / universal estrecha",
     decant: "No",
     oxygen: "Servir frío. No airear.",
-    history: "Referencia de Albariño contemporáneo. Beber en 2–4 años.",
+    history: "Pazo de Señoráns trabaja Albariño en Meis (Val do Salnés) sobre xabre granítico, emparrado y Atlántico encima. Acero y lías; cero madera. Es el blanco de referencia cuando quieres Rías de verdad, no un Albariño de supermercado dulzón.\n\nLa 2023 se bebe ahora y hasta 2027. Frío de nevera de vino (9–11 °C), no de cubitera con hielo fundido. Peñín 92.\n\nMarisco a la plancha, xoubas, un arroz de vieiras. No decantar.",
     market: { low: 16, mid: 19, high: 22, trend: "Estable." },
     similar: ["cvne-monopole-2022"],
     awards: ["Peñín 92", "WA 91"]
@@ -107,7 +107,7 @@ window.WINE_DOSSIERS = {
     glass: "Copa Borgoña blanca",
     decant: "No necesario",
     oxygen: "Abrir 20 min antes.",
-    history: "Monopole es el blanco histórico de CVNE (1915).",
+    history: "CVNE lanza Monopole en 1915: el blanco de guarda de Haro, Viura vieja, un paso por madera usada y, en algunas cuvées, velo. No es un Verdejo de terraza.\n\nLa 2022 ya se puede abrir (20 minutos antes). Aguanta 6–8 años si el corcho está bien. WA 93, Peñín 93. Si tienes Tondonia tinto en la misma mesa, Monopole es el primer plato.\n\nCopa de blanco amplia. 10–12 °C. Merluza, kokotxas, un pollo asado.",
     market: { low: 22, mid: 26, high: 30, trend: "Estable." },
     similar: ["pazo-senorans-2023", "tondonia-reserva-2011"],
     awards: ["WA 93", "Peñín 93"]
@@ -121,7 +121,7 @@ window.WINE_DOSSIERS = {
     glass: "Flauta amplia o copa universal",
     decant: "No",
     oxygen: "8–10 °C. No helar.",
-    history: "III Lustros es el Corpinnat de guarda de Gramona.",
+    history: "Gramona elabora Corpinnat en Sant Sadurní: Xarel·lo y Macabeo, ecológico, años en rima. III Lustros no es un cava de brindis; es un espumoso de mesa con 7 años de lías.\n\nLa 2016, con degüelle reciente, está en su sitio en 2026. 8–10 °C, copa universal o flauta ancha. Peñín 96. No la hieles.\n\nOstras, jamón, un arroz de rape. También sola, al final, si la cena ha sido pesada.",
     market: { low: 38, mid: 45, high: 52, trend: "Estable." },
     similar: ["dom-perignon-2015"],
     awards: ["Peñín 96", "Decanter 95"]
@@ -135,7 +135,7 @@ window.WINE_DOSSIERS = {
     glass: "Copa Champagne amplia (no flauta estrecha)",
     decant: "No",
     oxygen: "8–10 °C. Añada solar, ya accesible.",
-    history: "Dom Pérignon solo se declara en añadas. 2015 es perfil maduro y tenso.",
+    history: "Dom Pérignon solo sale en añadas que la casa declara. Ensamblaje de Chardonnay y Pinot Noir de crus históricos, unos 8 años sur lattes antes de la etiqueta.\n\nLa 2015 es solar y a la vez tensa. En 2026 ya se bebe (WA 96, Decanter 97). No esperes 20 años si quieres fruta; si buscas tesoros, deja alguna hasta 2032.\n\n8–10 °C. Copa amplia, no flauta de discoteca. Pescado graso, aves, o el primer brindis que sí merece la botella.",
     market: { low: 180, mid: 210, high: 240, trend: "Líquido." },
     similar: ["gramona-iii-lustros-2016"],
     awards: ["WA 96", "Decanter 97"]
@@ -149,7 +149,7 @@ window.WINE_DOSSIERS = {
     glass: "Copa Burdeos de gran cáliz",
     decant: "2–3 horas si se abre ahora",
     oxygen: "Añada de guarda. Tanino noble aún firme.",
-    history: "Premier Grand Cru Classé 1855. 2016 es añada de leyenda en la orilla izquierda.",
+    history: "Château Margaux es Premier Grand Cru Classé desde 1855. Gravas de la Gironda, Cabernet Sauvignon dominante, crianza en barrica nueva francesa. El enclos no se improvisa.\n\n2016 es añada de leyenda en Médoc. Decanter 100, WA 99. En 2026 el tanino sigue firme: 2–3 horas de decantación o espera 2028–2040. No la abras “para probar” un martes.\n\nCopa Burdeos grande. 17–18 °C. Cordero, pichón, un solomillo sin salsa dulce.",
     market: { low: 650, mid: 780, high: 900, trend: "Al alza." },
     similar: ["sassicaia-2019", "vs-unico-2009"],
     awards: ["WA 99", "Decanter 100", "WS 97"]
@@ -163,7 +163,7 @@ window.WINE_DOSSIERS = {
     glass: "Copa Burdeos",
     decant: "45–60 min",
     oxygen: "Ya seductor; gana 4 años.",
-    history: "Nació en los 60 como el primer ‘super toscano’ de corte bordelés.",
+    history: "Tenuta San Guido (familia Incisa della Rocchetta) planta Cabernet en Bolgheri en los años 60. Sassicaia fue el primer ‘super toscano’ que el mundo tomó en serio: corte Médoc, brisa marina, DOC propia.\n\nLa 2019 (WA 98) ya seduce. 45–60 minutos de jarra. Gana hasta 2032. Si tienes Margaux 2016 en la misma cava, Sassicaia es más accesible esta década.\n\nCopa Burdeos. 16–18 °C. Bistecca, un risotto de hongos, o un pecorino no demasiado viejo.",
     market: { low: 280, mid: 330, high: 380, trend: "Firme." },
     similar: ["margaux-2016"],
     awards: ["WA 98", "WS 97"]
@@ -177,10 +177,94 @@ window.WINE_DOSSIERS = {
     glass: "Copa Syrah amplia",
     decant: "60 min",
     oxygen: "Denso; necesita copa grande.",
-    history: "Grange es el icono de Australia. No se declara todas las añadas.",
+    history: "Penfolds declara Grange desde 1951: Shiraz de viñas viejas de South Australia (Barossa, McLaren Vale…) con un toc de Cabernet y casi siempre roble americano nuevo. No sale todas las añadas.\n\nLa 2018 es densa (WA 98). Decanta 60 minutos. En 2026 se puede atacar; el núcleo aguanta 2040. Copa grande de Syrah, no una copa de cata estrecha.\n\nEstofado, costilla, un curry no picante. El alcohol se nota si la sirves caliente: 16–17 °C.",
     market: { low: 500, mid: 650, high: 800, trend: "Coleccionista Asia." },
     similar: ["pingus-2018"],
     awards: ["WA 98", "WS 97"]
+  },
+  "vega-valbuena-2019": {
+    soils: "Aluviales y gravas de Valbuena de Duero, misma finca que Único.",
+    elevation: "700–800 m",
+    vineyard: "Tinto Fino de Vega Sicilia. El ‘segundo vino’ solo de nombre.",
+    vinification: "Crianza más corta que Único, aún larga para Ribera.",
+    elevage: "Barrica y botella en finca.",
+    glass: "Copa Burdeos",
+    decant: "45 min",
+    oxygen: "Más abierto que Único. Listo antes.",
+    history: "Valbuena 5° es el vino de Valbuena que Vega Sicilia saca con cinco años de crianza. Misma finca que Único, menos espera en calado.\n\nLa 2019 se bebe ya (2026) con 45 minutos de aire. No sustituye a Único; es el vino de mesa de la casa cuando no quieres abrir una 2009. Guarda seria hasta 2034.\n\n17 °C. Cordero, un arroz de paletilla, un queso curado de oveja.",
+    market: { low: 140, mid: 175, high: 210, trend: "Firme." },
+    similar: ["vs-unico-2014", "numanthia-2018"],
+    awards: ["WA 95", "Peñín 96"]
+  },
+  "muga-prado-enea-2015": {
+    soils: "Arcillo-calcáreos de Rioja Alta, viñedo de Haro.",
+    elevation: "450–550 m",
+    vineyard: "Tempranillo con Garnacha, Mazuelo y Graciano. Selección de gran reserva.",
+    vinification: "Fermentación en tinos de roble. Crianza larga en barrica y botella.",
+    elevage: "Gran Reserva clásico de Muga.",
+    glass: "Copa Rioja / Borgoña media",
+    decant: "30 min",
+    oxygen: "En meseta. Un rato en jarra por los posos.",
+    history: "Muga elabora Prado Enea como Gran Reserva de Haro: tinos de roble, crianza larga, estilo más amable que Tondonia pero de la misma escuela de calado.\n\nLa 2015 está en meseta en 2026. 30 minutos por los posos. Peñín y WA en la banda alta de los 90. Si comparas con Tondonia 2011, Prado Enea es más fruta y menos té.\n\n16–17 °C. Cordero, setas, un bacalao al pil-pil.",
+    market: { low: 55, mid: 68, high: 80, trend: "Estable." },
+    similar: ["tondonia-reserva-2011", "riscal-reserva-2019"],
+    awards: ["WA 95", "Peñín 95"]
+  },
+  "scala-dei-prior-2020": {
+    soils: "Llicorella de Escaladei, cuna cartuja del Priorat.",
+    elevation: "400–600 m",
+    vineyard: "Garnacha y Cariñena de costers históricos.",
+    vinification: "Crianza en foudre y barrica usada.",
+    elevage: "Prior de la casa, no el de entrada.",
+    glass: "Copa Borgoña",
+    decant: "30–40 min",
+    oxygen: "Aún joven. Gana con aire.",
+    history: "Cellers de Scala Dei nace junto a la cartuja: el Priorat original. El Prior es Garnacha y Cariñena de llicorella, no un vino de merchandising.\n\nLa 2020 está joven. 30–40 minutos de jarra. Bébela de 2026 a 2032. Pizarra y fruta roja, no mermelada.\n\n16 °C. Cordero, un arroz de costilla, embutido de montaña.",
+    market: { low: 28, mid: 34, high: 40, trend: "Estable." },
+    similar: ["lermita-2019"],
+    awards: ["Peñín 93", "WA 92"]
+  },
+  "enrique-mendoza-chardonnay-2022": {
+    soils: "Calcáreos de l’Alfàs / Marina Baixa, Alicante.",
+    elevation: "200–400 m",
+    vineyard: "Chardonnay mediterráneo de la casa Mendoza.",
+    vinification: "Fermentación y crianza parcial en barrica.",
+    elevage: "Lías. Blanco de clima cálido bien hecho.",
+    glass: "Copa Chardonnay / Borgoña blanca",
+    decant: "No",
+    oxygen: "10–12 °C. No helar.",
+    history: "Enrique Mendoza demostró que Alicante no es solo fondillón. Este Chardonnay sale de calcáreo junto al Mediterráneo, con barrica justa.\n\nLa 2022 se bebe ahora y hasta 2027. Si la sirves demasiado fría, solo notarás el alcohol.\n\nArroz a banda, pescado a la sal, un pollo asado. No es un Puligny; no lo trates como tal.",
+    market: { low: 14, mid: 18, high: 22, trend: "Estable." },
+    similar: ["cvne-monopole-2022"],
+    awards: ["Peñín 91"]
+  },
+  "numanthia-2018": {
+    soils: "Arenas y cantos de Toro. Tinta de Toro vieja.",
+    elevation: "650–750 m",
+    vineyard: "Viñas viejas en vaso. Clima extremo.",
+    vinification: "Extracción controlada. Crianza en barrica francesa.",
+    elevage: "Toro de alta gama, no el potente de feria.",
+    glass: "Copa Burdeos amplia",
+    decant: "45–60 min",
+    oxygen: "Necesita aire. El tanino de Toro no perdona.",
+    history: "Numanthia (Toro) trabaja Tinta de Toro vieja en clima de extremo. No es un Ribera suave: color, tanino y calor de meseta.\n\nLa 2018 pide 45–60 minutos de jarra. En 2026 está bebible; 2028–2034 será más amable. Si te gusta Valbuena, esto es el primo más bronco.\n\n16–17 °C. Chuletón, un estofado, lentejas de verdad.",
+    market: { low: 45, mid: 55, high: 68, trend: "Estable." },
+    similar: ["vega-valbuena-2019"],
+    awards: ["WA 94", "Peñín 94"]
+  },
+  "raidue-rose-2024": {
+    soils: "Viñedo mediterráneo de la casa. Rosado de añada.",
+    elevation: "—",
+    vineyard: "Maceración corta. Beber joven.",
+    vinification: "Prensado directo o sangrado. Acero.",
+    elevage: "Sin madera.",
+    glass: "Copa universal estrecha",
+    decant: "No",
+    oxygen: "8–10 °C. Este año.",
+    history: "Rosado de añada para la mesa de verano. No es un vino de guarda ni de puntuación: es el que abres cuando el tinto sobra y el Albariño ya está frío.\n\nLa 2024 se acaba en 2026–2027. Si queda alguna en 2028, cocina con ella.\n\nEnsalada, pizza, pescado frito, una paella de verduras. No decantar.",
+    market: { low: 8, mid: 12, high: 16, trend: "Añada." },
+    similar: ["pazo-senorans-2023"],
+    awards: []
   }
 };
 
