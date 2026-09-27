@@ -865,7 +865,7 @@ a.btn{text-decoration:none}
 
 .zone-card{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;margin:14px 0 6px;border:1px solid #222;border-radius:16px;background:#0e0e0e}
 .zone-card strong{display:block;margin-top:2px;font-size:16px}
-.estate-wide{width:100%;height:140px;object-fit:cover;object-position:center 70%;border-radius:16px;margin:8px 0 12px}
+.estate-wide{width:100%;height:168px;object-fit:cover;object-position:center 45%;border-radius:16px;margin:18px 0 14px;display:block}
 
 .map-art{width:100%;height:180px;object-fit:cover;border-radius:16px;margin:8px 0 12px;border:1px solid #222}
 

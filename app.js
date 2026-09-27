@@ -134,11 +134,12 @@ function wineById(id) { return WINE_CATALOG.find(w => w.id === id); }
 
 function phaseOf(wine) {
   const a = wine.aging;
-  if (YEAR < a.drinkFrom) return { key: "wait", label: "Aún no", hint: "Necesita botella" };
+  const pr = progressOf(wine);
+  if (YEAR < a.drinkFrom || pr.pct < 38) return { key: "wait", label: "Aguardar", hint: "Todavía gana en botella" };
+  if (YEAR > a.holdTo || pr.pct >= 82) return { key: "late", label: "En declive", hint: "Riesgo de fatiga" };
+  if (YEAR >= a.peakEnd - 1 || pr.pct >= 62) return { key: "warn", label: "Beber pronto", hint: "Últimos años de meseta" };
   if (YEAR < a.peakStart) return { key: "ok", label: "Se puede abrir", hint: "Antes del apogeo" };
-  if (YEAR <= a.peakEnd) return { key: "ok", label: "En apogeo", hint: "Ventana ideal" };
-  if (YEAR <= a.holdTo) return { key: "warn", label: "Maduro", hint: "Beber pronto" };
-  return { key: "late", label: "En declive", hint: "Riesgo de fatiga" };
+  return { key: "ok", label: "En apogeo", hint: "Ventana ideal" };
 }
 
 function progressOf(wine) {
@@ -395,7 +396,7 @@ const ZONES = [
   { name: "Bolgheri", country: "Italia", img: "vinedo-bolgheri.jpg", map: "mapa-bolgheri.jpg", keys: "bolgheri sassicaia toscana" },
   { name: "Corpinnat", country: "España", img: "vinedo-champagne.jpg", map: "mapa-penedes.jpg", keys: "corpinnat penedès penedes gramona cava" },
   { name: "Toro", country: "España", img: "vinedo-ribera.jpg", map: "mapa-ribera.jpg", keys: "toro numanthia" },
-  { name: "Alicante", country: "España", img: "vinedo.jpg", map: "vinedo.jpg", keys: "alicante mendoza" },
+  { name: "Alicante", country: "España", img: "vinedo.jpg", map: "mapa-rioja.jpg", keys: "alicante mendoza" },
   { name: "South Australia", country: "Australia", img: "vinedo-margaux.jpg", map: "mapa-medoc.jpg", keys: "australia barossa grange penfolds" }
 ];
 function winesInZone(z) {
@@ -616,7 +617,8 @@ function renderCalendar() {
 }
 
 function calBlock(title, arr) {
-  return `<h2 class="cal-h">${title}</h2>` + (arr.length ? arr.map(b => {
+  if (!arr.length) return "";
+  return `<h2 class="cal-h">${title}</h2>` + arr.map(b => {
     const w = wineById(b.wineId);
     const pr = progressOf(w);
     return `<div class="cal-card" role="button" onclick="openBottle('${b.uid}')">
@@ -634,7 +636,7 @@ function calBlock(title, arr) {
       </div>
       <div class="win-bar"><i style="width:${pr.pct}%"></i></div>
     </div>`;
-  }).join("") : `<p class="muted" style="margin-bottom:8px">Ninguna botella en este estado.</p>`);
+  }).join("");
 }
 
 function rackSlots(cellarId) {
@@ -689,8 +691,8 @@ function estateArt(w) {
     "Moët & Chandon": { land: "vinedo-champagne.jpg", cap: "capsula.jpg", map: "mapa-champagne.jpg" },
     "Gramona": { land: "vinedo-champagne.jpg", cap: "capsula.jpg", map: "mapa-penedes.jpg" },
     "Tenuta San Guido": { land: "vinedo-bolgheri.jpg", cap: "capsula.jpg", map: "mapa-bolgheri.jpg" },
-    "Penfolds": { land: "vinedo.jpg", cap: "capsula.jpg", map: "vinedo.jpg" },
-    "Enrique Mendoza": { land: "vinedo.jpg", cap: "capsula.jpg", map: "vinedo.jpg" },
+    "Penfolds": { land: "vinedo-margaux.jpg", cap: "capsula.jpg", map: "mapa-medoc.jpg" },
+    "Enrique Mendoza": { land: "vinedo.jpg", cap: "capsula.jpg", map: "" },
     "Numanthia": { land: "vinedo-ribera.jpg", cap: "capsula.jpg", map: "mapa-ribera.jpg" }
   };
   const hit = byProducer[w.producer];
@@ -704,7 +706,10 @@ function estateArt(w) {
   if (/corpinnat|penedès|penedes|cava/.test(zone)) return { land: "vinedo-champagne.jpg", cap: "capsula.jpg", map: "mapa-penedes.jpg" };
   if (/champagne/.test(zone)) return { land: "vinedo-champagne.jpg", cap: "capsula.jpg", map: "mapa-champagne.jpg" };
   if (/bolgheri|toscana/.test(zone)) return { land: "vinedo-bolgheri.jpg", cap: "capsula.jpg", map: "mapa-bolgheri.jpg" };
-  return { land: "vinedo.jpg", cap: "capsula.jpg", map: "vinedo.jpg" };
+  if (/alicante|marina/.test(zone)) return { land: "vinedo.jpg", cap: "capsula.jpg", map: "mapa-rioja.jpg" };
+  if (/australia|barossa/.test(zone)) return { land: "vinedo-margaux.jpg", cap: "capsula.jpg", map: "mapa-medoc.jpg" };
+  if (/toro/.test(zone)) return { land: "vinedo-ribera.jpg", cap: "capsula.jpg", map: "mapa-ribera.jpg" };
+  return { land: "vinedo-rioja.jpg", cap: "capsula.jpg", map: "mapa-rioja.jpg" };
 }
 
 function estateSVG(w) {
@@ -1096,7 +1101,7 @@ function openWineSub(kind) {
   $("#wine-sub-body").innerHTML = `
     <button class="back" onclick="goBack()">‹ ${backCaption()}</button>
     <p class="eyebrow">${w.name} ${w.vintage}</p>
-    <h1>${titles[kind] || "Ficha"}</h1>
+    <h1 style="margin-bottom:16px">${titles[kind] || "Ficha"}</h1>
     ${body}`;
   show("wine-sub");
 }
@@ -1910,13 +1915,13 @@ function mapaBlock(w) {
   const osm = `https://www.openstreetmap.org/?mlat=${g.lat}&mlon=${g.lng}#map=12/${g.lat}/${g.lng}`;
   const gmaps = `https://maps.google.com/?q=${encodeURIComponent(w.producer + " " + g.zone)}`;
   return `
-    <p class="muted">${w.appellation} · ${w.region}</p>
+    <p class="muted" style="margin:0 0 14px">${w.appellation} · ${w.region}</p>
     ${art.land ? `<img class="estate-wide" src="${art.land}" alt="${w.producer}">` : ""}
     <div class="card">
       <h3>${w.producer}</h3>
       <p class="muted" style="margin-top:4px">${g.zone}</p>
     </div>
-    ${art.map ? `<img class="map-art" src="${art.map}" alt="Mapa de ${g.zone}">` : `<div class="map-frame"><iframe title="Mapa de la bodega" src="${embed}" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe></div>`}
+    ${art.map && art.map !== art.land ? `<img class="map-art" src="${art.map}" alt="Mapa de ${g.zone}">` : `<div class="map-frame"><iframe title="Mapa de la bodega" src="${embed}" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe></div>`}
     <a class="btn btn-ghost" style="width:100%;margin-top:10px;display:block;text-align:center" href="${gmaps}" target="_blank" rel="noopener">Abrir en Mapas</a>
     <a class="btn btn-ghost" style="width:100%;margin-top:8px;display:block;text-align:center" href="${osm}" target="_blank" rel="noopener">OpenStreetMap</a>
     ${g.web ? `<a class="btn btn-gold" style="width:100%;margin-top:8px;display:block;text-align:center" href="${g.web}" target="_blank" rel="noopener">Web de la bodega</a>` : ""}`;
