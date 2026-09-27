@@ -47,11 +47,29 @@ window.WINE_CATALOG = [
     abv: 14.5,
     color: "#5a1220",
     ratings: {
-      vivino: { score: 4.8, count: 3120, scale: 5 },
-      penin: { score: 97, scale: 100 },
-      parker: { score: 97, scale: 100, reviewer: "Luis Gutiérrez / WA" },
-      spectator: { score: 96, scale: 100 },
-      decanter: { score: 97, scale: 100 }
+      vivino: {
+        score: 4.8,
+        count: 3120,
+        scale: 5,
+        note: "Consenso de usuarios: estilo generoso, con vainilla y roble más marcados que en la Reserva Especial. Con aire asoman fruta negra, cuero, cigarro y especias. Lo describen como un vino de gran cuerpo y claridad de fruta."
+      },
+      penin: { score: 97, scale: 100, note: "" },
+      parker: {
+        score: 97,
+        scale: 100,
+        reviewer: "Luis Gutiérrez / WA",
+        note: "Catado a ciegas, sorprendió la frescura y la fruta roja, casi borgoñona, en una añada que sobre el papel fue cálida y seca. Tarda en abrir la paleta aromática y se siente más joven de lo que es. En nariz recuerda a los Único antiguos; el tanino va pulido y la boca, suave, aporta elegancia. Añada mejor de lo esperado, para seguir en botella."
+      },
+      spectator: {
+        score: 96,
+        scale: 100,
+        note: "Rico y a la vez vibrante; denso pero con gracia. Cereza y ciruela sobre suelo de bosque, cedro, tabaco y un fondo mineral. Taninos musculosos y bien integrados. El final es especiado, ligeramente amargo. Complejo y armónico. Tinto Fino con Cabernet Sauvignon."
+      },
+      decanter: {
+        score: 97,
+        scale: 100,
+        note: "Pese a la estructura de guarda de Único, esta añada se muestra ya accesible. Nariz de fruta roja, vainilla y cedro; en boca elegante y suple, con el tanino muy bien trabajado. La frescura sostiene un final largo. Gonzalo Iturriaga: es complejidad, juventud y capacidad de envejecer."
+      }
     },
     priceHint: "480–720 €",
     tasting: "Ciruela, cedro, tabaco habano y grafito. Boca amplia, tanino ya noble, final de cacao y minerales de pizarra.",
