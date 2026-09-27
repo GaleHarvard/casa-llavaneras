@@ -290,6 +290,14 @@ function renderHome() {
   const perm = typeof Notification !== "undefined" ? Notification.permission : "denied";
   const on = state.notify && state.notify.on && perm === "granted";
   $("#home-notify").innerHTML = `
+    <h2 style="margin-top:18px">Páginas</h2>
+    <div class="card" role="button" onclick="show('caves',{tab:true})" style="margin-top:10px"><div class="row"><h3>Vinotecas</h3><span class="tiny">›</span></div><p class="muted">VIP 185 y el resto de cavas</p></div>
+    <div class="card" role="button" onclick="openCave('v1')" style="margin-top:8px"><div class="row"><h3>Detalle VIP 185</h3><span class="tiny">›</span></div><p class="muted">Foto, huecos, temperatura</p></div>
+    <div class="card" role="button" onclick="show('cellar',{tab:true})" style="margin-top:8px"><div class="row"><h3>Botellas</h3><span class="tiny">›</span></div><p class="muted">Inventario, lotes y ubicación</p></div>
+    <div class="card" role="button" onclick="show('pairings',{tab:true})" style="margin-top:8px"><div class="row"><h3>Mesa</h3><span class="tiny">›</span></div><p class="muted">Maridajes por plato y por vino</p></div>
+    <div class="card" role="button" onclick="show('calendar',{tab:true})" style="margin-top:8px"><div class="row"><h3>Fechas</h3><span class="tiny">›</span></div><p class="muted">Beber ahora, pronto, aguardar</p></div>
+    <div class="card" role="button" onclick="openHomeMap()" style="margin-top:8px"><div class="row"><h3>Zonas vinícolas</h3><span class="tiny">›</span></div><p class="muted">Mapa por región y vinos</p></div>
+    <div class="card" role="button" onclick="show('catas')" style="margin-top:8px"><div class="row"><h3>Cuaderno de cata</h3><span class="tiny">›</span></div><p class="muted">Ejes y recuerdo</p></div>
     <div class="chip-row" style="margin-top:14px">
       <button class="chip on" onclick="startScan()">Escanear</button>
       <button class="chip" onclick="quickTaste()">Cata rápida</button>
@@ -522,17 +530,56 @@ function openCave(id) {
   show("cave-detail-screen");
 }
 
+let cellarView = "botellas";
+function setCellarView(v) {
+  cellarView = v;
+  renderCellar();
+}
 function renderCellar() {
   const q = ($("#cellar-q")?.value || "").toLowerCase();
   let list = state.bottles.filter(b => {
     const w = wineById(b.wineId);
-    const hay = `${w.producer} ${w.name} ${w.vintage} ${w.region} ${w.type}`.toLowerCase();
+    if (!w) return false;
+    const hay = `${w.producer} ${w.name} ${w.vintage} ${w.region} ${w.type} ${cellarName(b.cellarId)} ${b.bin || ""}`.toLowerCase();
     const typeOk = filterType === "todos" || w.type === filterType;
     return typeOk && hay.includes(q);
   });
-  const byWine = {};
-  list.forEach(b => { (byWine[b.wineId] || (byWine[b.wineId] = [])).push(b); });
-  $("#cellar-list").innerHTML = Object.keys(byWine).map(id => wineStockCard(byWine[id])).join("") || `<p class="empty">Sin coincidencias. Escanea o añade a mano.</p>`;
+  const tabs = [["botellas","Botellas"],["productores","Productores"],["lotes","Lotes"],["ubicaciones","Ubicaciones"]];
+  const tabHtml = `<div class="chip-row" style="margin:0 0 10px">${tabs.map(([k,l]) => `<button class="chip ${cellarView===k?"on":""}" onclick="setCellarView('${k}')">${l}</button>`).join("")}</div>`;
+  let body = "";
+  if (cellarView === "productores") {
+    const by = {};
+    list.forEach(b => {
+      const w = wineById(b.wineId);
+      (by[w.producer] || (by[w.producer] = [])).push(b);
+    });
+    body = Object.keys(by).sort().map(p => {
+      const qty = by[p].reduce((n, x) => n + x.qty, 0);
+      const w = wineById(by[p][0].wineId);
+      return `<div class="card" role="button" onclick="openWine('${w.id}')"><div class="row"><h3>${p}</h3><span class="tiny">${qty} ud</span></div><p class="muted">${by[p].length} lote${by[p].length>1?"s":""}</p></div>`;
+    }).join("");
+  } else if (cellarView === "lotes") {
+    body = list.map(b => {
+      const w = wineById(b.wineId);
+      return `<div class="card" role="button" onclick="openBottle('${b.uid}')"><div class="row"><h3>${w.producer}</h3><span class="tiny">×${b.qty}</span></div><p class="muted">${w.name} ${w.vintage}</p><p class="tiny">${cellarName(b.cellarId)} · ${state.prefs.hideBin ? "hueco oculto" : (b.bin || "sin hueco")}</p></div>`;
+    }).join("");
+  } else if (cellarView === "ubicaciones") {
+    const by = {};
+    list.forEach(b => {
+      const key = cellarName(b.cellarId) + " · " + (state.prefs.hideBin ? "—" : (b.bin || "sin hueco"));
+      (by[key] || (by[key] = [])).push(b);
+    });
+    body = Object.keys(by).sort().map(k => {
+      const qty = by[k].reduce((n, x) => n + x.qty, 0);
+      const first = by[k][0];
+      return `<div class="card" role="button" onclick="openCave('${first.cellarId}')"><div class="row"><h3>${k}</h3><span class="tiny">${qty} ud</span></div><p class="muted">${by[k].map(b => wineById(b.wineId).name).join(" · ")}</p></div>`;
+    }).join("");
+  } else {
+    const byWine = {};
+    list.forEach(b => { (byWine[b.wineId] || (byWine[b.wineId] = [])).push(b); });
+    body = Object.keys(byWine).map(id => wineStockCard(byWine[id])).join("");
+  }
+  $("#cellar-list").innerHTML = tabHtml + (body || `<p class="empty">Sin coincidencias. Escanea o añade a mano.</p>`);
 }
 
 function wineStockCard(lots) {
@@ -586,8 +633,8 @@ function calBlock(title, arr) {
 }
 
 function rackSlots(cellarId) {
-  const rows = ["A", "B", "C"];
-  const cols = [1, 2, 3, 4];
+  const rows = cellarId === "v1" ? ["A", "B", "C", "D", "E"] : ["A", "B", "C"];
+  const cols = cellarId === "v1" ? [1, 2, 3, 4, 5, 6] : [1, 2, 3, 4];
   const base = [];
   rows.forEach(r => cols.forEach(c => base.push(`${r}-${String(c).padStart(2, "0")}`)));
   const extra = state.bottles.filter(b => b.cellarId === cellarId && b.bin && !base.includes(b.bin)).map(b => b.bin);
