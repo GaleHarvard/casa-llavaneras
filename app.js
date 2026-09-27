@@ -499,9 +499,9 @@ function bottleCard(b) {
 function renderCaves() {
   syncUsed();
   $("#caves-list").innerHTML = state.vinotecas.map(v => {
-    const shot = v.photo || (v.id === "v1" ? "cave-principal.jpg" : "cave-temp.jpg");
+    const shot = "cave-principal.jpg";
     return `<div class="cave-card cave-card-photo" role="button" onclick="openCave('${v.id}')">
-      <img class="cave-shot" src="${shot}" alt="${v.name}">
+      <img class="cave-shot" src="${shot}" alt="${v.name}" onerror="this.style.display='none'">
       <div>
         <h3>${v.name}</h3>
         <p class="muted">${v.brand}${v.house ? " · " + v.house : ""}</p>
@@ -524,7 +524,7 @@ function openCave(id) {
   $("#cave-title").textContent = v.name;
   $("#cave-detail").innerHTML = `
     <p class="muted">${v.brand}${v.role === "prestige" ? " · reserva de las botellas más caras" : ""}</p>
-    <img class="cave-photo" src="${v.photo || (v.id==='v1'?'cave-principal.jpg':'cave-temp.jpg')}" alt="${v.name}" />
+    <img class="cave-photo" src="cave-principal.jpg" alt="${v.name}" onerror="this.style.display='none'" />
     <h2>Mapa de huecos</h2>
     ${rackGrid(id)}
     <div class="temp-grid" style="margin:12px 0">
