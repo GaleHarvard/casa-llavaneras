@@ -265,6 +265,20 @@ window.WINE_DOSSIERS = {
     market: { low: 8, mid: 12, high: 16, trend: "Añada." },
     similar: ["pazo-senorans-2023"],
     awards: []
+  },
+  "maos-tinto-2021": {
+    soils: "Esquisto del Baixo Corgo. Viñas en pendiente y patamares a unos 350–550 m.",
+    elevation: "350–550 m",
+    vineyard: "Quinta de Sequeirós, Loureiro (Peso da Régua). Familia de cuatro hermanos; uva propia.",
+    vinification: "Vendimia manual, mesa de selección, llenado por gravedad, fermentación a temperatura controlada.",
+    elevage: "Estágio corto en madera. Estilo de fruta, no de barrica nueva larga.",
+    glass: "Copa Burdeos media",
+    decant: "15 min si va cerrado",
+    oxygen: "Listo. No airear en exceso.",
+    history: "Mãos & Irmãos (R4 Vinhos) nace en el Baixo Corgo: cuatro hermanos de una casa duriense. El tinto Mãos sale de Touriga Nacional y Tinta Roriz en esquisto, con la frescura de la altitude y un paso corto por madera.\n\nLa 2021 se bebe ahora. 16–17 °C. Parrilla, un asado o bacalhau no forno. No es un Vintage; es el Douro de mesa de la casa.",
+    market: { low: 14, mid: 17, high: 20, trend: "Estable. Poco secundario." },
+    similar: [],
+    awards: ["Revista de Vinhos 18/20 (añadas previas)", "IWC Bronze (añadas previas)"]
   }
 };
 

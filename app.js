@@ -387,16 +387,73 @@ function quickTaste() {
 function openHomeMap() { show("zonas"); }
 
 const ZONES = [
-  { name: "Rioja", country: "España", img: "vinedo-rioja.jpg", map: "mapa-rioja.jpg", keys: "rioja haro alavesa alta" },
+  { name: "Rioja", country: "España", img: "vinedo-rioja.jpg", map: "mapa-rioja.jpg", keys: "rioja haro alavesa alta baja" },
   { name: "Ribera del Duero", country: "España", img: "vinedo-ribera.jpg", map: "mapa-ribera.jpg", keys: "ribera duero valbuena pingus vega" },
-  { name: "Priorat", country: "España", img: "vinedo-priorat.jpg", map: "mapa-priorat.jpg", keys: "priorat prior gratallops" },
-  { name: "Rías Baixas", country: "España", img: "vinedo-rias.jpg", map: "mapa-rias.jpg", keys: "rías rias baixas albariño albarino salnés" },
-  { name: "Champagne", country: "Francia", img: "vinedo-champagne.jpg", map: "mapa-champagne.jpg", keys: "champagne pérignon perignon" },
-  { name: "Médoc", country: "Francia", img: "vinedo-margaux.jpg", map: "mapa-medoc.jpg", keys: "médoc medoc margaux bordeaux" },
-  { name: "Bolgheri", country: "Italia", img: "vinedo-bolgheri.jpg", map: "mapa-bolgheri.jpg", keys: "bolgheri sassicaia toscana" },
-  { name: "Corpinnat", country: "España", img: "vinedo-champagne.jpg", map: "mapa-penedes.jpg", keys: "corpinnat penedès penedes gramona cava" },
   { name: "Toro", country: "España", img: "vinedo-ribera.jpg", map: "mapa-ribera.jpg", keys: "toro numanthia" },
-  { name: "Alicante", country: "España", img: "vinedo.jpg", map: "mapa-rioja.jpg", keys: "alicante mendoza" },
+  { name: "Cigales", country: "España", img: "vinedo-ribera.jpg", map: "mapa-ribera.jpg", keys: "cigales" },
+  { name: "Rueda", country: "España", img: "vinedo-ribera.jpg", map: "mapa-ribera.jpg", keys: "rueda verdejo" },
+  { name: "Bierzo", country: "España", img: "vinedo-priorat.jpg", map: "mapa-priorat.jpg", keys: "bierzo mencía mencia" },
+  { name: "Priorat", country: "España", img: "vinedo-priorat.jpg", map: "mapa-priorat.jpg", keys: "priorat priorato gratallops" },
+  { name: "Montsant", country: "España", img: "vinedo-priorat.jpg", map: "mapa-priorat.jpg", keys: "montsant" },
+  { name: "Penedès", country: "España", img: "vinedo-champagne.jpg", map: "mapa-penedes.jpg", keys: "penedès penedes corpinnat cava gramona" },
+  { name: "Corpinnat", country: "España", img: "vinedo-champagne.jpg", map: "mapa-penedes.jpg", keys: "corpinnat" },
+  { name: "Cava", country: "España", img: "vinedo-champagne.jpg", map: "mapa-penedes.jpg", keys: "cava" },
+  { name: "Empordà", country: "España", img: "vinedo-priorat.jpg", map: "mapa-priorat.jpg", keys: "empordà emporda" },
+  { name: "Terra Alta", country: "España", img: "vinedo-priorat.jpg", map: "mapa-priorat.jpg", keys: "terra alta" },
+  { name: "Costers del Segre", country: "España", img: "vinedo-rioja.jpg", map: "mapa-rioja.jpg", keys: "costers segre" },
+  { name: "Rías Baixas", country: "España", img: "vinedo-rias.jpg", map: "mapa-rias.jpg", keys: "rías rias baixas albariño albarino salnés" },
+  { name: "Ribeiro", country: "España", img: "vinedo-rias.jpg", map: "mapa-rias.jpg", keys: "ribeiro" },
+  { name: "Ribeira Sacra", country: "España", img: "vinedo-rias.jpg", map: "mapa-rias.jpg", keys: "ribeira sacra" },
+  { name: "Valdeorras", country: "España", img: "vinedo-rias.jpg", map: "mapa-rias.jpg", keys: "valdeorras godello" },
+  { name: "Monterrei", country: "España", img: "vinedo-rias.jpg", map: "mapa-rias.jpg", keys: "monterrei" },
+  { name: "Getariako Txakolina", country: "España", img: "vinedo-rias.jpg", map: "mapa-rias.jpg", keys: "txakoli txakolina getaria bizkaiko arabako" },
+  { name: "Navarra", country: "España", img: "vinedo-rioja.jpg", map: "mapa-rioja.jpg", keys: "navarra" },
+  { name: "Somontano", country: "España", img: "vinedo-rioja.jpg", map: "mapa-rioja.jpg", keys: "somontano" },
+  { name: "Cariñena", country: "España", img: "vinedo-rioja.jpg", map: "mapa-rioja.jpg", keys: "cariñena carinena" },
+  { name: "Calatayud", country: "España", img: "vinedo-rioja.jpg", map: "mapa-rioja.jpg", keys: "calatayud" },
+  { name: "Campo de Borja", country: "España", img: "vinedo-rioja.jpg", map: "mapa-rioja.jpg", keys: "campo borja" },
+  { name: "Utiel-Requena", country: "España", img: "vinedo.jpg", map: "mapa-rioja.jpg", keys: "utiel requena bobal" },
+  { name: "Valencia", country: "España", img: "vinedo.jpg", map: "mapa-rioja.jpg", keys: "valencia" },
+  { name: "Alicante", country: "España", img: "vinedo.jpg", map: "mapa-rioja.jpg", keys: "alicante fondillón fondillon mendoza" },
+  { name: "Jumilla", country: "España", img: "vinedo-priorat.jpg", map: "mapa-priorat.jpg", keys: "jumilla monastrell" },
+  { name: "Yecla", country: "España", img: "vinedo-priorat.jpg", map: "mapa-priorat.jpg", keys: "yecla" },
+  { name: "Bullas", country: "España", img: "vinedo-priorat.jpg", map: "mapa-priorat.jpg", keys: "bullas" },
+  { name: "La Mancha", country: "España", img: "vinedo-ribera.jpg", map: "mapa-ribera.jpg", keys: "mancha" },
+  { name: "Valdepeñas", country: "España", img: "vinedo-ribera.jpg", map: "mapa-ribera.jpg", keys: "valdepeñas valdepenas" },
+  { name: "Vinos de Madrid", country: "España", img: "vinedo-ribera.jpg", map: "mapa-ribera.jpg", keys: "madrid" },
+  { name: "Jerez-Xérès-Sherry", country: "España", img: "vinedo-margaux.jpg", map: "mapa-medoc.jpg", keys: "jerez xeres sherry manzanilla sanlucar" },
+  { name: "Montilla-Moriles", country: "España", img: "vinedo-margaux.jpg", map: "mapa-medoc.jpg", keys: "montilla moriles pedro ximenez" },
+  { name: "Málaga y Sierras", country: "España", img: "vinedo-priorat.jpg", map: "mapa-priorat.jpg", keys: "málaga malaga sierras" },
+  { name: "Binissalem / Pla i Llevant", country: "España", img: "vinedo-rias.jpg", map: "mapa-rias.jpg", keys: "binissalem mallorca llevant" },
+  { name: "Lanzarote / Canarias", country: "España", img: "vinedo-priorat.jpg", map: "mapa-priorat.jpg", keys: "lanzarote canarias tacoronte valle güímar" },
+  { name: "Douro", country: "Portugal", img: "vinedo-ribera.jpg", map: "mapa-ribera.jpg", keys: "douro duero maos mãos irmaos porto vintage lbv" },
+  { name: "Porto", country: "Portugal", img: "vinedo-ribera.jpg", map: "mapa-ribera.jpg", keys: "porto port wine tawny vintage" },
+  { name: "Vinho Verde", country: "Portugal", img: "vinedo-rias.jpg", map: "mapa-rias.jpg", keys: "vinho verde loureiro alvarinho" },
+  { name: "Dão", country: "Portugal", img: "vinedo-priorat.jpg", map: "mapa-priorat.jpg", keys: "dão dao" },
+  { name: "Bairrada", country: "Portugal", img: "vinedo-rioja.jpg", map: "mapa-rioja.jpg", keys: "bairrada baga" },
+  { name: "Alentejo", country: "Portugal", img: "vinedo-margaux.jpg", map: "mapa-medoc.jpg", keys: "alentejo alentejano" },
+  { name: "Lisboa", country: "Portugal", img: "vinedo-rias.jpg", map: "mapa-rias.jpg", keys: "lisboa estremadura" },
+  { name: "Península de Setúbal", country: "Portugal", img: "vinedo-rias.jpg", map: "mapa-rias.jpg", keys: "setúbal setubal moscatel palmela" },
+  { name: "Tejo", country: "Portugal", img: "vinedo-ribera.jpg", map: "mapa-ribera.jpg", keys: "tejo ribatejo" },
+  { name: "Beira Interior", country: "Portugal", img: "vinedo-priorat.jpg", map: "mapa-priorat.jpg", keys: "beira interior" },
+  { name: "Trás-os-Montes", country: "Portugal", img: "vinedo-ribera.jpg", map: "mapa-ribera.jpg", keys: "tras os montes trás-os-montes" },
+  { name: "Távora-Varosa", country: "Portugal", img: "vinedo-champagne.jpg", map: "mapa-penedes.jpg", keys: "távora tavora varosa" },
+  { name: "Algarve", country: "Portugal", img: "vinedo.jpg", map: "mapa-rioja.jpg", keys: "algarve lagoa lagos tavira portimão" },
+  { name: "Madeira", country: "Portugal", img: "vinedo-margaux.jpg", map: "mapa-medoc.jpg", keys: "madeira malvasia sercial" },
+  { name: "Açores", country: "Portugal", img: "vinedo-rias.jpg", map: "mapa-rias.jpg", keys: "açores azores pico terceira" },
+  { name: "Bordeaux", country: "Francia", img: "vinedo-margaux.jpg", map: "mapa-medoc.jpg", keys: "bordeaux burdeos graves pessac saint-emilion Pomerol" },
+  { name: "Médoc", country: "Francia", img: "vinedo-margaux.jpg", map: "mapa-medoc.jpg", keys: "médoc medoc margaux pauillac saint-julien saint-estèphe" },
+  { name: "Bourgogne", country: "Francia", img: "vinedo-priorat.jpg", map: "mapa-priorat.jpg", keys: "bourgogne burgundy borgoña côte d or vosne gevrey puligny" },
+  { name: "Chablis", country: "Francia", img: "vinedo-rias.jpg", map: "mapa-rias.jpg", keys: "chablis" },
+  { name: "Champagne", country: "Francia", img: "vinedo-champagne.jpg", map: "mapa-champagne.jpg", keys: "champagne pérignon perignon reims epernay" },
+  { name: "Vallée du Rhône", country: "Francia", img: "vinedo-priorat.jpg", map: "mapa-priorat.jpg", keys: "rhône rhone hermitage côte-rôtie châteauneuf gigondas" },
+  { name: "Loire", country: "Francia", img: "vinedo-rias.jpg", map: "mapa-rias.jpg", keys: "loire sancerre vouvray muscadet chinon saumur" },
+  { name: "Alsace", country: "Francia", img: "vinedo-rioja.jpg", map: "mapa-rioja.jpg", keys: "alsace alsacia riesling gewurztraminer" },
+  { name: "Languedoc-Roussillon", country: "Francia", img: "vinedo-margaux.jpg", map: "mapa-medoc.jpg", keys: "languedoc roussillon corbières fitou minervois" },
+  { name: "Provence", country: "Francia", img: "vinedo.jpg", map: "mapa-rioja.jpg", keys: "provence bandol cassis cotes de provence" },
+  { name: "Beaujolais", country: "Francia", img: "vinedo-rioja.jpg", map: "mapa-rioja.jpg", keys: "beaujolais morgon fleurie moulin" },
+  { name: "Sud-Ouest", country: "Francia", img: "vinedo-ribera.jpg", map: "mapa-ribera.jpg", keys: "sud-ouest cahors madiran bergerac gaillac" },
+  { name: "Bolgheri", country: "Italia", img: "vinedo-bolgheri.jpg", map: "mapa-bolgheri.jpg", keys: "bolgheri sassicaia toscana" },
   { name: "South Australia", country: "Australia", img: "vinedo-margaux.jpg", map: "mapa-medoc.jpg", keys: "australia barossa grange penfolds" }
 ];
 function winesInZone(z) {
@@ -693,13 +750,15 @@ function estateArt(w) {
     "Tenuta San Guido": { land: "vinedo-bolgheri.jpg", cap: "capsula.jpg", map: "mapa-bolgheri.jpg" },
     "Penfolds": { land: "vinedo-margaux.jpg", cap: "capsula.jpg", map: "mapa-medoc.jpg" },
     "Enrique Mendoza": { land: "vinedo.jpg", cap: "capsula.jpg", map: "" },
-    "Numanthia": { land: "vinedo-ribera.jpg", cap: "capsula.jpg", map: "mapa-ribera.jpg" }
+    "Numanthia": { land: "vinedo-ribera.jpg", cap: "capsula.jpg", map: "mapa-ribera.jpg" },
+    "Mãos & Irmãos": { land: "vinedo-ribera.jpg", cap: "capsula.jpg", map: "mapa-ribera.jpg" }
   };
   const hit = byProducer[w.producer];
   if (hit) return hit;
   const zone = (w.region + " " + (w.appellation || "")).toLowerCase();
   if (/rías|rias baixas|albariño|albarino/.test(zone)) return { land: "vinedo-rias.jpg", cap: "capsula.jpg", map: "mapa-rias.jpg" };
   if (/rioja/.test(zone)) return { land: "vinedo-rioja.jpg", cap: "capsula.jpg", map: "mapa-rioja.jpg" };
+  if (/douro|porto|dao|dão|alentejo|vinho verde/.test(zone)) return { land: "vinedo-ribera.jpg", cap: "capsula.jpg", map: "mapa-ribera.jpg" };
   if (/ribera|duero/.test(zone)) return { land: "vinedo-ribera.jpg", cap: "capsula.jpg", map: "mapa-ribera.jpg" };
   if (/priorat|priorato/.test(zone)) return { land: "vinedo-priorat.jpg", cap: "capsula.jpg", map: "mapa-priorat.jpg" };
   if (/médoc|medoc|margaux|pauillac/.test(zone)) return { land: "vinedo-margaux.jpg", cap: "capsula.jpg", map: "mapa-medoc.jpg" };
@@ -1403,7 +1462,37 @@ function addCave() {
 }
 
 function normTxt(s) {
-  return (s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, " ").trim();
+  return foldOcr(s);
+}
+function foldOcr(s) {
+  let t = (s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  t = t.replace(/[|»«•·]/g, " ");
+  t = t.replace(/\brn\b/g, "m");
+  t = t.replace(/vv/g, "w");
+  t = t.replace(/0(?=[a-z])/g, "o");
+  t = t.replace(/(?<=[a-z])0/g, "o");
+  t = t.replace(/\bmanos\b/g, "maos");
+  t = t.replace(/\bmao\b/g, "maos");
+  t = t.replace(/\bfa\s+e\s+nos\b/g, "maos");
+  t = t.replace(/\be\s+nos\b/g, "maos");
+  t = t.replace(/[^a-z0-9]+/g, " ").trim();
+  t = t.replace(/\s+/g, " ");
+  return t;
+}
+function tokensOf(s) {
+  return foldOcr(s).split(" ").filter(x => x.length >= 2);
+}
+function fuzzyHit(hay, needle) {
+  const n = foldOcr(needle);
+  if (!n || n.length < 3) return false;
+  if (hay.includes(n)) return true;
+  if (n.length >= 4 && hay.replace(/ /g, "").includes(n.replace(/ /g, ""))) return true;
+  const toks = hay.split(" ");
+  return toks.some(tok => {
+    if (tok === n) return true;
+    if (n.length >= 4 && tok.length >= 4 && (tok.includes(n) || n.includes(tok))) return true;
+    return false;
+  });
 }
 
 async function startScan() {
@@ -1567,25 +1656,28 @@ async function identifyFromPhoto(dataUrl) {
 }
 
 function rankFromText(raw) {
-  const hay = normTxt(raw);
+  const hay = foldOcr(raw);
   if (!hay) return [];
   const scored = WINE_CATALOG.map(w => {
     let score = 0;
-    const bits = [w.producer, w.name, String(w.vintage), w.region, w.appellation, ...(w.grapes || [])];
+    const bits = [w.producer, w.name, String(w.vintage), w.region, w.appellation, ...(w.grapes || []), ...(w.aliases || [])];
     bits.forEach(b => {
-      const t = normTxt(b);
-      if (t.length >= 4 && hay.includes(t)) score += Math.min(28, t.length);
+      const t = foldOcr(b);
+      if (t.length >= 3 && fuzzyHit(hay, t)) score += Math.min(30, 8 + t.length);
     });
-    const producerFirst = normTxt(w.producer.split(" ")[0]);
-    if (producerFirst.length >= 4 && hay.includes(producerFirst)) score += 14;
+    const producerFirst = foldOcr((w.producer || "").split(" ")[0]);
+    if (producerFirst.length >= 3 && fuzzyHit(hay, producerFirst)) score += 14;
     if (hay.includes(String(w.vintage))) score += 22;
-    if (hay.includes("unico") && /unico/.test(normTxt(w.name))) score += 30;
-    if (hay.includes("vega") && hay.includes("sicilia") && /vega sicilia/.test(normTxt(w.producer))) score += 36;
-    if (hay.includes("tondonia") && /tondonia/.test(normTxt(w.name))) score += 30;
-    if (hay.includes("valbuena") && /valbuena/.test(normTxt(w.name))) score += 26;
-    if (hay.includes("pazo") && /pazo/.test(normTxt(w.producer))) score += 24;
+    if (hay.includes("unico") && /unico/.test(foldOcr(w.name))) score += 30;
+    if (hay.includes("vega") && hay.includes("sicilia") && /vega sicilia/.test(foldOcr(w.producer))) score += 36;
+    if (hay.includes("tondonia") && /tondonia/.test(foldOcr(w.name))) score += 30;
+    if (hay.includes("valbuena") && /valbuena/.test(foldOcr(w.name))) score += 26;
+    if (hay.includes("pazo") && /pazo/.test(foldOcr(w.producer))) score += 24;
+    if ((hay.includes("douro") || hay.includes("portugal")) && /maos/.test(foldOcr(w.producer + " " + w.name + " " + (w.aliases || []).join(" ")))) {
+      if (hay.includes("maos") || hay.includes("nos") || hay.includes("tinto") || hay.includes("rouge")) score += 36;
+    }
     return { w, score };
-  }).filter(x => x.score >= 18).sort((a, b) => b.score - a.score);
+  }).filter(x => x.score >= 14).sort((a, b) => b.score - a.score);
   const uniq = [];
   const seen = new Set();
   scored.forEach(x => {
@@ -1595,9 +1687,11 @@ function rankFromText(raw) {
 }
 
 function identifyFromCatalog(q) {
-  const s = normTxt(q);
+  const s = foldOcr(q);
   if (!s) return WINE_CATALOG.slice(0, 8);
-  return WINE_CATALOG.filter(w => normTxt(`${w.producer} ${w.name} ${w.vintage} ${w.region} ${w.grapes.join(" ")}`).includes(s));
+  const hits = rankFromText(q);
+  if (hits.length) return hits;
+  return WINE_CATALOG.filter(w => foldOcr(`${w.producer} ${w.name} ${w.vintage} ${w.region} ${(w.grapes || []).join(" ")} ${(w.aliases || []).join(" ")}`).includes(s));
 }
 
 function runIdentify() {
@@ -1894,7 +1988,8 @@ const BODEGA_GEO = {
   "Scala Dei": { lat: 41.167, lng: 0.806, zone: "Escaladei · Priorat", web: "https://www.scaladei.es" },
   "Enrique Mendoza": { lat: 38.580, lng: -0.103, zone: "Alfaz del Pi · Alicante", web: "https://www.bodegasmendoza.com" },
   "Numanthia": { lat: 41.525, lng: -5.395, zone: "Valdefinjas · Toro", web: "https://www.numanthia.com" },
-  "Marqués de Murrieta": { lat: 42.430, lng: -2.445, zone: "Ygay · Rioja", web: "https://www.marquesdemurrieta.com" }
+  "Marqués de Murrieta": { lat: 42.430, lng: -2.445, zone: "Ygay · Rioja", web: "https://www.marquesdemurrieta.com" },
+  "Mãos & Irmãos": { lat: 41.162, lng: -7.787, zone: "Loureiro · Peso da Régua · Douro", web: "" }
 };
 
 function bodegaGeo(w) {
