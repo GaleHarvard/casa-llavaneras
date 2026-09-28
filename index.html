@@ -48,15 +48,26 @@
         </div>
       </section>
 
-      <section id="caves" class="screen">
+      <section id="caves" class="screen caves-lux">
         <div class="scroll">
-          <div class="hero">
-            <p class="eyebrow">Casa Llavaneras</p>
+          <header class="caves-crest">
+            <svg class="crest-mark" viewBox="0 0 64 64" aria-hidden="true">
+              <path d="M20 22h24v6l-3 2v6H23v-6l-3-2z" fill="none" stroke="#c9a227" stroke-width="1.6"/>
+              <path d="M32 8l3 6 7-1-4 6 5 5-7-1-4 6-4-6-7 1 5-5-4-6 7 1z" fill="#c9a227"/>
+              <path d="M24 28c2 10 8 16 8 22 0-6 6-12 8-22" fill="none" stroke="#c9a227" stroke-width="1.6"/>
+              <circle cx="26" cy="34" r="2.2" fill="#c9a227"/>
+              <circle cx="32" cy="38" r="2.2" fill="#c9a227"/>
+              <circle cx="38" cy="34" r="2.2" fill="#c9a227"/>
+            </svg>
             <h1>Vinotecas</h1>
-            <p>Temperatura, humedad y ocupación de cada zona.</p>
-          </div>
+            <p>Gestión de cava privada</p>
+            <i class="crest-rule"></i>
+          </header>
           <div id="caves-list"></div>
-          <button class="btn btn-gold" style="width:100%;margin-top:4px" onclick="showSheet('cave-sheet')">Añadir vinoteca</button>
+          <button class="caves-add" type="button" onclick="showSheet('cave-sheet')">
+            <span>+</span> Añadir vinoteca
+          </button>
+          <p class="caves-motto">Colección privada · Control preciso · Conservación perfecta</p>
         </div>
       </section>
 

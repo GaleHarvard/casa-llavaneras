@@ -41,9 +41,9 @@ const defaultState = () => ({
       humidity: 65,
       role: "prestige",
       zones: ["VIP 185 · botellas prestigiosas", "Lectura 16,7 °C"],
-      photo: "cave-principal.jpg"
+      photo: "cave-render-sommeliere.jpg"
     },
-    { id: "v2", name: "Cava de guarda", brand: "Eurocave", capacity: 32, used: 0, tHigh: 12.6, tLow: 12.6, humidity: 72, zones: ["Zona única · 12,5 °C"], photo: "cave-temp.jpg" }
+    { id: "v2", name: "Cava de guarda", brand: "Eurocave", capacity: 32, used: 0, tHigh: 12.6, tLow: 12.6, humidity: 72, zones: ["Zona única · 12,5 °C"], photo: "cave-render-eurocave.jpg" }
   ],
   bottles: [
     { uid: "b1", wineId: "tondonia-reserva-2011", qty: 3, cellarId: "v1", bin: "A-12", bought: "2024-11-02", price: 42, note: "Caja de 6, quedan 3" },
@@ -111,13 +111,18 @@ function load() {
     const main = parsed.vinotecas.find(v => v.id === "v1");
     if (main) {
       main.brand = "La Sommelière VIP 185";
-      main.photo = "cave-principal.jpg";
+      main.photo = "cave-render-sommeliere.jpg";
       main.capacity = 185;
       main.role = "prestige";
       if (!main.zones || main.zones.join("").includes("Pando") || main.zones.join("").includes("Tintos")) {
         main.zones = ["Lectura actual · 16,7 °C", "SET 1 / SET 2"];
       }
       if (Math.abs(main.tHigh - 13.2) < 0.05) main.tHigh = 16.7;
+    }
+    const guarda = parsed.vinotecas.find(v => v.id === "v2");
+    if (guarda) {
+      guarda.photo = "cave-render-eurocave.jpg";
+      if (!guarda.brand) guarda.brand = "Eurocave";
     }
     if (!parsed.bottles.some(b => b.wineId === "vs-unico-2009")) {
       parsed.bottles.unshift({ uid: "b7", wineId: "vs-unico-2009", qty: 2, cellarId: "v1", bin: "A-01", bought: "2022-10-08", price: 520, note: "Bandeja superior" });
@@ -630,17 +635,22 @@ function bottleCard(b) {
 
 function renderCaves() {
   syncUsed();
+  const icoBot = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 3h6l-1 8a4 4 0 1 1-4 0L9 3z"/><path d="M10 21h4"/></svg>`;
+  const icoTemp = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 3v10.2A3.2 3.2 0 1 1 9.6 16"/><path d="M12 3h2M12 7h1.6"/></svg>`;
   $("#caves-list").innerHTML = state.vinotecas.map(v => {
-    const shot = "cave-principal.jpg";
-    return `<div class="cave-card cave-card-photo" role="button" onclick="openCave('${v.id}')">
-      <img class="cave-shot" src="${shot}" alt="${v.name}" onerror="this.style.display='none'">
-      <div>
+    const shot = v.photo || (v.role === "prestige" ? "cave-render-sommeliere.jpg" : "cave-render-eurocave.jpg");
+    const role = v.role === "prestige" ? "Prestigiosas" : "De guarda";
+    return `<article class="cave-lux" role="button" tabindex="0" onclick="openCave('${v.id}')">
+      <img src="${shot}" alt="${v.name}" onerror="this.src='cave-principal.jpg'">
+      <div class="cave-lux-copy">
         <h3>${v.name}</h3>
-        <p class="muted">${v.brand}${v.house ? " · " + v.house : ""}</p>
-        <p class="tiny" style="margin-top:6px">${v.role === "prestige" ? "PRESTIGIOSAS" : "DE GUARDA"}</p>
-        <p class="cave-meta"><span>${v.used}/${v.capacity}</span><span>${v.tHigh.toFixed(1)} °C</span></p>
+        <p class="cave-lux-brand">${v.brand}${v.house ? " · " + v.house : ""}</p>
+        <p class="cave-lux-role">${role}</p>
+        <i class="cave-lux-rule"></i>
+        <p class="cave-lux-stat">${icoBot}<b>${v.used}/${v.capacity}</b></p>
+        <p class="cave-lux-stat">${icoTemp}<b>${v.tHigh.toFixed(1)}° C</b></p>
       </div>
-    </div>`;
+    </article>`;
   }).join("");
 }
 
@@ -656,7 +666,7 @@ function openCave(id) {
   $("#cave-title").textContent = v.name;
   $("#cave-detail").innerHTML = `
     <p class="muted">${v.brand}${v.role === "prestige" ? " · reserva de las botellas más caras" : ""}</p>
-    <img class="cave-photo" src="cave-principal.jpg" alt="${v.name}" onerror="this.style.display='none'" />
+    <img class="cave-photo" src="${v.photo || "cave-render-sommeliere.jpg"}" alt="${v.name}" onerror="this.src='cave-principal.jpg'" />
     <h2>Mapa de huecos</h2>
     ${rackGrid(id)}
     <div class="temp-grid" style="margin:12px 0">
