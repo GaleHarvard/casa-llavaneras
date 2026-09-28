@@ -2012,8 +2012,9 @@ window.show = show;
 window.openBottle = openBottle;
 window.openWine = openWine;
 window.openWineSub = openWineSub;
+window.openExternal = openExternal;
 const BODEGA_GEO = {
-  "Vega Sicilia": { lat: 41.6325, lng: -4.286, zone: "Valbuena de Duero", web: "https://www.vega-sicilia.com" },
+  "Vega Sicilia": { lat: 41.6325, lng: -4.286, zone: "Valbuena de Duero", web: "https://www.temposvegasicilia.com/es" },
   "Dominio de Pingus": { lat: 41.636, lng: -4.363, zone: "Quintanilla de Onésimo", web: "https://www.pingus.es" },
   "R. López de Heredia": { lat: 42.5764, lng: -2.8467, zone: "Haro · Rioja Alta", web: "https://www.lopezdeheredia.com" },
   "Marqués de Riscal": { lat: 42.515, lng: -2.618, zone: "Elciego · Rioja Alavesa", web: "https://www.marquesderiscal.com" },
@@ -2034,6 +2035,21 @@ const BODEGA_GEO = {
 
 function bodegaGeo(w) {
   return BODEGA_GEO[w.producer] || { lat: 40.4, lng: -3.7, zone: w.region, web: "" };
+}
+function openExternal(url) {
+  if (!url) return false;
+  try {
+    const a = document.createElement("a");
+    a.href = url;
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  } catch (e) {
+    location.href = url;
+  }
+  return false;
 }
 
 function zoneStrip(w) {
@@ -2058,18 +2074,21 @@ function mapTabs(on) {
 function mapaBlock(w) {
   const art = estateArt(w);
   const g = bodegaGeo(w);
-  const pad = 0.18;
-  const embed = `https://www.openstreetmap.org/export/embed.html?bbox=${g.lng-pad}%2C${g.lat-pad}%2C${g.lng+pad}%2C${g.lat+pad}&layer=mapnik&marker=${g.lat}%2C${g.lng}`;
-  const osm = `https://www.openstreetmap.org/?mlat=${g.lat}&mlon=${g.lng}#map=12/${g.lat}/${g.lng}`;
-  const gmaps = `https://maps.google.com/?q=${encodeURIComponent(w.producer + " " + g.zone)}`;
+  const file = (p) => "./" + String(p || "").replace(/^\.\//, "");
+  const mapSrc = file(art.map || "mapa-ribera.jpg");
+  const landSrc = file(art.land || "vinedo-ribera.jpg");
+  const osm = `https://www.openstreetmap.org/?mlat=${g.lat}&mlon=${g.lng}#map=13/${g.lat}/${g.lng}`;
+  const gmaps = `https://maps.apple.com/?q=${encodeURIComponent((w.producer || "") + " " + (g.zone || w.region || ""))}`;
   return `
-    ${art.map ? `<img class="map-art" src="${art.map}" alt="Mapa de ${g.zone}">` : `<div class="map-frame"><iframe title="Mapa de la bodega" src="${embed}" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe></div>`}
-    <p class="eyebrow" style="font-size:10px;letter-spacing:.14em;margin:2px 0 0">${w.appellation}</p>
+    <img class="map-art" src="${mapSrc}" alt="" data-fb="${landSrc}"
+      onerror="if(this.dataset.step!=='1'){this.dataset.step='1';this.src=this.dataset.fb;}else{this.style.display='none';}">
+    <p class="tiny" style="margin:0 0 10px;text-align:center">${g.zone || w.region}</p>
+    <p class="eyebrow" style="font-size:10px;letter-spacing:.14em;margin:2px 0 0">${w.appellation || ""}</p>
     <h3 style="font-size:17px;margin:2px 0 2px;line-height:1.2">${w.producer}</h3>
     <p class="muted" style="margin:0 0 12px;font-size:13px">${g.zone} · ${w.region}</p>
-    <a class="btn btn-ghost" style="width:100%;margin-top:10px;display:block;text-align:center" href="${gmaps}" target="_blank" rel="noopener">Abrir en Mapas</a>
-    <a class="btn btn-ghost" style="width:100%;margin-top:8px;display:block;text-align:center" href="${osm}" target="_blank" rel="noopener">OpenStreetMap</a>
-    ${g.web ? `<a class="btn btn-gold" style="width:100%;margin-top:8px;display:block;text-align:center" href="${g.web}" target="_blank" rel="noopener">Web de la bodega</a>` : ""}`;
+    <a class="btn btn-ghost" style="width:100%;margin-top:10px;display:block;text-align:center" href="${gmaps}" target="_blank" rel="noopener noreferrer" onclick="return openExternal(this.href)">Abrir en Mapas</a>
+    <a class="btn btn-ghost" style="width:100%;margin-top:8px;display:block;text-align:center" href="${osm}" target="_blank" rel="noopener noreferrer" onclick="return openExternal(this.href)">OpenStreetMap</a>
+    ${g.web ? `<a class="btn btn-gold" style="width:100%;margin-top:8px;display:block;text-align:center" href="${g.web}" target="_blank" rel="noopener noreferrer" onclick="return openExternal(this.href)">Web de la bodega</a>` : ""}`;
 }
 
 function mercadoSkeleton(w) {
