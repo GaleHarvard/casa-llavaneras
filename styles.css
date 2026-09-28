@@ -867,7 +867,7 @@ a.btn{text-decoration:none}
 .zone-card strong{display:block;margin-top:2px;font-size:16px}
 .estate-wide{width:100%;height:200px;object-fit:contain;object-position:center;border-radius:16px;margin:12px 0 14px;display:block;background:#000}
 
-.map-art{width:100%;height:auto;max-height:260px;object-fit:contain;object-position:center;border-radius:16px;margin:14px 0 16px;border:1px solid #222;background:#000;display:block}
+.map-art{width:100%;height:auto;max-height:340px;object-fit:contain;object-position:center;border-radius:16px;margin:10px 0 8px;border:1px solid #222;background:#000;display:block}
 
 .inv-card{display:flex;gap:12px;align-items:center;padding:14px;margin:0 0 10px;border:1px solid #1f1f1f;border-radius:16px;background:#0e0e0e}
 .inv-sil{width:28px;height:72px;border-radius:10px 10px 6px 6px;background:linear-gradient(180deg,#1a1a1a,#0a0a0a);position:relative;flex-shrink:0;border:1px solid #2a2a2a}
@@ -956,6 +956,6 @@ a.btn{text-decoration:none}
 .inv-score{color:#e8c97a;font-size:13px;white-space:nowrap}
 .zone-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
 .zone-tile{padding:0;border:1px solid rgba(198,163,90,.25);border-radius:14px;overflow:hidden;background:#0e0e0e;text-align:left;color:#fff}
-.zone-tile img{width:100%;height:88px;object-fit:cover;display:block}
+.zone-tile img{width:100%;height:118px;object-fit:contain;object-position:center;display:block;background:#000}
 .zone-tile span{display:block;padding:8px 10px}
 .zone-tile small{display:block;color:#9a9a9a;margin-top:2px;font-size:11px}

@@ -589,37 +589,5 @@ window.WINE_CATALOG = [
     evolutionNotes: [
       { year: 2025, phase: "Frescura", text: "Beber en 18 meses para no perder la flor." }
     ]
-  },
-
-  {
-    id: "maos-tinto-2021",
-    name: "Mãos Tinto",
-    producer: "Mãos & Irmãos",
-    vintage: 2021,
-    region: "Douro",
-    country: "Portugal",
-    appellation: "DOC Douro",
-    type: "tinto",
-    style: "tinto",
-    grapes: ["Touriga Nacional", "Tinta Roriz"],
-    abv: 14.0,
-    color: "#5c1420",
-    aliases: ["maos", "mãos", "manos", "maos tinto", "r4", "irmaos", "irmãos", "douro doc", "tinto red rouge"],
-    ratings: {
-      vivino: { score: 4.1, count: 170, scale: 5, note: "Usuarios: fruta negra, flores de naranjo, tanino amable. Tinto de diario del Baixo Corgo." },
-      penin: { score: 90, scale: 100, note: "Revista de Vinhos 18/20 en algunas añadas. Fruta y frescura de altitude." },
-      parker: { score: 0, scale: 100, reviewer: "—", note: "Sin nota WA publicada de referencia." },
-      spectator: { score: 86, scale: 100, note: "Wine-Searcher critic blend ~86. Estilo rico e intenso, no de guarda larga." },
-      decanter: { score: 0, scale: 100, note: "—" }
-    },
-    priceHint: "14–20 €",
-    tasting: "Violeta rubí. Flor de naranjo, mora silvestre, un punto balsámico. Equilibrio entre la frescura del Baixo Corgo y el calor de Touriga y Roriz. Tanino maduro, final limpio.",
-    pairing: ["Carnes a la parrilla", "Asados", "Quesos curados", "Bacalhau no forno"],
-    conservation: { cellarMin: 12, cellarMax: 14, serveMin: 16, serveMax: 18, humidity: "60–70%", position: "horizontal", light: "oscura" },
-    aging: { drinkFrom: 2023, peakStart: 2024, peakEnd: 2028, holdTo: 2030, structure: 78 },
-    evolutionNotes: [
-      { year: 2023, phase: "Salida", text: "Fruta y flor. Estágio corto en madera." },
-      { year: 2026, phase: "Mesa", text: "Listo. No esperar una década; es tinto de mesa del Douro." }
-    ]
   }
 ];

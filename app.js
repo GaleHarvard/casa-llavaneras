@@ -386,62 +386,130 @@ function quickTaste() {
 }
 function openHomeMap() { show("zonas"); }
 
-const ZONE_PLATE = {
-  "Rioja": "mapa-rioja.jpg",
-  "Ribera del Duero": "mapa-ribera.jpg",
-  "Priorat": "mapa-priorat.jpg",
-  "Rías Baixas": "mapa-rias.jpg",
-  "Toro": "mapa-toro.jpg",
-  "Rueda": "mapa-rueda.jpg",
-  "Bierzo": "mapa-bierzo.jpg",
-  "Navarra": "mapa-navarra.jpg",
-  "Somontano": "mapa-somontano.jpg",
-  "Costers del Segre": "mapa-costers.jpg",
-  "Penedès": "mapa-penedes.jpg",
-  "Corpinnat": "mapa-penedes.jpg",
-  "Alicante": "mapa-alicante.jpg",
-  "Jerez": "mapa-jerez.jpg",
-  "Douro": "mapa-douro.jpg",
-  "Alentejo": "mapa-alentejo.jpg",
-  "Vinho Verde": "mapa-vinhoverde.jpg",
-  "Dão": "mapa-dao.jpg",
-  "Bairrada": "mapa-bairrada.jpg",
-  "Champagne": "mapa-champagne.jpg",
-  "Médoc": "mapa-medoc.jpg",
-  "Borgoña": "mapa-borgona.jpg",
-  "Ródano": "mapa-rhone.jpg",
-  "Loira": "mapa-loira.jpg",
-  "Bolgheri": "mapa-bolgheri.jpg",
-  "Barossa": "mapa-barossa.jpg"
-};
 const ZONES = [
-  { name: "Rioja", country: "España", img: "vinedo-rioja.jpg", map: "mapa-rioja.jpg", keys: "rioja haro alavesa alta" },
-  { name: "Ribera del Duero", country: "España", img: "vinedo-ribera.jpg", map: "mapa-ribera.jpg", keys: "ribera duero valbuena pingus vega" },
-  { name: "Priorat", country: "España", img: "vinedo-priorat.jpg", map: "mapa-priorat.jpg", keys: "priorat prior gratallops" },
-  { name: "Rías Baixas", country: "España", img: "vinedo-rias.jpg", map: "mapa-rias.jpg", keys: "rías rias baixas albariño albarino salnés" },
-  { name: "Toro", country: "España", img: "vinedo-ribera.jpg", map: "mapa-toro.jpg", keys: "toro numanthia" },
-  { name: "Rueda", country: "España", img: "vinedo-ribera.jpg", map: "mapa-rueda.jpg", keys: "rueda verdejo" },
-  { name: "Bierzo", country: "España", img: "vinedo-priorat.jpg", map: "mapa-bierzo.jpg", keys: "bierzo mencía ponferrada" },
-  { name: "Navarra", country: "España", img: "vinedo-rioja.jpg", map: "mapa-navarra.jpg", keys: "navarra pamplona" },
-  { name: "Somontano", country: "España", img: "vinedo-costers.jpg", map: "mapa-somontano.jpg", keys: "somontano barbastro huesca" },
-  { name: "Costers del Segre", country: "España", img: "vinedo-costers.jpg", map: "mapa-costers.jpg", keys: "costers segre raïmat raimat lleida" },
-  { name: "Penedès", country: "España", img: "vinedo-champagne.jpg", map: "mapa-penedes.jpg", keys: "penedès penedes cava" },
-  { name: "Corpinnat", country: "España", img: "vinedo-champagne.jpg", map: "mapa-penedes.jpg", keys: "corpinnat gramona" },
-  { name: "Alicante", country: "España", img: "vinedo.jpg", map: "mapa-alicante.jpg", keys: "alicante mendoza alfaz" },
-  { name: "Jerez", country: "España", img: "vinedo-margaux.jpg", map: "mapa-jerez.jpg", keys: "jerez sherry sanlúcar sanlucar" },
-  { name: "Douro", country: "Portugal", img: "mapa-douro.jpg", map: "mapa-douro.jpg", keys: "douro porto pinhao régua regua" },
-  { name: "Alentejo", country: "Portugal", img: "mapa-alentejo.jpg", map: "mapa-alentejo.jpg", keys: "alentejo évora evora" },
-  { name: "Vinho Verde", country: "Portugal", img: "mapa-vinhoverde.jpg", map: "mapa-vinhoverde.jpg", keys: "vinho verde minho monção moncao" },
-  { name: "Dão", country: "Portugal", img: "mapa-dao.jpg", map: "mapa-dao.jpg", keys: "dão dao viseu" },
-  { name: "Bairrada", country: "Portugal", img: "mapa-bairrada.jpg", map: "mapa-bairrada.jpg", keys: "bairrada baga mealhada" },
-  { name: "Champagne", country: "Francia", img: "vinedo-champagne.jpg", map: "mapa-champagne.jpg", keys: "champagne pérignon perignon" },
-  { name: "Médoc", country: "Francia", img: "vinedo-margaux.jpg", map: "mapa-medoc.jpg", keys: "médoc medoc margaux bordeaux" },
-  { name: "Borgoña", country: "Francia", img: "mapa-borgona.jpg", map: "mapa-borgona.jpg", keys: "borgoña bourgogne burgundy beaune" },
-  { name: "Ródano", country: "Francia", img: "mapa-rhone.jpg", map: "mapa-rhone.jpg", keys: "ródano rhone rhône chateauneuf" },
-  { name: "Loira", country: "Francia", img: "mapa-loira.jpg", map: "mapa-loira.jpg", keys: "loira loire sancerre vouvray" },
-  { name: "Bolgheri", country: "Italia", img: "vinedo-bolgheri.jpg", map: "mapa-bolgheri.jpg", keys: "bolgheri sassicaia toscana" },
-  { name: "Barossa", country: "Australia", img: "vinedo-margaux.jpg", map: "mapa-barossa.jpg", keys: "australia barossa grange penfolds" }
+  { name: "Rioja", country: "España", map: "mapa-rioja.jpg", keys: "rioja haro alavesa alta baja" },
+  { name: "Ribera del Duero", country: "España", map: "mapa-ribera.jpg", keys: "ribera duero valbuena pingus vega" },
+  { name: "Priorat", country: "España", map: "mapa-priorat.jpg", keys: "priorat prior gratallops" },
+  { name: "Montsant", country: "España", map: "mapa-montsant.jpg", keys: "montsant falset" },
+  { name: "Rías Baixas", country: "España", map: "mapa-rias.jpg", keys: "rías rias baixas albariño albarino salnés" },
+  { name: "Ribeiro", country: "España", map: "mapa-ribeiro.jpg", keys: "ribeiro ribadavia treixadura" },
+  { name: "Ribeira Sacra", country: "España", map: "mapa-ribeirasacra.jpg", keys: "ribeira sacra sil mencía" },
+  { name: "Valdeorras", country: "España", map: "mapa-valdeorras.jpg", keys: "valdeorras godello sil" },
+  { name: "Monterrei", country: "España", map: "mapa-monterrei.jpg", keys: "monterrei verín verin" },
+  { name: "Toro", country: "España", map: "mapa-toro.jpg", keys: "toro numanthia tinta de toro" },
+  { name: "Rueda", country: "España", map: "mapa-rueda.jpg", keys: "rueda verdejo" },
+  { name: "Bierzo", country: "España", map: "mapa-bierzo.jpg", keys: "bierzo mencía ponferrada" },
+  { name: "Cigales", country: "España", map: "mapa-cigales.jpg", keys: "cigales valladolid" },
+  { name: "Arlanza", country: "España", map: "mapa-arlanza.jpg", keys: "arlanza lerma" },
+  { name: "Arribes", country: "España", map: "mapa-arribes.jpg", keys: "arribes fermoselle" },
+  { name: "Tierra de León", country: "España", map: "mapa-leon.jpg", keys: "tierra de león leon prieto picudo" },
+  { name: "Tierra del Vino de Zamora", country: "España", map: "mapa-zamora.jpg", keys: "zamora tierra del vino" },
+  { name: "Sierra de Salamanca", country: "España", map: "mapa-salamanca.jpg", keys: "salamanca sierra de salamanca" },
+  { name: "Navarra", country: "España", map: "mapa-navarra.jpg", keys: "navarra pamplona" },
+  { name: "Somontano", country: "España", map: "mapa-somontano.jpg", keys: "somontano barbastro huesca" },
+  { name: "Calatayud", country: "España", map: "mapa-calatayud.jpg", keys: "calatayud jalón jalon" },
+  { name: "Campo de Borja", country: "España", map: "mapa-borja.jpg", keys: "campo de borja garnacha" },
+  { name: "Cariñena", country: "España", map: "mapa-carinena.jpg", keys: "cariñena carinena" },
+  { name: "Costers del Segre", country: "España", map: "mapa-costers.jpg", keys: "costers segre raïmat raimat lleida" },
+  { name: "Penedès", country: "España", map: "mapa-penedes.jpg", keys: "penedès penedes" },
+  { name: "Corpinnat", country: "España", map: "mapa-penedes.jpg", keys: "corpinnat gramona" },
+  { name: "Cava", country: "España", map: "mapa-cava.jpg", keys: "cava sadurní sadurni" },
+  { name: "Empordà", country: "España", map: "mapa-emporda.jpg", keys: "empordà emporda figueres" },
+  { name: "Alella", country: "España", map: "mapa-alella.jpg", keys: "alella tiana" },
+  { name: "Conca de Barberà", country: "España", map: "mapa-conca.jpg", keys: "conca barberà barbera montblanc" },
+  { name: "Pla de Bages", country: "España", map: "mapa-bages.jpg", keys: "bages manresa" },
+  { name: "Tarragona", country: "España", map: "mapa-tarragona.jpg", keys: "tarragona" },
+  { name: "Terra Alta", country: "España", map: "mapa-terraalta.jpg", keys: "terra alta gandesa" },
+  { name: "Catalunya", country: "España", map: "mapa-catalunya.jpg", keys: "catalunya cataluña" },
+  { name: "Alicante", country: "España", map: "mapa-alicante.jpg", keys: "alicante mendoza fondillón fondillon" },
+  { name: "Utiel-Requena", country: "España", map: "mapa-utiel.jpg", keys: "utiel requena bobal" },
+  { name: "Valencia", country: "España", map: "mapa-valencia.jpg", keys: "valencia" },
+  { name: "Jumilla", country: "España", map: "mapa-jumilla.jpg", keys: "jumilla monastrell" },
+  { name: "Yecla", country: "España", map: "mapa-yecla.jpg", keys: "yecla monastrell" },
+  { name: "Bullas", country: "España", map: "mapa-bullas.jpg", keys: "bullas" },
+  { name: "Jerez", country: "España", map: "mapa-jerez.jpg", keys: "jerez sherry xérès xeres" },
+  { name: "Manzanilla-Sanlúcar", country: "España", map: "mapa-manzanilla.jpg", keys: "manzanilla sanlúcar sanlucar" },
+  { name: "Montilla-Moriles", country: "España", map: "mapa-montilla.jpg", keys: "montilla moriles pedro ximénez ximenez" },
+  { name: "Málaga", country: "España", map: "mapa-malaga.jpg", keys: "málaga malaga ronda" },
+  { name: "Condado de Huelva", country: "España", map: "mapa-huelva.jpg", keys: "huelva condado bollullos" },
+  { name: "La Mancha", country: "España", map: "mapa-lamancha.jpg", keys: "la mancha manchego" },
+  { name: "Valdepeñas", country: "España", map: "mapa-valdepenas.jpg", keys: "valdepeñas valdepenas" },
+  { name: "Manchuela", country: "España", map: "mapa-manchuela.jpg", keys: "manchuela bobal" },
+  { name: "Almansa", country: "España", map: "mapa-almansa.jpg", keys: "almansa" },
+  { name: "Méntrida", country: "España", map: "mapa-mentrida.jpg", keys: "méntrida mentrida" },
+  { name: "Uclés", country: "España", map: "mapa-ucles.jpg", keys: "uclés ucles" },
+  { name: "Vinos de Madrid", country: "España", map: "mapa-madrid.jpg", keys: "madrid san martín martin arganda" },
+  { name: "Ribera del Guadiana", country: "España", map: "mapa-guadiana.jpg", keys: "guadiana almendralejo barros" },
+  { name: "Txakoli", country: "España", map: "mapa-txakoli.jpg", keys: "txakoli txakolina getaria bizkaia álava alava" },
+  { name: "Cangas", country: "España", map: "mapa-cangas.jpg", keys: "cangas asturias" },
+  { name: "Binissalem", country: "España", map: "mapa-binissalem.jpg", keys: "binissalem mallorca" },
+  { name: "Pla i Llevant", country: "España", map: "mapa-mallorca.jpg", keys: "pla i llevant mallorca manacor" },
+  { name: "Islas Canarias", country: "España", map: "mapa-canarias.jpg", keys: "canarias tenerife valle orotava tacoronte" },
+  { name: "Lanzarote", country: "España", map: "mapa-lanzarote.jpg", keys: "lanzarote geria malvasía malvasia" },
+  { name: "Sierras de Málaga", country: "España", map: "mapa-malaga.jpg", keys: "sierras de málaga malaga serranía ronda" },
+  { name: "Lebrija", country: "España", map: "mapa-jerez.jpg", keys: "lebrija" },
+  { name: "Mondéjar", country: "España", map: "mapa-madrid.jpg", keys: "mondéjar mondejar" },
+  { name: "Ribera del Júcar", country: "España", map: "mapa-manchuela.jpg", keys: "ribera del júcar jucar" },
+  { name: "Valtiendas", country: "España", map: "mapa-ribera.jpg", keys: "valtiendas" },
+  { name: "Valles de Benavente", country: "España", map: "mapa-leon.jpg", keys: "valles de benavente" },
+
+  { name: "Douro", country: "Portugal", map: "mapa-douro.jpg", keys: "douro pinhão pinhao régua regua" },
+  { name: "Porto", country: "Portugal", map: "mapa-porto.jpg", keys: "porto port oporto gaia tawny vintage" },
+  { name: "Vinho Verde", country: "Portugal", map: "mapa-vinhoverde.jpg", keys: "vinho verde minho monção moncao alvarinho" },
+  { name: "Dão", country: "Portugal", map: "mapa-dao.jpg", keys: "dão dao viseu touriga" },
+  { name: "Bairrada", country: "Portugal", map: "mapa-bairrada.jpg", keys: "bairrada baga mealhada" },
+  { name: "Alentejo", country: "Portugal", map: "mapa-alentejo.jpg", keys: "alentejo évora evora reguengos" },
+  { name: "Lisboa", country: "Portugal", map: "mapa-lisboa.jpg", keys: "lisboa estremadura alenquer" },
+  { name: "Setúbal", country: "Portugal", map: "mapa-setubal.jpg", keys: "setúbal setubal moscatel" },
+  { name: "Palmela", country: "Portugal", map: "mapa-palmela.jpg", keys: "palmela azeitão azeitao" },
+  { name: "Tejo", country: "Portugal", map: "mapa-tejo.jpg", keys: "tejo ribatejo tajo" },
+  { name: "Algarve", country: "Portugal", map: "mapa-algarve.jpg", keys: "algarve lagoa lagos" },
+  { name: "Madeira", country: "Portugal", map: "mapa-madeira.jpg", keys: "madeira malmsey bual sercial" },
+  { name: "Trás-os-Montes", country: "Portugal", map: "mapa-trasosmontes.jpg", keys: "trás-os-montes tras os montes chaves" },
+  { name: "Beira Interior", country: "Portugal", map: "mapa-beira.jpg", keys: "beira interior pinhel" },
+  { name: "Távora-Varosa", country: "Portugal", map: "mapa-tavora.jpg", keys: "távora tavora varosa" },
+  { name: "Açores", country: "Portugal", map: "mapa-acores.jpg", keys: "açores acores pico biscoitos" },
+  { name: "Colares", country: "Portugal", map: "mapa-colares.jpg", keys: "colares sintra ramisco" },
+  { name: "Bucelas", country: "Portugal", map: "mapa-bucelas.jpg", keys: "bucelas arinto" },
+
+  { name: "Champagne", country: "Francia", map: "mapa-champagne.jpg", keys: "champagne pérignon perignon reims épernay epernay" },
+  { name: "Médoc", country: "Francia", map: "mapa-medoc.jpg", keys: "médoc medoc margaux pauillac saint-julien bordeaux" },
+  { name: "Borgoña", country: "Francia", map: "mapa-borgona.jpg", keys: "borgoña bourgogne burgundy beaune vosne nuits" },
+  { name: "Chablis", country: "Francia", map: "mapa-chablis.jpg", keys: "chablis chardonnay yonne" },
+  { name: "Ródano", country: "Francia", map: "mapa-rhone.jpg", keys: "ródano rhone rhône châteauneuf chateauneuf hermitage côte rotie cote" },
+  { name: "Loira", country: "Francia", map: "mapa-loira.jpg", keys: "loira loire sancerre vouvray chinon muscadet" },
+  { name: "Alsacia", country: "Francia", map: "mapa-alsacia.jpg", keys: "alsacia alsace riesling gewurztraminer" },
+  { name: "Provenza", country: "Francia", map: "mapa-provenza.jpg", keys: "provenza provence bandol cassis" },
+  { name: "Languedoc", country: "Francia", map: "mapa-languedoc.jpg", keys: "languedoc roussillon pic saint" },
+  { name: "Beaujolais", country: "Francia", map: "mapa-beaujolais.jpg", keys: "beaujolais morgon fleurie moulin" },
+
+  { name: "Piemonte", country: "Italia", map: "mapa-piemonte.jpg", keys: "piemonte piedmont barolo barbaresco alba langhe" },
+  { name: "Bolgheri", country: "Italia", map: "mapa-bolgheri.jpg", keys: "bolgheri sassicaia ornellaia" },
+  { name: "Toscana", country: "Italia", map: "mapa-toscana.jpg", keys: "toscana tuscany chianti brunello montalcino" },
+  { name: "Veneto", country: "Italia", map: "mapa-veneto.jpg", keys: "veneto valpolicella amarone soave prosecco" },
+  { name: "Sicilia", country: "Italia", map: "mapa-sicilia.jpg", keys: "sicilia sicily etna marsala nero d'avola" },
+
+  { name: "Mendoza", country: "Argentina", map: "mapa-mendoza.jpg", keys: "mendoza malbec ucha valle de uco" },
+  { name: "Salta", country: "Argentina", map: "mapa-salta.jpg", keys: "salta cafayate torrontés torrontes" },
+  { name: "Patagonia", country: "Argentina", map: "mapa-patagonia.jpg", keys: "patagonia neuquén neuquen rio negro" },
+  { name: "San Juan", country: "Argentina", map: "mapa-sanjuan.jpg", keys: "san juan pedernal" },
+
+  { name: "Barossa", country: "Australia", map: "mapa-barossa.jpg", keys: "barossa grange penfolds shiraz" },
+  { name: "Margaret River", country: "Australia", map: "mapa-margaret.jpg", keys: "margaret river western australia" },
+  { name: "Hunter Valley", country: "Australia", map: "mapa-hunter.jpg", keys: "hunter valley semillon" },
+  { name: "McLaren Vale", country: "Australia", map: "mapa-mclaren.jpg", keys: "mclaren vale" },
+
+  { name: "Mosel", country: "Alemania", map: "mapa-mosel.jpg", keys: "mosel mosela riesling bernkastel" },
+  { name: "Rheingau", country: "Alemania", map: "mapa-rheingau.jpg", keys: "rheingau johannisberg" },
+  { name: "Pfalz", country: "Alemania", map: "mapa-pfalz.jpg", keys: "pfalz palatinado" },
+  { name: "Baden", country: "Alemania", map: "mapa-baden.jpg", keys: "baden kaiserstuhl" },
+
+  { name: "Napa Valley", country: "California", map: "mapa-napa.jpg", keys: "napa valley cabernet oakville rutherford" },
+  { name: "Sonoma", country: "California", map: "mapa-sonoma.jpg", keys: "sonoma russian river pinot" },
+  { name: "Paso Robles", country: "California", map: "mapa-paso.jpg", keys: "paso robles" },
+  { name: "Santa Barbara", country: "California", map: "mapa-santabarbara.jpg", keys: "santa barbara sta. rita hills" }
 ];
+const ZONE_PLATE = Object.fromEntries(ZONES.map(z => [z.name, z.map]));
 function winesInZone(z) {
   const keys = (z.keys || z.name).toLowerCase().split(/\s+/);
   return WINE_CATALOG.filter(w => {
@@ -452,21 +520,30 @@ function winesInZone(z) {
 function renderZonas(q) {
   const query = (q || "").trim().toLowerCase();
   const list = ZONES.filter(z => !query || (z.name + " " + z.country + " " + z.keys).toLowerCase().includes(query));
-  const html = list.map(z => {
-    const n = winesInZone(z).length;
-    const plate = ZONE_PLATE[z.name] || z.map || z.img;
-    return `<button class="zone-tile" onclick="openZona('${z.name.replace(/'/g, "\\'")}')">
-      <img src="${plate}" alt="${z.name}">
-      <span><b>${z.name}</b><small>${z.country} · ${n} vinos</small></span>
-    </button>`;
+  const groups = [];
+  list.forEach(z => {
+    const last = groups[groups.length - 1];
+    if (!last || last.country !== z.country) groups.push({ country: z.country, items: [z] });
+    else last.items.push(z);
+  });
+  const html = groups.map(g => {
+    const tiles = g.items.map(z => {
+      const n = winesInZone(z).length;
+      const plate = ZONE_PLATE[z.name] || z.map;
+      return `<button class="zone-tile" onclick="openZona('${z.name.replace(/'/g, "\\'")}')">
+        <img src="${plate}" alt="${z.name}">
+        <span><b>${z.name}</b><small>${z.country} · ${n} vino${n === 1 ? "" : "s"}</small></span>
+      </button>`;
+    }).join("");
+    return `<p class="cal-h">${g.country} · ${g.items.length}</p><div class="zone-grid">${tiles}</div>`;
   }).join("");
   $("#zonas-body").innerHTML = `
     <button class="back" onclick="goBack()">‹ ${backCaption()}</button>
     <p class="eyebrow">Mi Vinoteca</p>
     <h1>Zonas vinícolas</h1>
-    <div class="search" style="margin:12px 0"><input id="zona-q" type="search" placeholder="Rioja, Douro, Champagne, Loira…" value="${(q || "").replace(/"/g, "")}" oninput="renderZonas(this.value)"></div>
-    <p class="muted">Toca una zona para ver el mapa y los vinos.</p>
-    <div class="zone-grid">${html || "<p class='empty'>Ninguna zona con ese nombre.</p>"}</div>`;
+    <div class="search" style="margin:12px 0"><input id="zona-q" type="search" placeholder="Rioja, Douro, Champagne, Napa…" value="${(q || "").replace(/"/g, "")}" oninput="renderZonas(this.value)"></div>
+    <p class="muted">Placa grabada de cada zona. El nombre va debajo del mapa.</p>
+    ${html || "<p class='empty'>Ninguna zona con ese nombre.</p>"}`;
   const box = $("#zona-q");
   if (box && query) { box.focus(); box.setSelectionRange(query.length, query.length); }
 }
@@ -476,10 +553,10 @@ function openZona(name) {
   const wines = winesInZone(z);
   $("#zonas-body").innerHTML = `
     <button class="back" onclick="renderZonas()">‹ Zonas</button>
-    <p class="eyebrow" style="font-size:10px;margin:4px 0 0">${z.country}</p>
-    <h1 style="font-size:22px;margin:4px 0 12px;line-height:1.15">${z.name}</h1>
     ${z.map ? `<img class="map-art" src="${z.map}" alt="Mapa ${z.name}">` : ""}
-    <p class="muted" style="margin:14px 0 8px">${wines.length} vino${wines.length === 1 ? "" : "s"} en catálogo</p>
+    <p class="eyebrow" style="font-size:10px;letter-spacing:.14em;margin:2px 0 0">${z.country}</p>
+    <h1 style="font-size:20px;margin:2px 0 4px;line-height:1.2">${z.name}</h1>
+    <p class="muted" style="margin:0 0 12px;font-size:13px">${wines.length} vino${wines.length === 1 ? "" : "s"} en catálogo</p>
     ${wines.map(w => `<div class="card" role="button" onclick="openWine('${w.id}')">
       <div class="row"><h3>${w.producer}</h3><span class="tiny">${w.vintage}</span></div>
       <p class="muted">${w.name} · ${w.appellation}</p>
@@ -741,33 +818,12 @@ function estateArt(w) {
   };
   const hit = byProducer[w.producer];
   if (hit) return hit;
-  const zone = (w.region + " " + (w.appellation || "")).toLowerCase();
-  if (/rías|rias baixas|albariño|albarino/.test(zone)) return { land: "vinedo-rias.jpg", cap: "capsula.jpg", map: "mapa-rias.jpg" };
-  if (/rioja/.test(zone)) return { land: "vinedo-rioja.jpg", cap: "capsula.jpg", map: "mapa-rioja.jpg" };
-  if (/ribera|duero/.test(zone)) return { land: "vinedo-ribera.jpg", cap: "capsula.jpg", map: "mapa-ribera.jpg" };
-  if (/priorat|priorato/.test(zone)) return { land: "vinedo-priorat.jpg", cap: "capsula.jpg", map: "mapa-priorat.jpg" };
-  if (/médoc|medoc|margaux|pauillac/.test(zone)) return { land: "vinedo-margaux.jpg", cap: "capsula.jpg", map: "mapa-medoc.jpg" };
-  if (/corpinnat|penedès|penedes|cava/.test(zone)) return { land: "vinedo-champagne.jpg", cap: "capsula.jpg", map: "mapa-penedes.jpg" };
-  if (/champagne/.test(zone)) return { land: "vinedo-champagne.jpg", cap: "capsula.jpg", map: "mapa-champagne.jpg" };
-  if (/bolgheri|toscana/.test(zone)) return { land: "vinedo-bolgheri.jpg", cap: "capsula.jpg", map: "mapa-bolgheri.jpg" };
-  if (/douro|porto/.test(zone)) return { land: "mapa-douro.jpg", cap: "capsula.jpg", map: "mapa-douro.jpg" };
-  if (/alentejo/.test(zone)) return { land: "mapa-alentejo.jpg", cap: "capsula.jpg", map: "mapa-alentejo.jpg" };
-  if (/vinho verde|minho/.test(zone)) return { land: "mapa-vinhoverde.jpg", cap: "capsula.jpg", map: "mapa-vinhoverde.jpg" };
-  if (/dão|dao /.test(zone) || zone.includes("dão")) return { land: "mapa-dao.jpg", cap: "capsula.jpg", map: "mapa-dao.jpg" };
-  if (/bairrada/.test(zone)) return { land: "mapa-bairrada.jpg", cap: "capsula.jpg", map: "mapa-bairrada.jpg" };
-  if (/bourgogne|borgoña|burgundy/.test(zone)) return { land: "mapa-borgona.jpg", cap: "capsula.jpg", map: "mapa-borgona.jpg" };
-  if (/rhône|rhone|ródano/.test(zone)) return { land: "mapa-rhone.jpg", cap: "capsula.jpg", map: "mapa-rhone.jpg" };
-  if (/loire|loira/.test(zone)) return { land: "mapa-loira.jpg", cap: "capsula.jpg", map: "mapa-loira.jpg" };
-  if (/alicante|marina/.test(zone)) return { land: "vinedo.jpg", cap: "capsula.jpg", map: "mapa-alicante.jpg" };
-  if (/australia|barossa/.test(zone)) return { land: "vinedo-margaux.jpg", cap: "capsula.jpg", map: "mapa-barossa.jpg" };
-  if (/toro/.test(zone)) return { land: "vinedo-ribera.jpg", cap: "capsula.jpg", map: "mapa-toro.jpg" };
-  if (/costers|segre|raïmat|raimat/.test(zone)) return { land: "vinedo-costers.jpg", cap: "capsula.jpg", map: "mapa-costers.jpg" };
-  if (/rueda/.test(zone)) return { land: "vinedo-ribera.jpg", cap: "capsula.jpg", map: "mapa-rueda.jpg" };
-  if (/jerez|sherry/.test(zone)) return { land: "vinedo-margaux.jpg", cap: "capsula.jpg", map: "mapa-jerez.jpg" };
-  if (/navarra/.test(zone)) return { land: "vinedo-rioja.jpg", cap: "capsula.jpg", map: "mapa-navarra.jpg" };
-  if (/bierzo/.test(zone)) return { land: "vinedo-priorat.jpg", cap: "capsula.jpg", map: "mapa-bierzo.jpg" };
-  if (/somontano/.test(zone)) return { land: "vinedo-costers.jpg", cap: "capsula.jpg", map: "mapa-somontano.jpg" };
-  return { land: "vinedo-rioja.jpg", cap: "capsula.jpg", map: "mapa-rioja.jpg" };
+  const zone = (w.region + " " + (w.appellation || "") + " " + (w.country || "")).toLowerCase();
+  const hitZone = ZONES.find(z => (z.keys || "").split(/\s+/).some(k => k.length > 2 && zone.includes(k)) || zone.includes(z.name.toLowerCase()));
+  if (hitZone) {
+    return { land: hitZone.map, cap: "capsula.jpg", map: hitZone.map };
+  }
+  return { land: "mapa-rioja.jpg", cap: "capsula.jpg", map: "mapa-rioja.jpg" };
 }
 
 function estateSVG(w) {
@@ -1986,12 +2042,10 @@ function mapaBlock(w) {
   const osm = `https://www.openstreetmap.org/?mlat=${g.lat}&mlon=${g.lng}#map=12/${g.lat}/${g.lng}`;
   const gmaps = `https://maps.google.com/?q=${encodeURIComponent(w.producer + " " + g.zone)}`;
   return `
-    <p class="muted" style="margin:0 0 16px">${w.appellation} · ${w.region}</p>
-    <div class="card">
-      <h3>${w.producer}</h3>
-      <p class="muted" style="margin-top:4px">${g.zone}</p>
-    </div>
     ${art.map ? `<img class="map-art" src="${art.map}" alt="Mapa de ${g.zone}">` : `<div class="map-frame"><iframe title="Mapa de la bodega" src="${embed}" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe></div>`}
+    <p class="eyebrow" style="font-size:10px;letter-spacing:.14em;margin:2px 0 0">${w.appellation}</p>
+    <h3 style="font-size:17px;margin:2px 0 2px;line-height:1.2">${w.producer}</h3>
+    <p class="muted" style="margin:0 0 12px;font-size:13px">${g.zone} · ${w.region}</p>
     <a class="btn btn-ghost" style="width:100%;margin-top:10px;display:block;text-align:center" href="${gmaps}" target="_blank" rel="noopener">Abrir en Mapas</a>
     <a class="btn btn-ghost" style="width:100%;margin-top:8px;display:block;text-align:center" href="${osm}" target="_blank" rel="noopener">OpenStreetMap</a>
     ${g.web ? `<a class="btn btn-gold" style="width:100%;margin-top:8px;display:block;text-align:center" href="${g.web}" target="_blank" rel="noopener">Web de la bodega</a>` : ""}`;

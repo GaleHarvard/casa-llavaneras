@@ -1,0 +1,30 @@
+CASA LLAVANERAS — cómo subir a GitHub
+====================================
+1. En Descargas descomprime ESTOS TRES zips (en este orden o a la vez):
+   1-codigo-CasaLlavaneras.zip
+   2-mapas-AM-CasaLlavaneras.zip
+   3-mapas-MZ-CasaLlavaneras.zip
+
+2. Te queda UNA sola carpeta:
+   Descargas\CasaLlavaneras
+   Dentro debe verse index.html (no otra carpeta dentro).
+
+3. Entra en https://github.com/GaleHarvard/casa-llavaneras
+   pulsa Add file → Upload files.
+
+4. GitHub solo admite ~100 archivos cada vez. Sube en DOS tandas
+   desde Descargas\CasaLlavaneras:
+
+   TANDA A (código y fotos):
+   index.html, app.js, styles.css, sw.js, wines.js, dossiers.js,
+   pairings.js, manifest.json, iconos, cave-*, capsula-*, hero-*,
+   vinedo-*, carpeta providers, LEEME (opcional).
+
+   TANDA B (mapas):
+   selecciona todos los archivo mapa-*.jpg y súbelos.
+
+5. Commit a main. Espera 1-2 minutos y abre:
+   https://galeharvard.github.io/casa-llavaneras/
+
+6. En el iPhone: Safari → esa URL → recarga.
+   Si el icono de inicio sigue viejo, bórralo y Añadir a inicio otra vez.
