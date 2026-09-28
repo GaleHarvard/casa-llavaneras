@@ -198,7 +198,7 @@ function show(id, opts) {
   $$(".screen").forEach(s => s.classList.toggle("active", s.id === id));
   const tabId = id === "cave-detail-screen" ? "caves" : id === "wine" || id === "wine-sub" ? lastList : id;
   $$(".tab").forEach(t => t.classList.toggle("active", t.dataset.go === tabId || t.dataset.go === id));
-  document.querySelector(".app")?.classList.toggle("fiche", id === "wine" || id === "wine-sub");
+  document.querySelector(".app")?.classList.toggle("fiche", id === "wine" || id === "wine-sub" || id === "dish");
   if (id !== "scan") stopCam();
   if (id === "home") renderHome();
   if (id === "caves") renderCaves();
@@ -594,9 +594,19 @@ function homeWineTile(w) {
 }
 
 function shortWineName(w) {
+  if (!w) return "";
   const n = (w.name || "").replace("Reserva", "").replace("Gran Reserva", "").trim();
   const last = (w.producer || "").split(" ").slice(-1)[0];
   return n.length > 2 ? n : last;
+}
+function pairLabel(w) {
+  if (!w) return "";
+  const prod = w.producer || "";
+  const short = shortWineName(w);
+  if (!short || prod.toLowerCase().includes(short.toLowerCase()) || short.toLowerCase().includes(prod.toLowerCase())) {
+    return prod || short;
+  }
+  return (prod + " " + short).trim();
 }
 
 function bottleCard(b) {
@@ -1260,18 +1270,18 @@ function pairingBlock(w) {
 function renderPairings() {
   const q = (pairingQuery || "").toLowerCase();
   if (pairingMode === "platos") {
-    const dishes = PAIRING_DISHES.filter(d => `${d.name} ${d.family} ${d.tags.join(" ")}`.toLowerCase().includes(q));
+    const dishes = (PAIRING_DISHES || []).filter(d => `${d.name} ${d.family} ${(d.tags || []).join(" ")}`.toLowerCase().includes(q));
     $("#pair-body").innerHTML = dishes.map(d => {
       const wines = winesForDish(d.id);
       const best = wines[0];
-      const label = best ? `${best.wine.producer} ${shortWineName(best.wine)}` : "";
-      return `<div class="card">
-        <div class="row" role="button" onclick="openDish('${d.id}')"><h3>${d.icon} ${d.name}</h3><span class="badge">${wines.length} vinos ›</span></div>
+      const label = best ? pairLabel(best.wine) : "";
+      return `<article class="card dish-hit" role="button" tabindex="0" onclick="openDish('${d.id}')">
+        <div class="row"><h3>${d.icon} ${d.name}</h3><span class="badge">${wines.length} vino${wines.length === 1 ? "" : "s"} ›</span></div>
         <p class="muted">${d.family} · ${d.heat}</p>
-        ${best ? `<p class="tiny" role="button" style="margin-top:8px;color:#c9a227" onclick="openWine('${best.wine.id}')">Mejor encaje: ${label} · ${best.score} ›</p>` : ""}
-        <button class="btn btn-ghost" style="width:100%;margin-top:10px" onclick="openDish('${d.id}')">Ver vinos del plato</button>
-      </div>`;
-    }).join("");
+        ${best ? `<p class="tiny" style="margin-top:8px;color:#c9a227" onclick="event.stopPropagation();openWine('${best.wine.id}')">Mejor encaje: ${label} · ${best.score} ›</p>` : ""}
+        <button type="button" class="btn btn-ghost" style="width:100%;margin-top:10px;pointer-events:none">Ver vinos del plato</button>
+      </article>`;
+    }).join("") || `<p class="empty">Sin platos con ese nombre.</p>`;
     return;
   }
   const source = pairingMode === "cava"
@@ -1297,40 +1307,51 @@ function renderPairings() {
 }
 
 function winesForDish(dishId) {
-  return Object.entries(WINE_PAIRINGS).map(([id, pack]) => {
-    const m = pack.matches.find(x => x.dishId === dishId);
+  const table = window.WINE_PAIRINGS || {};
+  return Object.entries(table).map(([id, pack]) => {
+    const m = (pack.matches || []).find(x => x.dishId === dishId);
     if (!m) return null;
-    return { wine: wineById(id), score: m.score, why: m.why, pack };
+    const wine = wineById(id);
+    if (!wine) return null;
+    return { wine, score: m.score, why: m.why, pack };
   }).filter(Boolean).sort((a, b) => b.score - a.score);
 }
 
 function openDish(id) {
-  pairingDish = id;
-  const d = PAIRING_DISHES.find(x => x.id === id);
-  const wines = winesForDish(id);
-  const inCava = wines.filter(x => state.bottles.some(b => b.wineId === x.wine.id));
-  $("#dish-title").textContent = d.icon + " " + d.name;
-  $("#dish-body").innerHTML = `
-    <button class="back" onclick="goBack()">‹ ${backCaption()}</button>
-    <p class="eyebrow">${d.family}</p>
-    <h1>${d.icon} ${d.name}</h1>
-    <p class="muted">${d.heat} · ${d.tags.join(" · ")}</p>
+  try {
+    pairingDish = id;
+    const d = (PAIRING_DISHES || []).find(x => x.id === id);
+    if (!d) return;
+    const wines = winesForDish(id);
+    const inCava = wines.filter(x => state.bottles.some(b => b.wineId === x.wine.id));
+    const title = (d.icon ? d.icon + " " : "") + d.name;
+    const body = $("#dish-body");
+    if (!body) return;
+    body.innerHTML = `
+    <button type="button" class="back" onclick="goBack()">‹ Mesa</button>
+    <p class="eyebrow">${d.family || "Plato"}</p>
+    <h1>${title}</h1>
+    <p class="muted">${d.heat || ""} · ${(d.tags || []).join(" · ")}</p>
     ${inCava.length ? `<div class="card" style="margin-top:12px"><h2>En tu vinoteca ahora</h2>
-      ${inCava.map(x => `<p role="button" style="margin-top:8px" onclick="openWine('${x.wine.id}')"><strong>${x.wine.producer} ${x.wine.name} ${x.wine.vintage}</strong> · ${x.score}/100 ›<br><span class="muted">${x.why}</span></p>`).join("")}
+      ${inCava.map(x => `<p role="button" style="margin-top:8px" onclick="openWine('${x.wine.id}')"><strong>${pairLabel(x.wine)} ${x.wine.vintage}</strong> · ${x.score}/100 ›<br><span class="muted">${x.why}</span></p>`).join("")}
     </div>` : `<p class="muted" style="margin-top:12px">Ninguna botella de este maridaje está en stock. Abajo, el catálogo.</p>`}
     <h2 style="margin-top:16px">Ranking por encaje</h2>
-    ${wines.map(x => {
+    ${wines.length ? wines.map(x => {
       const have = state.bottles.some(b => b.wineId === x.wine.id);
       return `<div class="card" role="button" onclick="openWine('${x.wine.id}')">
-        <div class="row"><h3>${x.wine.producer} ${x.wine.name}</h3><span class="badge ${x.score>=94?"ok":"warn"}">${x.score}</span></div>
+        <div class="row"><h3>${pairLabel(x.wine)}</h3><span class="badge ${x.score>=94?"ok":"warn"}">${x.score}</span></div>
         <p class="muted">${x.wine.vintage} · ${x.wine.region} · ${x.wine.type}</p>
-        <p style="margin-top:8px">${x.why}</p>
-        <p class="tiny">${x.pack.serve}${have ? " · lo tienes" : ""}</p>
+        <p style="margin-top:8px">${x.why || ""}</p>
+        <p class="tiny">${(x.pack && x.pack.serve) || ""}${have ? " · lo tienes" : ""}</p>
       </div>`;
-    }).join("")}
+    }).join("") : `<p class="empty">Aún no hay vinos enlazados a este plato.</p>`}
     <h2>Regla de mesa</h2>
-    ${PAIRING_RULES.map(r => `<div class="card"><strong>${r.title}</strong><p class="muted">${r.text}</p></div>`).join("")}`;
-  show("dish");
+    ${(window.PAIRING_RULES || []).map(r => `<div class="card"><strong>${r.title}</strong><p class="muted">${r.text}</p></div>`).join("")}`;
+    show("dish");
+  } catch (err) {
+    console.warn("openDish", err);
+    show("dish");
+  }
 }
 
 function adviseCave(w) {

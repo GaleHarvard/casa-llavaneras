@@ -959,3 +959,5 @@ a.btn{text-decoration:none}
 .zone-tile img{width:100%;height:118px;object-fit:contain;object-position:center;display:block;background:#000}
 .zone-tile span{display:block;padding:8px 10px}
 .zone-tile small{display:block;color:#9a9a9a;margin-top:2px;font-size:11px}
+.dish-hit{cursor:pointer;-webkit-tap-highlight-color:rgba(198,163,90,.18)}
+.app.fiche #dish .scroll{padding-bottom:28px}
