@@ -1,4 +1,4 @@
-const CACHE = "casa-llavaneras-ios-v18";
+const CACHE = "casa-llavaneras-ios-v21";
 const ASSETS = ["./", "./index.html", "./styles.css", "./app.js", "./wines.js", "./dossiers.js", "./providers/wineProvider.js", "./pairings.js", "./manifest.json", "./icon.svg", "./apple-touch-icon.png", "./icon-192.png", "./icon-512.png", "./cave-principal.jpg", "./capsula.jpg"];
 self.addEventListener("install", e => {
   self.skipWaiting();

@@ -532,38 +532,163 @@ function zoneSeed(s) {
   for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619);
   return h >>> 0;
 }
+function zoneRand(seed) {
+  let s = seed >>> 0;
+  return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
+}
+function chateauMark(x, y) {
+  return `<g transform="translate(${x} ${y})" fill="#d4b45a" stroke="none">
+    <rect x="-5" y="-7" width="10" height="8" rx="0.4"/>
+    <path d="M-6 -7 L0 -13 L6 -7Z"/>
+    <rect x="-1.4" y="-2" width="2.8" height="3" fill="#0a0907"/>
+  </g>`;
+}
+function zoneLandPath(kind, rnd) {
+  if (kind === "coast") return "M 210 170 C 280 210 250 320 300 390 C 360 490 420 520 520 500 C 680 470 760 390 820 300 C 870 230 900 160 860 120 L 980 120 L 980 640 C 760 680 520 700 280 640 C 220 560 180 420 210 170Z";
+  if (kind === "island") return "M 430 240 C 520 200 690 220 760 310 C 820 400 800 520 700 580 C 560 650 400 620 350 520 C 310 430 350 280 430 240Z";
+  if (kind === "river") return "M 240 160 C 360 180 420 260 500 250 C 620 235 700 180 820 210 C 900 240 930 330 880 410 C 820 510 700 560 560 580 C 400 600 280 540 240 430 C 210 340 190 230 240 160Z";
+  return "M 260 180 C 400 150 560 170 700 160 C 820 155 900 230 910 330 C 920 450 840 560 700 600 C 520 650 340 620 260 520 C 200 430 190 260 260 180Z";
+}
+function zoneKind(name) {
+  if (/Rías|Txakoli|Alicante|Valencia|Empordà|Algarve|Lisboa|Setúbal|Provence|Champagne|Bolgheri|Porto|Vinho Verde|Málaga|Jerez|Bordeaux|Médoc|Languedoc/.test(name)) return "coast";
+  if (/Madeira|Açores|Mallorca|Canarias|Binissalem/.test(name)) return "island";
+  if (/Douro|Porto|Ribera|Toro|Rueda|Ribeiro|Ribeira|Valdeorras|Loire|Rhône|Tejo|Bierzo/.test(name)) return "river";
+  return "plateau";
+}
 function zoneMapSvg(z) {
   const a = ZONE_ATLAS[z.name] || { labels: [[z.name.toUpperCase(), 50, 45]], pin: [50, 45, z.name.toUpperCase()] };
-  let s = zoneSeed(z.name);
-  const rnd = () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
-  const W = 1168, H = 784, gold = "#c9a227", gold2 = "#e6d5a2";
-  let extra = "";
-  for (let i = 0; i < 12; i++) {
-    const cx = 180 + rnd() * 800, cy = 140 + rnd() * 500, rx = 60 + rnd() * 200, ry = 40 + rnd() * 150, rot = rnd() * 50 - 25, op = 0.18 + rnd() * 0.32;
-    extra += `<ellipse cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" rx="${rx.toFixed(1)}" ry="${ry.toFixed(1)}" transform="rotate(${rot.toFixed(1)} ${cx.toFixed(1)} ${cy.toFixed(1)})" fill="none" stroke="${gold}" stroke-width="0.9" opacity="${op.toFixed(2)}"/>`;
+  const rnd = zoneRand(zoneSeed(z.name));
+  const W = 1168, H = 820;
+  const gold = "#c9a227", pale = "#e8d7a6", ink = "#0a0907";
+  const kind = zoneKind(z.name);
+  let topo = "";
+  for (let i = 0; i < 16; i++) {
+    const y = 150 + i * 34 + rnd() * 8;
+    let d = `M 160 ${y.toFixed(1)}`;
+    for (let x = 200; x < 1020; x += 70) d += ` Q ${x} ${(y + Math.sin(i + x / 80) * 10).toFixed(1)} ${x + 35} ${y.toFixed(1)}`;
+    topo += `<path d="${d}" fill="none" stroke="${gold}" stroke-width="0.7" opacity="${(0.12 + rnd() * 0.18).toFixed(2)}"/>`;
   }
-  let x = 160 + rnd() * 200, y = 120 + rnd() * 80, d = `M ${x.toFixed(1)} ${y.toFixed(1)}`;
-  for (let i = 0; i < 8; i++) { x += 70 + rnd() * 90; y += (rnd() - 0.42) * 90; d += ` Q ${ (x-40).toFixed(1)} ${(y+20).toFixed(1)} ${x.toFixed(1)} ${y.toFixed(1)}`; }
-  extra += `<path d="${d}" fill="none" stroke="${gold}" stroke-width="1.6" opacity="0.55"/>`;
-  const pts = [];
-  for (let i = 0; i < 10; i++) {
-    const ang = (i / 10) * Math.PI * 2, r = 210 + rnd() * 90;
-    pts.push((584 + Math.cos(ang) * r * 1.35).toFixed(1) + "," + (400 + Math.sin(ang) * r * 0.95).toFixed(1));
-  }
-  extra += `<polygon points="${pts.join(" ")}" fill="none" stroke="${gold2}" stroke-width="1.8" opacity="0.85"/>`;
-  const labs = (a.labels || []).map(([tx, xf, yf]) => {
-    const lx = 120 + xf * 9.28, ly = 110 + yf * 5.6;
-    return `<text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" fill="${gold2}" font-size="${tx.length < 12 ? 13 : 11}" font-family="Palatino, Georgia, serif" letter-spacing="2" text-anchor="middle">${tx}</text>`;
+  const places = (a.labels || []).map(([tx, xf, yf], i) => {
+    const x = 280 + xf * 6.2, y = 180 + yf * 4.4;
+    return `${chateauMark(x, y - 16)}<text x="${(x + 14).toFixed(1)}" y="${y.toFixed(1)}" fill="${pale}" font-size="15" font-family="Palatino Linotype, Palatino, Georgia, serif">${tx}</text>`;
   }).join("");
   const [pfx, pfy, cap] = a.pin || [50, 45, z.name];
-  const pinx = 120 + pfx * 9.28, piny = 110 + pfy * 5.6;
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}"><rect width="${W}" height="${H}" fill="#0a0907"/><rect x="28" y="24" width="${W-56}" height="${H-48}" rx="28" fill="none" stroke="${gold}" stroke-width="1.4" opacity="0.7"/>${extra}${labs}<g transform="translate(${pinx.toFixed(1)} ${piny.toFixed(1)})"><path d="M0 -26 C10 -26 16 -16 16 -8 C16 4 0 22 0 22 C0 22 -16 4 -16 -8 C-16 -16 -10 -26 0 -26Z" fill="${gold}"/><circle cy="-10" r="5" fill="#0a0907"/></g><text x="${pinx.toFixed(1)}" y="${(piny+28).toFixed(1)}" fill="${gold}" font-size="11" font-family="Palatino, Georgia, serif" letter-spacing="2" text-anchor="middle">${cap}</text><text x="72" y="70" fill="${gold}" font-size="13" font-family="Palatino, Georgia, serif" letter-spacing="4">${(z.country || "").toUpperCase()}</text><text x="72" y="98" fill="${gold2}" font-size="22" font-family="Palatino, Georgia, serif" letter-spacing="3">${z.name.toUpperCase()}</text><g transform="translate(1040 92)"><circle r="22" fill="none" stroke="${gold}" stroke-width="1"/><path d="M0 -16 L4 0 L0 16 L-4 0 Z" fill="${gold}"/><text y="-28" fill="${gold}" font-size="9" text-anchor="middle" font-family="Palatino, Georgia, serif">N</text></g><text x="72" y="722" fill="${gold}" font-size="10" font-family="Palatino, Georgia, serif" letter-spacing="2">0    5    10 km</text></svg>`;
+  const pinx = 300 + pfx * 6.2, piny = 170 + pfy * 4.4;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}">
+    <rect width="${W}" height="${H}" fill="${ink}"/>
+    <rect x="36" y="28" width="${W-72}" height="${H-56}" rx="8" fill="none" stroke="${gold}" stroke-width="1.6"/>
+    <rect x="48" y="40" width="${W-96}" height="${H-80}" rx="4" fill="none" stroke="${gold}" stroke-width="0.5" opacity="0.45"/>
+    ${topo}
+    <path d="${zoneLandPath(kind, rnd)}" fill="none" stroke="${gold}" stroke-width="1.7" opacity="0.9"/>
+    <rect x="64" y="56" width="210" height="168" rx="4" fill="${ink}" stroke="${gold}" stroke-width="1.2"/>
+    <text x="169" y="92" text-anchor="middle" fill="${pale}" font-size="20" font-family="Palatino Linotype, Palatino, Georgia, serif" letter-spacing="3">${(z.name.split(" / ")[0] || z.name).toUpperCase()}</text>
+    <text x="169" y="118" text-anchor="middle" fill="${gold}" font-size="12" font-family="Palatino Linotype, Palatino, Georgia, serif" letter-spacing="3">${(z.country || "").toUpperCase()}</text>
+    <g transform="translate(169 168)" fill="none" stroke="${gold}" stroke-width="1.2">
+      <circle r="26"/>
+      <path d="M0 -20 L5 0 L0 20 L-5 0Z" fill="${gold}" stroke="none"/>
+      <text y="-32" text-anchor="middle" fill="${gold}" font-size="11" font-family="Palatino Linotype, Palatino, Georgia, serif">N</text>
+    </g>
+    ${places}
+    <g transform="translate(${pinx.toFixed(1)} ${piny.toFixed(1)})">
+      <path d="M0 -22 C8 -22 13 -14 13 -8 C13 2 0 18 0 18 C0 18 -13 2 -13 -8 C-13 -14 -8 -22 0 -22Z" fill="${gold}"/>
+      <circle cy="-9" r="4" fill="${ink}"/>
+    </g>
+    <g transform="translate(930 560)">
+      <circle r="78" fill="${ink}" stroke="${gold}" stroke-width="1.4"/>
+      <circle r="70" fill="none" stroke="${gold}" stroke-width="0.4" opacity="0.4"/>
+      <g transform="translate(0 8)" fill="${gold}">
+        <rect x="-18" y="-8" width="36" height="28"/>
+        <path d="M-22 -8 L0 -36 L22 -8Z"/>
+        <rect x="-6" y="6" width="12" height="14" fill="${ink}"/>
+      </g>
+    </g>
+    <text x="930" y="668" text-anchor="middle" fill="${gold}" font-size="11" font-family="Palatino Linotype, Palatino, Georgia, serif" letter-spacing="2">${cap}</text>
+    <g transform="translate(80 730)" fill="${gold}">
+      <ellipse cx="8" cy="6" rx="4" ry="6"/>
+      <ellipse cx="16" cy="4" rx="4" ry="6"/>
+      <ellipse cx="12" cy="12" rx="4" ry="5"/>
+      <path d="M12 0 C12 -8 20 -10 22 -4" fill="none" stroke="${gold}" stroke-width="1"/>
+    </g>
+    <text x="112" y="748" fill="${gold}" font-size="11" font-family="Palatino Linotype, Palatino, Georgia, serif" letter-spacing="2">${(z.country || "").toUpperCase()}</text>
+    <line x1="80" y1="760" x2="170" y2="760" stroke="${gold}" stroke-width="0.6"/>
+  </svg>`;
   return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
 }
+const ZONE_PLATE = {
+  "Rioja": "mapa-rioja.jpg",
+  "Ribera del Duero": "mapa-ribera.jpg",
+  "Priorat": "mapa-priorat.jpg",
+  "Rías Baixas": "mapa-rias.jpg",
+  "Penedès": "mapa-penedes.jpg",
+  "Champagne": "mapa-champagne.jpg",
+  "Médoc": "mapa-medoc.jpg",
+  "Bolgheri": "mapa-bolgheri.jpg",
+  "Bierzo": "mapa-bierzo.jpg",
+  "Douro": "mapa-douro.jpg",
+  "Bourgogne": "mapa-bourgogne.jpg",
+  "Jerez-Xérès-Sherry": "mapa-jerez.jpg",
+  "Toro": "mapa-toro.jpg",
+  "Rueda": "mapa-rueda.jpg",
+  "Montsant": "mapa-montsant.jpg",
+  "Empordà": "mapa-emporda.jpg",
+  "Ribeira Sacra": "mapa-ribeira-sacra.jpg",
+  "Getariako Txakolina": "mapa-txakoli.jpg",
+  "Alentejo": "mapa-alentejo.jpg",
+  "Vallée du Rhône": "mapa-rhone.jpg",
+  "Cigales": "mapa-cigales.jpg",
+  "Navarra": "mapa-navarra.jpg",
+  "Jumilla": "mapa-jumilla.jpg",
+  "La Mancha": "mapa-la-mancha.jpg",
+  "Porto": "mapa-porto.jpg",
+  "Vinho Verde": "mapa-vinho-verde.jpg",
+  "Dão": "mapa-dao.jpg",
+  "Loire": "mapa-loire.jpg",
+  "Bordeaux": "mapa-bordeaux.jpg",
+  "Chablis": "mapa-chablis.jpg",
+  "Alsace": "mapa-alsace.jpg",
+  "Provence": "mapa-provence.jpg",
+  "Languedoc-Roussillon": "mapa-languedoc.jpg",
+  "Madeira": "mapa-madeira.jpg",
+  "Lanzarote / Canarias": "mapa-canarias.jpg",
+  "Ribeiro": "mapa-ribeiro.jpg",
+  "Beaujolais": "mapa-beaujolais.jpg",
+  "Sud-Ouest": "mapa-sud-ouest.jpg",
+  "Bairrada": "mapa-bairrada.jpg",
+  "Alicante": "mapa-alicante.jpg",
+  "Binissalem / Pla i Llevant": "mapa-mallorca.jpg",
+  "Terra Alta": "mapa-terra-alta.jpg",
+  "Somontano": "mapa-somontano.jpg",
+  "South Australia": "mapa-south-australia.jpg",
+  "Costers del Segre": "mapa-costers-segre.jpg",
+  "Valdeorras": "mapa-valdeorras.jpg",
+  "Monterrei": "mapa-monterrei.jpg",
+  "Cariñena": "mapa-carinena.jpg",
+  "Calatayud": "mapa-calatayud.jpg",
+  "Campo de Borja": "mapa-campo-de-borja.jpg",
+  "Utiel-Requena": "mapa-utiel-requena.jpg",
+  "Valencia": "mapa-valencia.jpg",
+  "Yecla": "mapa-yecla.jpg",
+  "Bullas": "mapa-bullas.jpg",
+  "Valdepeñas": "mapa-valdepenas.jpg",
+  "Vinos de Madrid": "mapa-madrid.jpg",
+  "Montilla-Moriles": "mapa-montilla.jpg",
+  "Málaga y Sierras": "mapa-malaga.jpg",
+  "Corpinnat": "mapa-corpinnat.jpg",
+  "Cava": "mapa-cava.jpg",
+  "Lisboa": "mapa-lisboa.jpg",
+  "Península de Setúbal": "mapa-setubal.jpg",
+  "Tejo": "mapa-tejo.jpg",
+  "Beira Interior": "mapa-beira-interior.jpg",
+  "Trás-os-Montes": "mapa-tras-os-montes.jpg",
+  "Távora-Varosa": "mapa-tavora-varosa.jpg",
+  "Algarve": "mapa-algarve.jpg",
+  "Açores": "mapa-acores.jpg"
+};
 function zoneArt(z) {
-  const a = ZONE_ATLAS[z.name] || {};
+  const plate = ZONE_PLATE[z.name];
+  if (plate) return { img: plate, map: plate };
   const drawn = zoneMapSvg(z);
-  return { img: a.photo || drawn, map: a.keep || drawn };
+  return { img: drawn, map: drawn };
 }
 
 function winesInZone(z) {
