@@ -43,7 +43,7 @@ const defaultState = () => ({
       zones: ["VIP 185 · botellas prestigiosas", "Lectura 16,7 °C"],
       photo: "cave-principal.jpg"
     },
-    { id: "v2", name: "Cava de guarda", brand: "Eurocave", capacity: 32, used: 0, tHigh: 12.6, tLow: 12.6, humidity: 72, zones: ["Zona única · 12,5 °C"] }
+    { id: "v2", name: "Cava de guarda", brand: "Eurocave", capacity: 32, used: 0, tHigh: 12.6, tLow: 12.6, humidity: 72, zones: ["Zona única · 12,5 °C"], photo: "cave-temp.jpg" }
   ],
   bottles: [
     { uid: "b1", wineId: "tondonia-reserva-2011", qty: 3, cellarId: "v1", bin: "A-12", bought: "2024-11-02", price: 42, note: "Caja de 6, quedan 3" },
@@ -263,10 +263,15 @@ function renderHome() {
   $("#home-featured").innerHTML = featured ? `
     <h2 style="margin-top:8px">Vino destacado</h2>
     <div class="card" role="button" onclick="openWine('${featured.id}')" style="margin-top:10px">
-      <p class="tiny">${phaseOf(featured).label}</p>
-      <h3 style="margin-top:4px">${featured.producer}</h3>
-      <p>${featured.name} ${featured.vintage}</p>
-      <p class="muted" style="margin-top:6px">${featured.region} · Parker ${featured.ratings.parker.score}</p>
+      <div class="feat-row">
+        <img src="${featured.id.indexOf('margaux')>=0?'capsula-margaux.jpg':'capsula.jpg'}" alt="${featured.name}">
+        <div>
+          <p class="tiny">${phaseOf(featured).label}</p>
+          <h3 style="margin-top:4px">${featured.producer}</h3>
+          <p>${featured.name} ${featured.vintage}</p>
+          <p class="muted" style="margin-top:6px">${featured.region} · Parker ${featured.ratings.parker.score}</p>
+        </div>
+      </div>
     </div>` : "";
 
   const drinkNow = ready.slice(0, 4);
@@ -290,6 +295,16 @@ function renderHome() {
   const perm = typeof Notification !== "undefined" ? Notification.permission : "denied";
   const on = state.notify && state.notify.on && perm === "granted";
   $("#home-notify").innerHTML = `
+    <h2 style="margin-top:18px">Páginas</h2>
+    <div class="card" role="button" onclick="show('caves',{tab:true})" style="margin-top:10px"><div class="row"><h3>Vinotecas</h3><span class="tiny">›</span></div><p class="muted">VIP 185 y el resto de cavas</p></div>
+    <div class="card" role="button" onclick="openCave('v1')" style="margin-top:8px"><div class="row"><h3>Detalle VIP 185</h3><span class="tiny">›</span></div><p class="muted">Foto, huecos, temperatura</p></div>
+    <div class="card" role="button" onclick="show('cellar',{tab:true})" style="margin-top:8px"><div class="row"><h3>Botellas</h3><span class="tiny">›</span></div><p class="muted">Inventario, lotes y ubicación</p></div>
+    <div class="card" role="button" onclick="show('pairings',{tab:true})" style="margin-top:8px"><div class="row"><h3>Mesa</h3><span class="tiny">›</span></div><p class="muted">Maridajes por plato y por vino</p></div>
+    <div class="card" role="button" onclick="show('calendar',{tab:true})" style="margin-top:8px"><div class="row"><h3>Fechas</h3><span class="tiny">›</span></div><p class="muted">Beber ahora, pronto, aguardar</p></div>
+    <div class="card" role="button" onclick="openHomeMap()" style="margin-top:8px"><div class="row"><h3>Zonas vinícolas</h3><span class="tiny">›</span></div><p class="muted">Mapa por región y vinos</p></div>
+    <div class="card" role="button" onclick="show('catas')" style="margin-top:8px"><div class="row"><h3>Cuaderno de cata</h3><span class="tiny">›</span></div><p class="muted">Ejes y recuerdo</p></div>
+    <div class="card" role="button" onclick="show('perfil')" style="margin-top:8px"><div class="row"><h3>Perfil</h3><span class="tiny">›</span></div><p class="muted">Casas, copias y privacidad</p></div>
+    <div class="card" role="button" onclick="setCellarView('ubicaciones');show('cellar',{tab:true})" style="margin-top:8px"><div class="row"><h3>Ubicación física</h3><span class="tiny">›</span></div><p class="muted">Hueco, lote, servir y mover</p></div>
     <div class="chip-row" style="margin-top:14px">
       <button class="chip on" onclick="startScan()">Escanear</button>
       <button class="chip" onclick="quickTaste()">Cata rápida</button>
@@ -484,12 +499,14 @@ function bottleCard(b) {
 function renderCaves() {
   syncUsed();
   $("#caves-list").innerHTML = state.vinotecas.map(v => {
-    return `<div class="cave-card" role="button" onclick="openCave('${v.id}')">
-      <div class="cave-ico" aria-hidden="true"></div>
+    const shot = v.photo || (v.id === "v1" ? "cave-principal.jpg" : "cave-temp.jpg");
+    return `<div class="cave-card cave-card-photo" role="button" onclick="openCave('${v.id}')">
+      <img class="cave-shot" src="${shot}" alt="${v.name}">
       <div>
         <h3>${v.name}</h3>
-        <p class="muted">${v.brand}${v.house ? " · " + v.house : ""}${v.role === "prestige" ? " · prestigiosas" : ""}</p>
-        <p class="cave-meta"><span>${v.used}/${v.capacity}</span><span>${v.tHigh.toFixed(1)}°</span></p>
+        <p class="muted">${v.brand}${v.house ? " · " + v.house : ""}</p>
+        <p class="tiny" style="margin-top:6px">${v.role === "prestige" ? "PRESTIGIOSAS" : "DE GUARDA"}</p>
+        <p class="cave-meta"><span>${v.used}/${v.capacity}</span><span>${v.tHigh.toFixed(1)} °C</span></p>
       </div>
     </div>`;
   }).join("");
@@ -507,32 +524,67 @@ function openCave(id) {
   $("#cave-title").textContent = v.name;
   $("#cave-detail").innerHTML = `
     <p class="muted">${v.brand}${v.role === "prestige" ? " · reserva de las botellas más caras" : ""}</p>
-    ${v.photo ? `<img class="cave-photo" src="${v.photo}" alt="${v.name}" />` : ""}
+    <img class="cave-photo" src="${v.photo || (v.id==='v1'?'cave-principal.jpg':'cave-temp.jpg')}" alt="${v.name}" />
     <h2>Mapa de huecos</h2>
     ${rackGrid(id)}
-    <button class="btn btn-ghost" style="width:100%;margin:12px 0" onclick="deleteCave('${v.id}')">Dar de baja esta vinoteca</button>
-    <div class="temp-ring-row">
-      <div class="temp-ring"><b>${v.tHigh.toFixed(1)}</b><span>°C</span></div>
-      <div>
-        <p class="muted">Zona única</p>
-        <p class="gold">Ajuste automático</p>
-        <p class="tiny">${v.used}/${v.capacity} · ${v.humidity}% HR</p>
-      </div>
-    </div>`;
+    <div class="temp-grid" style="margin:12px 0">
+      <div class="temp"><span class="tiny">Temperatura</span><b>${v.tHigh.toFixed(1)} °C</b></div>
+      <div class="temp"><span class="tiny">Humedad</span><b>${v.humidity}% HR</b></div>
+    </div>
+    <button class="btn btn-ghost" style="width:100%;margin:8px 0" onclick="deleteCave('${v.id}')">Dar de baja esta vinoteca</button>`;
   show("cave-detail-screen");
 }
 
+let cellarView = "botellas";
+function setCellarView(v) {
+  cellarView = v;
+  renderCellar();
+}
 function renderCellar() {
   const q = ($("#cellar-q")?.value || "").toLowerCase();
   let list = state.bottles.filter(b => {
     const w = wineById(b.wineId);
-    const hay = `${w.producer} ${w.name} ${w.vintage} ${w.region} ${w.type}`.toLowerCase();
+    if (!w) return false;
+    const hay = `${w.producer} ${w.name} ${w.vintage} ${w.region} ${w.type} ${cellarName(b.cellarId)} ${b.bin || ""}`.toLowerCase();
     const typeOk = filterType === "todos" || w.type === filterType;
     return typeOk && hay.includes(q);
   });
-  const byWine = {};
-  list.forEach(b => { (byWine[b.wineId] || (byWine[b.wineId] = [])).push(b); });
-  $("#cellar-list").innerHTML = Object.keys(byWine).map(id => wineStockCard(byWine[id])).join("") || `<p class="empty">Sin coincidencias. Escanea o añade a mano.</p>`;
+  const tabs = [["botellas","Botellas"],["productores","Productores"],["lotes","Lotes"],["ubicaciones","Ubicaciones"]];
+  const tabHtml = `<div class="chip-row" style="margin:0 0 10px">${tabs.map(([k,l]) => `<button class="chip ${cellarView===k?"on":""}" onclick="setCellarView('${k}')">${l}</button>`).join("")}</div>`;
+  let body = "";
+  if (cellarView === "productores") {
+    const by = {};
+    list.forEach(b => {
+      const w = wineById(b.wineId);
+      (by[w.producer] || (by[w.producer] = [])).push(b);
+    });
+    body = Object.keys(by).sort().map(p => {
+      const qty = by[p].reduce((n, x) => n + x.qty, 0);
+      const w = wineById(by[p][0].wineId);
+      return `<div class="card" role="button" onclick="openWine('${w.id}')"><div class="row"><h3>${p}</h3><span class="tiny">${qty} ud</span></div><p class="muted">${by[p].length} lote${by[p].length>1?"s":""}</p></div>`;
+    }).join("");
+  } else if (cellarView === "lotes") {
+    body = list.map(b => {
+      const w = wineById(b.wineId);
+      return `<div class="card" role="button" onclick="openBottle('${b.uid}')"><div class="row"><h3>${w.producer}</h3><span class="tiny">×${b.qty}</span></div><p class="muted">${w.name} ${w.vintage}</p><p class="tiny">${cellarName(b.cellarId)} · ${state.prefs.hideBin ? "hueco oculto" : (b.bin || "sin hueco")}</p></div>`;
+    }).join("");
+  } else if (cellarView === "ubicaciones") {
+    const by = {};
+    list.forEach(b => {
+      const key = cellarName(b.cellarId) + " · " + (state.prefs.hideBin ? "—" : (b.bin || "sin hueco"));
+      (by[key] || (by[key] = [])).push(b);
+    });
+    body = Object.keys(by).sort().map(k => {
+      const qty = by[k].reduce((n, x) => n + x.qty, 0);
+      const first = by[k][0];
+      return `<div class="card" role="button" onclick="openCave('${first.cellarId}')"><div class="row"><h3>${k}</h3><span class="tiny">${qty} ud</span></div><p class="muted">${by[k].map(b => wineById(b.wineId).name).join(" · ")}</p></div>`;
+    }).join("");
+  } else {
+    const byWine = {};
+    list.forEach(b => { (byWine[b.wineId] || (byWine[b.wineId] = [])).push(b); });
+    body = Object.keys(byWine).map(id => wineStockCard(byWine[id])).join("");
+  }
+  $("#cellar-list").innerHTML = tabHtml + (body || `<p class="empty">Sin coincidencias. Escanea o añade a mano.</p>`);
 }
 
 function wineStockCard(lots) {
@@ -586,8 +638,8 @@ function calBlock(title, arr) {
 }
 
 function rackSlots(cellarId) {
-  const rows = ["A", "B", "C"];
-  const cols = [1, 2, 3, 4];
+  const rows = cellarId === "v1" ? ["A", "B", "C", "D", "E"] : ["A", "B", "C"];
+  const cols = cellarId === "v1" ? [1, 2, 3, 4, 5, 6] : [1, 2, 3, 4];
   const base = [];
   rows.forEach(r => cols.forEach(c => base.push(`${r}-${String(c).padStart(2, "0")}`)));
   const extra = state.bottles.filter(b => b.cellarId === cellarId && b.bin && !base.includes(b.bin)).map(b => b.bin);
@@ -1050,7 +1102,12 @@ function openWineSub(kind) {
 }
 
 function pairingBlock(w) {
-  const pack = WINE_PAIRINGS[w.id];
+  const pack = WINE_PAIRINGS[w.id] || {
+    logic: (w.pairing || []).join(" · ") || "Maridaje de la ficha.",
+    serve: w.conservation ? (`${w.conservation.serveMin}–${w.conservation.serveMax} °C`) : "Servir a temperatura de tipo.",
+    avoid: [],
+    matches: (w.pairing || []).map((name, i) => ({ dishId: null, score: 90 - i * 3, why: name }))
+  };
   if (!pack) return "";
   const inCellar = state.bottles.some(b => b.wineId === w.id);
   return `
@@ -1059,7 +1116,8 @@ function pairingBlock(w) {
     <div class="card"><p class="tiny">Servicio en mesa</p><p>${pack.serve}</p>
       <p class="muted" style="margin-top:8px">Evitar: ${pack.avoid.join(" · ")}</p></div>
     ${pack.matches.map(m => {
-      const d = PAIRING_DISHES.find(x => x.id === m.dishId);
+      const d = m.dishId && PAIRING_DISHES.find(x => x.id === m.dishId);
+      if (!d) return `<div class="card"><div class="row"><h3>${m.why}</h3><span class="badge">${m.score}/100</span></div></div>`;
       return `<div class="card" role="button" onclick="openDish('${d.id}')">
         <div class="row"><h3>${d.icon} ${d.name}</h3><span class="badge ${m.score >= 94 ? "ok" : m.score >= 88 ? "warn" : ""}">${m.score}/100</span></div>
         <p class="muted">${m.why}</p>
@@ -1093,13 +1151,13 @@ function renderPairings() {
     const top = pack?.matches?.[0];
     const d = top ? PAIRING_DISHES.find(x => x.id === top.dishId) : null;
     const have = state.bottles.filter(b => b.wineId === w.id).reduce((n, b) => n + b.qty, 0);
-    return `<div class="pair-card" role="button" onclick="openWine('${w.id}')">
+    return `<div class="pair-card" role="button" onclick="openWine('${w.id}');setTimeout(()=>openWineSub('pairings'),40)">
       <div class="pair-thumb" style="--c:${w.color}"></div>
       <div class="pair-copy">
         <h3>${shortWineName(w)}</h3>
         <p class="muted">${w.name} ${w.vintage} · ${w.region}</p>
-        <p class="pair-dish">${d ? d.name : (w.pairing[0] || "")}</p>
-        <p class="pair-score-line">${top ? "★ " + top.score + "/100" : ""}</p>
+        <p class="pair-dish">${d ? d.name : ((w.pairing || []).slice(0,2).join(" · "))}</p>
+        <p class="pair-score-line">${top ? "★ " + top.score + "/100" : "★ ficha"}</p>
       </div>
       <span class="pair-go">›</span>
     </div>`;
@@ -1959,10 +2017,13 @@ function renderPerfil() {
       <h1>Perfil</h1>
       <p>Colección, preferencias y configuración</p>
     </div>
-    <div class="card">
+    <div class="card" style="display:flex;gap:14px;align-items:center">
+      <img src="apple-touch-icon.png" alt="" style="width:64px;height:64px;border-radius:32px;border:1px solid rgba(198,163,90,.4)">
+      <div>
       <p class="tiny">Colección</p>
-      <h3 style="margin-top:4px">Mi Vinoteca</h3>
-      <p class="muted">${house}</p>
+      <h3 style="margin-top:4px">Mi Vinoteca ${house}</h3>
+      <p class="muted">${totalBottles()} botellas · ${uniqueWines()} vinos</p>
+      </div>
       <div class="temp-grid" style="margin-top:12px">
         <div class="temp"><span class="tiny">Botellas</span><b>${totalBottles()}</b></div>
         <div class="temp"><span class="tiny">Vinos</span><b>${uniqueWines()}</b></div>
