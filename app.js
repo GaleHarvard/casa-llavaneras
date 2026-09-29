@@ -41,9 +41,9 @@ const defaultState = () => ({
       humidity: 65,
       role: "prestige",
       zones: ["VIP 185 · botellas prestigiosas", "Lectura 16,7 °C"],
-      photo: "cave-principal.jpg"
+      photo: "cave-render-sommeliere.jpg"
     },
-    { id: "v2", name: "Cava de guarda", brand: "Eurocave", capacity: 32, used: 0, tHigh: 12.6, tLow: 12.6, humidity: 72, zones: ["Zona única · 12,5 °C"], photo: "cave-temp.jpg" }
+    { id: "v2", name: "Cava de guarda", brand: "Eurocave", capacity: 32, used: 0, tHigh: 12.6, tLow: 12.6, humidity: 72, zones: ["Zona única · 12,5 °C"], photo: "cave-render-eurocave.jpg" }
   ],
   bottles: [
     { uid: "b1", wineId: "tondonia-reserva-2011", qty: 3, cellarId: "v1", bin: "A-12", bought: "2024-11-02", price: 42, note: "Caja de 6, quedan 3" },
@@ -111,13 +111,18 @@ function load() {
     const main = parsed.vinotecas.find(v => v.id === "v1");
     if (main) {
       main.brand = "La Sommelière VIP 185";
-      main.photo = "cave-principal.jpg";
+      main.photo = "cave-render-sommeliere.jpg";
       main.capacity = 185;
       main.role = "prestige";
       if (!main.zones || main.zones.join("").includes("Pando") || main.zones.join("").includes("Tintos")) {
         main.zones = ["Lectura actual · 16,7 °C", "SET 1 / SET 2"];
       }
       if (Math.abs(main.tHigh - 13.2) < 0.05) main.tHigh = 16.7;
+    }
+    const guarda = parsed.vinotecas.find(v => v.id === "v2");
+    if (guarda) {
+      guarda.photo = "cave-render-eurocave.jpg";
+      if (!guarda.brand) guarda.brand = "Eurocave";
     }
     if (!parsed.bottles.some(b => b.wineId === "vs-unico-2009")) {
       parsed.bottles.unshift({ uid: "b7", wineId: "vs-unico-2009", qty: 2, cellarId: "v1", bin: "A-01", bought: "2022-10-08", price: 520, note: "Bandeja superior" });
@@ -134,11 +139,12 @@ function wineById(id) { return WINE_CATALOG.find(w => w.id === id); }
 
 function phaseOf(wine) {
   const a = wine.aging;
-  if (YEAR < a.drinkFrom) return { key: "wait", label: "Aún no", hint: "Necesita botella" };
+  const pr = progressOf(wine);
+  if (YEAR < a.drinkFrom || pr.pct < 38) return { key: "wait", label: "Aguardar", hint: "Todavía gana en botella" };
+  if (YEAR > a.holdTo || pr.pct >= 82) return { key: "late", label: "En declive", hint: "Riesgo de fatiga" };
+  if (YEAR >= a.peakEnd - 1 || pr.pct >= 62) return { key: "warn", label: "Beber pronto", hint: "Últimos años de meseta" };
   if (YEAR < a.peakStart) return { key: "ok", label: "Se puede abrir", hint: "Antes del apogeo" };
-  if (YEAR <= a.peakEnd) return { key: "ok", label: "En apogeo", hint: "Ventana ideal" };
-  if (YEAR <= a.holdTo) return { key: "warn", label: "Maduro", hint: "Beber pronto" };
-  return { key: "late", label: "En declive", hint: "Riesgo de fatiga" };
+  return { key: "ok", label: "En apogeo", hint: "Ventana ideal" };
 }
 
 function progressOf(wine) {
@@ -197,7 +203,7 @@ function show(id, opts) {
   $$(".screen").forEach(s => s.classList.toggle("active", s.id === id));
   const tabId = id === "cave-detail-screen" ? "caves" : id === "wine" || id === "wine-sub" ? lastList : id;
   $$(".tab").forEach(t => t.classList.toggle("active", t.dataset.go === tabId || t.dataset.go === id));
-  document.querySelector(".app")?.classList.toggle("fiche", id === "wine" || id === "wine-sub");
+  document.querySelector(".app")?.classList.toggle("fiche", id === "wine" || id === "wine-sub" || id === "dish");
   if (id !== "scan") stopCam();
   if (id === "home") renderHome();
   if (id === "caves") renderCaves();
@@ -386,42 +392,173 @@ function quickTaste() {
 function openHomeMap() { show("zonas"); }
 
 const ZONES = [
-  { name: "Rioja", country: "España", img: "vinedo-rioja.jpg", map: "mapa-rioja.jpg", keys: "rioja haro alavesa alta" },
-  { name: "Ribera del Duero", country: "España", img: "vinedo-ribera.jpg", map: "mapa-ribera.jpg", keys: "ribera duero valbuena pingus vega" },
-  { name: "Priorat", country: "España", img: "vinedo-priorat.jpg", map: "mapa-priorat.jpg", keys: "priorat prior gratallops" },
-  { name: "Rías Baixas", country: "España", img: "vinedo-rias.jpg", map: "mapa-rias.jpg", keys: "rías rias baixas albariño albarino salnés" },
-  { name: "Champagne", country: "Francia", img: "vinedo-champagne.jpg", map: "mapa-champagne.jpg", keys: "champagne pérignon perignon" },
-  { name: "Médoc", country: "Francia", img: "vinedo-margaux.jpg", map: "mapa-medoc.jpg", keys: "médoc medoc margaux bordeaux" },
-  { name: "Bolgheri", country: "Italia", img: "vinedo-bolgheri.jpg", map: "mapa-bolgheri.jpg", keys: "bolgheri sassicaia toscana" },
-  { name: "Corpinnat", country: "España", img: "vinedo-champagne.jpg", map: "mapa-penedes.jpg", keys: "corpinnat penedès penedes gramona cava" },
-  { name: "Toro", country: "España", img: "vinedo-ribera.jpg", map: "mapa-ribera.jpg", keys: "toro numanthia" },
-  { name: "Alicante", country: "España", img: "vinedo.jpg", map: "vinedo.jpg", keys: "alicante mendoza" },
-  { name: "South Australia", country: "Australia", img: "vinedo-margaux.jpg", map: "mapa-medoc.jpg", keys: "australia barossa grange penfolds" }
+  { name: "Rioja", country: "España", map: "mapa-rioja.jpg", keys: "rioja, rioja alta, rioja alavesa, rioja baja" },
+  { name: "Ribera del Duero", country: "España", map: "mapa-ribera.jpg", keys: "ribera del duero, valbuena de duero" },
+  { name: "Priorat", country: "España", map: "mapa-priorat.jpg", keys: "priorat prior gratallops" },
+  { name: "Montsant", country: "España", map: "mapa-montsant.jpg", keys: "montsant falset" },
+  { name: "Rías Baixas", country: "España", map: "mapa-rias.jpg", keys: "rías rias baixas albariño albarino salnés" },
+  { name: "Ribeiro", country: "España", map: "mapa-ribeiro.jpg", keys: "ribeiro ribadavia treixadura" },
+  { name: "Ribeira Sacra", country: "España", map: "mapa-ribeirasacra.jpg", keys: "ribeira sacra sil mencía" },
+  { name: "Valdeorras", country: "España", map: "mapa-valdeorras.jpg", keys: "valdeorras godello sil" },
+  { name: "Monterrei", country: "España", map: "mapa-monterrei.jpg", keys: "monterrei verín verin" },
+  { name: "Toro", country: "España", map: "mapa-toro.jpg", keys: "toro numanthia tinta de toro" },
+  { name: "Rueda", country: "España", map: "mapa-rueda.jpg", keys: "rueda verdejo" },
+  { name: "Bierzo", country: "España", map: "mapa-bierzo.jpg", keys: "bierzo mencía ponferrada" },
+  { name: "Cigales", country: "España", map: "mapa-cigales.jpg", keys: "cigales valladolid" },
+  { name: "Arlanza", country: "España", map: "mapa-arlanza.jpg", keys: "arlanza lerma" },
+  { name: "Arribes", country: "España", map: "mapa-arribes.jpg", keys: "arribes fermoselle" },
+  { name: "Tierra de León", country: "España", map: "mapa-leon.jpg", keys: "tierra de león leon prieto picudo" },
+  { name: "Tierra del Vino de Zamora", country: "España", map: "mapa-zamora.jpg", keys: "tierra del vino de zamora, zamora" },
+  { name: "Sierra de Salamanca", country: "España", map: "mapa-salamanca.jpg", keys: "salamanca sierra de salamanca" },
+  { name: "Navarra", country: "España", map: "mapa-navarra.jpg", keys: "navarra pamplona" },
+  { name: "Somontano", country: "España", map: "mapa-somontano.jpg", keys: "somontano barbastro huesca" },
+  { name: "Calatayud", country: "España", map: "mapa-calatayud.jpg", keys: "calatayud jalón jalon" },
+  { name: "Campo de Borja", country: "España", map: "mapa-borja.jpg", keys: "campo de borja garnacha" },
+  { name: "Cariñena", country: "España", map: "mapa-carinena.jpg", keys: "cariñena carinena" },
+  { name: "Costers del Segre", country: "España", map: "mapa-costers.jpg", keys: "costers segre raïmat raimat lleida" },
+  { name: "Penedès", country: "España", map: "mapa-penedes.jpg", keys: "penedès penedes" },
+  { name: "Corpinnat", country: "España", map: "mapa-penedes.jpg", keys: "corpinnat" },
+  { name: "Cava", country: "España", map: "mapa-cava.jpg", keys: "cava sadurní sadurni" },
+  { name: "Empordà", country: "España", map: "mapa-emporda.jpg", keys: "empordà emporda figueres" },
+  { name: "Alella", country: "España", map: "mapa-alella.jpg", keys: "alella tiana" },
+  { name: "Conca de Barberà", country: "España", map: "mapa-conca.jpg", keys: "conca barberà barbera montblanc" },
+  { name: "Pla de Bages", country: "España", map: "mapa-bages.jpg", keys: "bages manresa" },
+  { name: "Tarragona", country: "España", map: "mapa-tarragona.jpg", keys: "tarragona" },
+  { name: "Terra Alta", country: "España", map: "mapa-terraalta.jpg", keys: "terra alta, gandesa" },
+  { name: "Catalunya", country: "España", map: "mapa-catalunya.jpg", keys: "catalunya cataluña" },
+  { name: "Alicante", country: "España", map: "mapa-alicante.jpg", keys: "alicante, fondillon" },
+  { name: "Utiel-Requena", country: "España", map: "mapa-utiel.jpg", keys: "utiel requena bobal" },
+  { name: "Valencia", country: "España", map: "mapa-valencia.jpg", keys: "valencia" },
+  { name: "Jumilla", country: "España", map: "mapa-jumilla.jpg", keys: "jumilla monastrell" },
+  { name: "Yecla", country: "España", map: "mapa-yecla.jpg", keys: "yecla monastrell" },
+  { name: "Bullas", country: "España", map: "mapa-bullas.jpg", keys: "bullas" },
+  { name: "Jerez", country: "España", map: "mapa-jerez.jpg", keys: "jerez sherry xérès xeres" },
+  { name: "Manzanilla-Sanlúcar", country: "España", map: "mapa-manzanilla.jpg", keys: "manzanilla sanlúcar sanlucar" },
+  { name: "Montilla-Moriles", country: "España", map: "mapa-montilla.jpg", keys: "montilla moriles pedro ximénez ximenez" },
+  { name: "Málaga", country: "España", map: "mapa-malaga.jpg", keys: "málaga malaga ronda" },
+  { name: "Condado de Huelva", country: "España", map: "mapa-huelva.jpg", keys: "huelva condado bollullos" },
+  { name: "La Mancha", country: "España", map: "mapa-lamancha.jpg", keys: "la mancha manchego" },
+  { name: "Valdepeñas", country: "España", map: "mapa-valdepenas.jpg", keys: "valdepeñas valdepenas" },
+  { name: "Manchuela", country: "España", map: "mapa-manchuela.jpg", keys: "manchuela bobal" },
+  { name: "Almansa", country: "España", map: "mapa-almansa.jpg", keys: "almansa" },
+  { name: "Méntrida", country: "España", map: "mapa-mentrida.jpg", keys: "méntrida mentrida" },
+  { name: "Uclés", country: "España", map: "mapa-ucles.jpg", keys: "uclés ucles" },
+  { name: "Vinos de Madrid", country: "España", map: "mapa-madrid.jpg", keys: "vinos de madrid, arganda, san martin de valdeiglesias" },
+  { name: "Ribera del Guadiana", country: "España", map: "mapa-guadiana.jpg", keys: "guadiana almendralejo barros" },
+  { name: "Txakoli", country: "España", map: "mapa-txakoli.jpg", keys: "txakoli txakolina getaria bizkaia álava alava" },
+  { name: "Cangas", country: "España", map: "mapa-cangas.jpg", keys: "cangas asturias" },
+  { name: "Binissalem", country: "España", map: "mapa-binissalem.jpg", keys: "binissalem mallorca" },
+  { name: "Pla i Llevant", country: "España", map: "mapa-mallorca.jpg", keys: "pla i llevant mallorca manacor" },
+  { name: "Islas Canarias", country: "España", map: "mapa-canarias.jpg", keys: "canarias tenerife valle orotava tacoronte" },
+  { name: "Lanzarote", country: "España", map: "mapa-lanzarote.jpg", keys: "lanzarote geria malvasía malvasia" },
+  { name: "Sierras de Málaga", country: "España", map: "mapa-malaga.jpg", keys: "sierras de málaga malaga serranía ronda" },
+  { name: "Lebrija", country: "España", map: "mapa-jerez.jpg", keys: "lebrija" },
+  { name: "Mondéjar", country: "España", map: "mapa-madrid.jpg", keys: "mondéjar mondejar" },
+  { name: "Ribera del Júcar", country: "España", map: "mapa-manchuela.jpg", keys: "ribera del jucar, jucar" },
+  { name: "Valtiendas", country: "España", map: "mapa-ribera.jpg", keys: "valtiendas" },
+  { name: "Valles de Benavente", country: "España", map: "mapa-leon.jpg", keys: "valles de benavente" },
+
+  { name: "Douro", country: "Portugal", map: "mapa-douro.jpg", keys: "douro pinhão pinhao régua regua" },
+  { name: "Porto", country: "Portugal", map: "mapa-porto.jpg", keys: "porto port oporto gaia tawny vintage" },
+  { name: "Vinho Verde", country: "Portugal", map: "mapa-vinhoverde.jpg", keys: "vinho verde minho monção moncao alvarinho" },
+  { name: "Dão", country: "Portugal", map: "mapa-dao.jpg", keys: "dão dao viseu touriga" },
+  { name: "Bairrada", country: "Portugal", map: "mapa-bairrada.jpg", keys: "bairrada baga mealhada" },
+  { name: "Alentejo", country: "Portugal", map: "mapa-alentejo.jpg", keys: "alentejo évora evora reguengos" },
+  { name: "Lisboa", country: "Portugal", map: "mapa-lisboa.jpg", keys: "lisboa estremadura alenquer" },
+  { name: "Setúbal", country: "Portugal", map: "mapa-setubal.jpg", keys: "setúbal setubal moscatel" },
+  { name: "Palmela", country: "Portugal", map: "mapa-palmela.jpg", keys: "palmela azeitão azeitao" },
+  { name: "Tejo", country: "Portugal", map: "mapa-tejo.jpg", keys: "tejo ribatejo tajo" },
+  { name: "Algarve", country: "Portugal", map: "mapa-algarve.jpg", keys: "algarve lagoa lagos" },
+  { name: "Madeira", country: "Portugal", map: "mapa-madeira.jpg", keys: "madeira malmsey bual sercial" },
+  { name: "Trás-os-Montes", country: "Portugal", map: "mapa-trasosmontes.jpg", keys: "trás-os-montes tras os montes chaves" },
+  { name: "Beira Interior", country: "Portugal", map: "mapa-beira.jpg", keys: "beira interior pinhel" },
+  { name: "Távora-Varosa", country: "Portugal", map: "mapa-tavora.jpg", keys: "távora tavora varosa" },
+  { name: "Açores", country: "Portugal", map: "mapa-acores.jpg", keys: "açores acores pico biscoitos" },
+  { name: "Colares", country: "Portugal", map: "mapa-colares.jpg", keys: "colares sintra ramisco" },
+  { name: "Bucelas", country: "Portugal", map: "mapa-bucelas.jpg", keys: "bucelas arinto" },
+
+  { name: "Champagne", country: "Francia", map: "mapa-champagne.jpg", keys: "champagne pérignon perignon reims épernay epernay" },
+  { name: "Médoc", country: "Francia", map: "mapa-medoc.jpg", keys: "medoc, margaux, pauillac, saint-julien, bordeaux" },
+  { name: "Sauternes", country: "Francia", map: "mapa-sauternes.jpg", keys: "sauternes, barsac" },
+  { name: "Borgoña", country: "Francia", map: "mapa-borgona.jpg", keys: "borgoña bourgogne burgundy beaune vosne nuits" },
+  { name: "Chablis", country: "Francia", map: "mapa-chablis.jpg", keys: "chablis, yonne" },
+  { name: "Ródano", country: "Francia", map: "mapa-rhone.jpg", keys: "ródano rhone rhône châteauneuf chateauneuf hermitage côte rotie cote" },
+  { name: "Loira", country: "Francia", map: "mapa-loira.jpg", keys: "loira loire sancerre vouvray chinon muscadet" },
+  { name: "Alsacia", country: "Francia", map: "mapa-alsacia.jpg", keys: "alsacia alsace riesling gewurztraminer" },
+  { name: "Provenza", country: "Francia", map: "mapa-provenza.jpg", keys: "provenza provence bandol cassis" },
+  { name: "Languedoc", country: "Francia", map: "mapa-languedoc.jpg", keys: "languedoc roussillon pic saint" },
+  { name: "Beaujolais", country: "Francia", map: "mapa-beaujolais.jpg", keys: "beaujolais morgon fleurie moulin" },
+
+  { name: "Piemonte", country: "Italia", map: "mapa-piemonte.jpg", keys: "piemonte, piedmont, barolo, barbaresco, langhe" },
+  { name: "Bolgheri", country: "Italia", map: "mapa-bolgheri.jpg", keys: "bolgheri sassicaia ornellaia" },
+  { name: "Toscana", country: "Italia", map: "mapa-toscana.jpg", keys: "toscana tuscany chianti brunello montalcino" },
+  { name: "Veneto", country: "Italia", map: "mapa-veneto.jpg", keys: "veneto valpolicella amarone soave prosecco" },
+  { name: "Sicilia", country: "Italia", map: "mapa-sicilia.jpg", keys: "sicilia, sicily, etna, marsala" },
+
+  { name: "Mendoza", country: "Argentina", map: "mapa-mendoza.jpg", keys: "mendoza, valle de uco" },
+  { name: "Salta", country: "Argentina", map: "mapa-salta.jpg", keys: "salta cafayate torrontés torrontes" },
+  { name: "Patagonia", country: "Argentina", map: "mapa-patagonia.jpg", keys: "patagonia, neuquen, rio negro" },
+  { name: "San Juan", country: "Argentina", map: "mapa-sanjuan.jpg", keys: "san juan, pedernal" },
+
+  { name: "Barossa", country: "Australia", map: "mapa-barossa.jpg", keys: "barossa, barossa valley" },
+  { name: "Margaret River", country: "Australia", map: "mapa-margaret.jpg", keys: "margaret river" },
+  { name: "Hunter Valley", country: "Australia", map: "mapa-hunter.jpg", keys: "hunter valley semillon" },
+  { name: "McLaren Vale", country: "Australia", map: "mapa-mclaren.jpg", keys: "mclaren vale" },
+
+  { name: "Mosel", country: "Alemania", map: "mapa-mosel.jpg", keys: "mosel mosela riesling bernkastel" },
+  { name: "Rheingau", country: "Alemania", map: "mapa-rheingau.jpg", keys: "rheingau johannisberg" },
+  { name: "Pfalz", country: "Alemania", map: "mapa-pfalz.jpg", keys: "pfalz palatinado" },
+  { name: "Baden", country: "Alemania", map: "mapa-baden.jpg", keys: "baden kaiserstuhl" },
+
+  { name: "Napa Valley", country: "California", map: "mapa-napa.jpg", keys: "napa valley cabernet oakville rutherford" },
+  { name: "Sonoma", country: "California", map: "mapa-sonoma.jpg", keys: "sonoma russian river pinot" },
+  { name: "Paso Robles", country: "California", map: "mapa-paso.jpg", keys: "paso robles" },
+  { name: "Santa Barbara", country: "California", map: "mapa-santabarbara.jpg", keys: "santa barbara sta. rita hills" }
 ];
+const ZONE_PLATE = Object.fromEntries(ZONES.map(z => [z.name, z.map]));
+function foldZone(s) {
+  return String(s || "").toLowerCase().normalize("NFD").replace(/\p{M}/gu, "");
+}
+function zonePhrases(z) {
+  const raw = foldZone(z.keys || z.name);
+  return raw.split(",").map(p => p.trim()).filter(p => p.length >= 4);
+}
 function winesInZone(z) {
-  const keys = (z.keys || z.name).toLowerCase().split(/\s+/);
+  const phrases = zonePhrases(z);
+  const zoneName = foldZone(z.name);
   return WINE_CATALOG.filter(w => {
-    const blob = (w.region + " " + w.appellation + " " + w.country + " " + w.producer + " " + w.name).toLowerCase();
-    return keys.some(k => k.length > 2 && blob.includes(k));
+    const hay = foldZone([w.region, w.appellation, w.country].join(" "));
+    if (zoneName.length >= 4 && hay.includes(zoneName)) return true;
+    return phrases.some(p => hay.includes(p));
   });
 }
 function renderZonas(q) {
   const query = (q || "").trim().toLowerCase();
   const list = ZONES.filter(z => !query || (z.name + " " + z.country + " " + z.keys).toLowerCase().includes(query));
-  const html = list.map(z => {
-    const n = winesInZone(z).length;
-    return `<button class="zone-tile" onclick="openZona('${z.name.replace(/'/g, "\\'")}')">
-      <img src="${z.img}" alt="${z.name}">
-      <span><b>${z.name}</b><small>${z.country} · ${n} vinos</small></span>
-    </button>`;
+  const groups = [];
+  list.forEach(z => {
+    const last = groups[groups.length - 1];
+    if (!last || last.country !== z.country) groups.push({ country: z.country, items: [z] });
+    else last.items.push(z);
+  });
+  const html = groups.map(g => {
+    const tiles = g.items.map(z => {
+      const n = winesInZone(z).length;
+      const plate = ZONE_PLATE[z.name] || z.map;
+      return `<button class="zone-tile" onclick="openZona('${z.name.replace(/'/g, "\\'")}')">
+        <img src="${plate}" alt="${z.name}">
+        <span><b>${z.name}</b><small>${z.country} · ${n} vino${n === 1 ? "" : "s"}</small></span>
+      </button>`;
+    }).join("");
+    return `<p class="cal-h">${g.country} · ${g.items.length}</p><div class="zone-grid">${tiles}</div>`;
   }).join("");
   $("#zonas-body").innerHTML = `
     <button class="back" onclick="goBack()">‹ ${backCaption()}</button>
     <p class="eyebrow">Mi Vinoteca</p>
     <h1>Zonas vinícolas</h1>
-    <div class="search" style="margin:12px 0"><input id="zona-q" type="search" placeholder="Buscar Rioja, Champagne, Toro…" value="${(q || "").replace(/"/g, "")}" oninput="renderZonas(this.value)"></div>
-    <p class="muted">Toca una zona para ver el mapa y los vinos.</p>
-    <div class="zone-grid">${html || "<p class='empty'>Ninguna zona con ese nombre.</p>"}</div>`;
+    <div class="search" style="margin:12px 0"><input id="zona-q" type="search" placeholder="Rioja, Douro, Champagne, Napa…" value="${(q || "").replace(/"/g, "")}" oninput="renderZonas(this.value)"></div>
+    <p class="muted">Placa grabada de cada zona. El nombre va debajo del mapa.</p>
+    ${html || "<p class='empty'>Ninguna zona con ese nombre.</p>"}`;
   const box = $("#zona-q");
   if (box && query) { box.focus(); box.setSelectionRange(query.length, query.length); }
 }
@@ -431,10 +568,10 @@ function openZona(name) {
   const wines = winesInZone(z);
   $("#zonas-body").innerHTML = `
     <button class="back" onclick="renderZonas()">‹ Zonas</button>
-    <p class="eyebrow">${z.country}</p>
-    <h1>${z.name}</h1>
     ${z.map ? `<img class="map-art" src="${z.map}" alt="Mapa ${z.name}">` : ""}
-    <p class="muted" style="margin:10px 0">${wines.length} vino${wines.length === 1 ? "" : "s"} en catálogo</p>
+    <p class="eyebrow" style="font-size:10px;letter-spacing:.14em;margin:2px 0 0">${z.country}</p>
+    <h1 style="font-size:20px;margin:2px 0 4px;line-height:1.2">${z.name}</h1>
+    <p class="muted" style="margin:0 0 12px;font-size:13px">${wines.length} vino${wines.length === 1 ? "" : "s"} en catálogo</p>
     ${wines.map(w => `<div class="card" role="button" onclick="openWine('${w.id}')">
       <div class="row"><h3>${w.producer}</h3><span class="tiny">${w.vintage}</span></div>
       <p class="muted">${w.name} · ${w.appellation}</p>
@@ -472,9 +609,19 @@ function homeWineTile(w) {
 }
 
 function shortWineName(w) {
+  if (!w) return "";
   const n = (w.name || "").replace("Reserva", "").replace("Gran Reserva", "").trim();
   const last = (w.producer || "").split(" ").slice(-1)[0];
   return n.length > 2 ? n : last;
+}
+function pairLabel(w) {
+  if (!w) return "";
+  const prod = w.producer || "";
+  const short = shortWineName(w);
+  if (!short || prod.toLowerCase().includes(short.toLowerCase()) || short.toLowerCase().includes(prod.toLowerCase())) {
+    return prod || short;
+  }
+  return (prod + " " + short).trim();
 }
 
 function bottleCard(b) {
@@ -498,17 +645,22 @@ function bottleCard(b) {
 
 function renderCaves() {
   syncUsed();
+  const icoBot = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 3h6l-1 8a4 4 0 1 1-4 0L9 3z"/><path d="M10 21h4"/></svg>`;
+  const icoTemp = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 3v10.2A3.2 3.2 0 1 1 9.6 16"/><path d="M12 3h2M12 7h1.6"/></svg>`;
   $("#caves-list").innerHTML = state.vinotecas.map(v => {
-    const shot = v.photo || (v.id === "v1" ? "cave-principal.jpg" : "cave-temp.jpg");
-    return `<div class="cave-card cave-card-photo" role="button" onclick="openCave('${v.id}')">
-      <img class="cave-shot" src="${shot}" alt="${v.name}">
-      <div>
+    const shot = v.photo || (v.role === "prestige" ? "cave-render-sommeliere.jpg" : "cave-render-eurocave.jpg");
+    const role = v.role === "prestige" ? "Prestigiosas" : "De guarda";
+    return `<article class="cave-lux" role="button" tabindex="0" onclick="openCave('${v.id}')">
+      <img src="${shot}" alt="${v.name}" onerror="this.src='cave-principal.jpg'">
+      <div class="cave-lux-copy">
         <h3>${v.name}</h3>
-        <p class="muted">${v.brand}${v.house ? " · " + v.house : ""}</p>
-        <p class="tiny" style="margin-top:6px">${v.role === "prestige" ? "PRESTIGIOSAS" : "DE GUARDA"}</p>
-        <p class="cave-meta"><span>${v.used}/${v.capacity}</span><span>${v.tHigh.toFixed(1)} °C</span></p>
+        <p class="cave-lux-brand">${v.brand}${v.house ? " · " + v.house : ""}</p>
+        <p class="cave-lux-role">${role}</p>
+        <i class="cave-lux-rule"></i>
+        <p class="cave-lux-stat">${icoBot}<b>${v.used}/${v.capacity}</b></p>
+        <p class="cave-lux-stat">${icoTemp}<b>${v.tHigh.toFixed(1)}° C</b></p>
       </div>
-    </div>`;
+    </article>`;
   }).join("");
 }
 
@@ -524,7 +676,7 @@ function openCave(id) {
   $("#cave-title").textContent = v.name;
   $("#cave-detail").innerHTML = `
     <p class="muted">${v.brand}${v.role === "prestige" ? " · reserva de las botellas más caras" : ""}</p>
-    <img class="cave-photo" src="${v.photo || (v.id==='v1'?'cave-principal.jpg':'cave-temp.jpg')}" alt="${v.name}" />
+    <img class="cave-photo" src="${v.photo || "cave-render-sommeliere.jpg"}" alt="${v.name}" onerror="this.src='cave-principal.jpg'" />
     <h2>Mapa de huecos</h2>
     ${rackGrid(id)}
     <div class="temp-grid" style="margin:12px 0">
@@ -616,7 +768,8 @@ function renderCalendar() {
 }
 
 function calBlock(title, arr) {
-  return `<h2 class="cal-h">${title}</h2>` + (arr.length ? arr.map(b => {
+  if (!arr.length) return "";
+  return `<h2 class="cal-h">${title}</h2>` + arr.map(b => {
     const w = wineById(b.wineId);
     const pr = progressOf(w);
     return `<div class="cal-card" role="button" onclick="openBottle('${b.uid}')">
@@ -634,7 +787,7 @@ function calBlock(title, arr) {
       </div>
       <div class="win-bar"><i style="width:${pr.pct}%"></i></div>
     </div>`;
-  }).join("") : `<p class="muted" style="margin-bottom:8px">Ninguna botella en este estado.</p>`);
+  }).join("");
 }
 
 function rackSlots(cellarId) {
@@ -689,22 +842,18 @@ function estateArt(w) {
     "Moët & Chandon": { land: "vinedo-champagne.jpg", cap: "capsula.jpg", map: "mapa-champagne.jpg" },
     "Gramona": { land: "vinedo-champagne.jpg", cap: "capsula.jpg", map: "mapa-penedes.jpg" },
     "Tenuta San Guido": { land: "vinedo-bolgheri.jpg", cap: "capsula.jpg", map: "mapa-bolgheri.jpg" },
-    "Penfolds": { land: "vinedo.jpg", cap: "capsula.jpg", map: "vinedo.jpg" },
-    "Enrique Mendoza": { land: "vinedo.jpg", cap: "capsula.jpg", map: "vinedo.jpg" },
-    "Numanthia": { land: "vinedo-ribera.jpg", cap: "capsula.jpg", map: "mapa-ribera.jpg" }
+    "Penfolds": { land: "vinedo-margaux.jpg", cap: "capsula.jpg", map: "mapa-barossa.jpg" },
+    "Enrique Mendoza": { land: "vinedo.jpg", cap: "capsula.jpg", map: "mapa-alicante.jpg" },
+    "Numanthia": { land: "vinedo-ribera.jpg", cap: "capsula.jpg", map: "mapa-toro.jpg" }
   };
   const hit = byProducer[w.producer];
   if (hit) return hit;
-  const zone = (w.region + " " + (w.appellation || "")).toLowerCase();
-  if (/rías|rias baixas|albariño|albarino/.test(zone)) return { land: "vinedo-rias.jpg", cap: "capsula.jpg", map: "mapa-rias.jpg" };
-  if (/rioja/.test(zone)) return { land: "vinedo-rioja.jpg", cap: "capsula.jpg", map: "mapa-rioja.jpg" };
-  if (/ribera|duero/.test(zone)) return { land: "vinedo-ribera.jpg", cap: "capsula.jpg", map: "mapa-ribera.jpg" };
-  if (/priorat|priorato/.test(zone)) return { land: "vinedo-priorat.jpg", cap: "capsula.jpg", map: "mapa-priorat.jpg" };
-  if (/médoc|medoc|margaux|pauillac/.test(zone)) return { land: "vinedo-margaux.jpg", cap: "capsula.jpg", map: "mapa-medoc.jpg" };
-  if (/corpinnat|penedès|penedes|cava/.test(zone)) return { land: "vinedo-champagne.jpg", cap: "capsula.jpg", map: "mapa-penedes.jpg" };
-  if (/champagne/.test(zone)) return { land: "vinedo-champagne.jpg", cap: "capsula.jpg", map: "mapa-champagne.jpg" };
-  if (/bolgheri|toscana/.test(zone)) return { land: "vinedo-bolgheri.jpg", cap: "capsula.jpg", map: "mapa-bolgheri.jpg" };
-  return { land: "vinedo.jpg", cap: "capsula.jpg", map: "vinedo.jpg" };
+  const zone = (w.region + " " + (w.appellation || "") + " " + (w.country || "")).toLowerCase();
+  const hitZone = ZONES.find(z => (z.keys || "").split(/\s+/).some(k => k.length > 2 && zone.includes(k)) || zone.includes(z.name.toLowerCase()));
+  if (hitZone) {
+    return { land: hitZone.map, cap: "capsula.jpg", map: hitZone.map };
+  }
+  return { land: "mapa-rioja.jpg", cap: "capsula.jpg", map: "mapa-rioja.jpg" };
 }
 
 function estateSVG(w) {
@@ -887,7 +1036,11 @@ function openWineSub(kind) {
   if (kind === "ratings") {
     const d = dossierOf(w);
     const casa = (w.tasting || "").trim();
-    const noteOf = (obj, extra) => ((obj && obj.note) || extra || casa || "Sin párrafo publicado para esta añada.").trim();
+    const noteOf = (obj, extra) => {
+      const n = ((obj && obj.note) || extra || "").trim();
+      if (n && n !== casa) return n;
+      return "Sin párrafo propio de esta guía para la añada. La nota de la casa está abajo.";
+    };
     const card = (fuente, puntos, texto) => `
       <div class="card" style="margin-top:10px">
         <div class="row"><p class="tiny">${fuente}</p><b>${puntos || "—"}</b></div>
@@ -1093,10 +1246,17 @@ function openWineSub(kind) {
         <button class="btn btn-ghost" onclick="showSheet('add-sheet')">Elegir hueco</button>
       </div>`;
   }
+  const art = estateArt(w);
+  const bodegaImg = kind === "mapa" && art.land
+    ? `<img class="estate-wide" src="${art.land}" alt="${w.producer}" style="margin:6px 0 12px;height:200px;object-fit:contain;background:#000">`
+    : "";
+  const titleCss = kind === "mapa" ? "font-size:22px;margin:4px 0 10px;line-height:1.15" : "margin-bottom:16px";
+  const eyeCss = kind === "mapa" ? "font-size:10px;margin:0" : "";
   $("#wine-sub-body").innerHTML = `
     <button class="back" onclick="goBack()">‹ ${backCaption()}</button>
-    <p class="eyebrow">${w.name} ${w.vintage}</p>
-    <h1>${titles[kind] || "Ficha"}</h1>
+    ${bodegaImg}
+    <p class="eyebrow" style="${eyeCss}">${w.name} ${w.vintage}</p>
+    <h1 style="${titleCss}">${titles[kind] || "Ficha"}</h1>
     ${body}`;
   show("wine-sub");
 }
@@ -1130,16 +1290,18 @@ function pairingBlock(w) {
 function renderPairings() {
   const q = (pairingQuery || "").toLowerCase();
   if (pairingMode === "platos") {
-    const dishes = PAIRING_DISHES.filter(d => `${d.name} ${d.family} ${d.tags.join(" ")}`.toLowerCase().includes(q));
+    const dishes = (PAIRING_DISHES || []).filter(d => `${d.name} ${d.family} ${(d.tags || []).join(" ")}`.toLowerCase().includes(q));
     $("#pair-body").innerHTML = dishes.map(d => {
       const wines = winesForDish(d.id);
       const best = wines[0];
-      return `<div class="card" role="button" onclick="openDish('${d.id}')">
-        <div class="row"><h3>${d.icon} ${d.name}</h3><span class="badge">${wines.length} vinos</span></div>
+      const label = best ? pairLabel(best.wine) : "";
+      return `<article class="card dish-hit" role="button" tabindex="0" onclick="openDish('${d.id}')">
+        <div class="row"><h3>${d.icon} ${d.name}</h3><span class="badge">${wines.length} vino${wines.length === 1 ? "" : "s"} ›</span></div>
         <p class="muted">${d.family} · ${d.heat}</p>
-        ${best ? `<p class="tiny" style="margin-top:6px">Mejor encaje: ${best.wine.producer} ${best.wine.name} · ${best.score}</p>` : ""}
-      </div>`;
-    }).join("");
+        ${best ? `<p class="tiny" style="margin-top:8px;color:#c9a227" onclick="event.stopPropagation();openWine('${best.wine.id}')">Mejor encaje: ${label} · ${best.score} ›</p>` : ""}
+        <button type="button" class="btn btn-ghost" style="width:100%;margin-top:10px;pointer-events:none">Ver vinos del plato</button>
+      </article>`;
+    }).join("") || `<p class="empty">Sin platos con ese nombre.</p>`;
     return;
   }
   const source = pairingMode === "cava"
@@ -1165,40 +1327,51 @@ function renderPairings() {
 }
 
 function winesForDish(dishId) {
-  return Object.entries(WINE_PAIRINGS).map(([id, pack]) => {
-    const m = pack.matches.find(x => x.dishId === dishId);
+  const table = window.WINE_PAIRINGS || {};
+  return Object.entries(table).map(([id, pack]) => {
+    const m = (pack.matches || []).find(x => x.dishId === dishId);
     if (!m) return null;
-    return { wine: wineById(id), score: m.score, why: m.why, pack };
+    const wine = wineById(id);
+    if (!wine) return null;
+    return { wine, score: m.score, why: m.why, pack };
   }).filter(Boolean).sort((a, b) => b.score - a.score);
 }
 
 function openDish(id) {
-  pairingDish = id;
-  const d = PAIRING_DISHES.find(x => x.id === id);
-  const wines = winesForDish(id);
-  const inCava = wines.filter(x => state.bottles.some(b => b.wineId === x.wine.id));
-  $("#dish-title").textContent = d.icon + " " + d.name;
-  $("#dish-body").innerHTML = `
-    <button class="back" onclick="goBack()">‹ ${backCaption()}</button>
-    <p class="eyebrow">${d.family}</p>
-    <h1>${d.icon} ${d.name}</h1>
-    <p class="muted">${d.heat} · ${d.tags.join(" · ")}</p>
+  try {
+    pairingDish = id;
+    const d = (PAIRING_DISHES || []).find(x => x.id === id);
+    if (!d) return;
+    const wines = winesForDish(id);
+    const inCava = wines.filter(x => state.bottles.some(b => b.wineId === x.wine.id));
+    const title = (d.icon ? d.icon + " " : "") + d.name;
+    const body = $("#dish-body");
+    if (!body) return;
+    body.innerHTML = `
+    <button type="button" class="back" onclick="goBack()">‹ Mesa</button>
+    <p class="eyebrow">${d.family || "Plato"}</p>
+    <h1>${title}</h1>
+    <p class="muted">${d.heat || ""} · ${(d.tags || []).join(" · ")}</p>
     ${inCava.length ? `<div class="card" style="margin-top:12px"><h2>En tu vinoteca ahora</h2>
-      ${inCava.map(x => `<p style="margin-top:8px"><strong>${x.wine.producer} ${x.wine.name} ${x.wine.vintage}</strong> · ${x.score}/100<br><span class="muted">${x.why}</span></p>`).join("")}
+      ${inCava.map(x => `<p role="button" style="margin-top:8px" onclick="openWine('${x.wine.id}')"><strong>${pairLabel(x.wine)} ${x.wine.vintage}</strong> · ${x.score}/100 ›<br><span class="muted">${x.why}</span></p>`).join("")}
     </div>` : `<p class="muted" style="margin-top:12px">Ninguna botella de este maridaje está en stock. Abajo, el catálogo.</p>`}
     <h2 style="margin-top:16px">Ranking por encaje</h2>
-    ${wines.map(x => {
+    ${wines.length ? wines.map(x => {
       const have = state.bottles.some(b => b.wineId === x.wine.id);
       return `<div class="card" role="button" onclick="openWine('${x.wine.id}')">
-        <div class="row"><h3>${x.wine.producer} ${x.wine.name}</h3><span class="badge ${x.score>=94?"ok":"warn"}">${x.score}</span></div>
+        <div class="row"><h3>${pairLabel(x.wine)}</h3><span class="badge ${x.score>=94?"ok":"warn"}">${x.score}</span></div>
         <p class="muted">${x.wine.vintage} · ${x.wine.region} · ${x.wine.type}</p>
-        <p style="margin-top:8px">${x.why}</p>
-        <p class="tiny">${x.pack.serve}${have ? " · lo tienes" : ""}</p>
+        <p style="margin-top:8px">${x.why || ""}</p>
+        <p class="tiny">${(x.pack && x.pack.serve) || ""}${have ? " · lo tienes" : ""}</p>
       </div>`;
-    }).join("")}
+    }).join("") : `<p class="empty">Aún no hay vinos enlazados a este plato.</p>`}
     <h2>Regla de mesa</h2>
-    ${PAIRING_RULES.map(r => `<div class="card"><strong>${r.title}</strong><p class="muted">${r.text}</p></div>`).join("")}`;
-  show("dish");
+    ${(window.PAIRING_RULES || []).map(r => `<div class="card"><strong>${r.title}</strong><p class="muted">${r.text}</p></div>`).join("")}`;
+    show("dish");
+  } catch (err) {
+    console.warn("openDish", err);
+    show("dish");
+  }
 }
 
 function adviseCave(w) {
@@ -1859,12 +2032,13 @@ window.show = show;
 window.openBottle = openBottle;
 window.openWine = openWine;
 window.openWineSub = openWineSub;
+window.openExternal = openExternal;
 const BODEGA_GEO = {
-  "Vega Sicilia": { lat: 41.6325, lng: -4.286, zone: "Valbuena de Duero", web: "https://www.vega-sicilia.com" },
+  "Vega Sicilia": { lat: 41.6325, lng: -4.286, zone: "Valbuena de Duero", web: "https://www.temposvegasicilia.com/es" },
   "Dominio de Pingus": { lat: 41.636, lng: -4.363, zone: "Quintanilla de Onésimo", web: "https://www.pingus.es" },
   "R. López de Heredia": { lat: 42.5764, lng: -2.8467, zone: "Haro · Rioja Alta", web: "https://www.lopezdeheredia.com" },
   "Marqués de Riscal": { lat: 42.515, lng: -2.618, zone: "Elciego · Rioja Alavesa", web: "https://www.marquesderiscal.com" },
-  "Álvaro Palacios": { lat: 41.193, lng: 0.766, zone: "Gratallops · Priorat", web: "https://www.alvaropalacios.com" },
+  "Álvaro Palacios": { lat: 41.1934, lng: 0.7769, zone: "Gratallops · Priorat", address: "Polígono Industrial 6, Parcela 26, 43737 Gratallops, Tarragona", web: "https://www.alvaropalacios.com" },
   "Pazo de Señoráns": { lat: 42.516, lng: -8.727, zone: "Meis · Rías Baixas", web: "https://www.pazodesenorans.com" },
   "CVNE": { lat: 42.576, lng: -2.846, zone: "Haro · Rioja Alta", web: "https://www.cvne.com" },
   "Gramona": { lat: 41.426, lng: 1.785, zone: "Sant Sadurní d'Anoia", web: "https://www.gramona.com" },
@@ -1873,7 +2047,7 @@ const BODEGA_GEO = {
   "Tenuta San Guido": { lat: 43.234, lng: 10.565, zone: "Bolgheri", web: "https://www.tenutasanguido.com" },
   "Penfolds": { lat: -34.536, lng: 138.959, zone: "Magill · South Australia", web: "https://www.penfolds.com" },
   "Bodegas Muga": { lat: 42.577, lng: -2.847, zone: "Haro · Rioja Alta", web: "https://www.bodegasmuga.com" },
-  "Scala Dei": { lat: 41.167, lng: 0.806, zone: "Escaladei · Priorat", web: "https://www.scaladei.es" },
+  "Scala Dei": { lat: 41.2547, lng: 0.8095, zone: "Escaladei · Priorat", address: "Rambla de la Cartoixa, 5, 43379 Escaladei, Tarragona", web: "https://www.cellersdescaladei.com" },
   "Enrique Mendoza": { lat: 38.580, lng: -0.103, zone: "Alfaz del Pi · Alicante", web: "https://www.bodegasmendoza.com" },
   "Numanthia": { lat: 41.525, lng: -5.395, zone: "Valdefinjas · Toro", web: "https://www.numanthia.com" },
   "Marqués de Murrieta": { lat: 42.430, lng: -2.445, zone: "Ygay · Rioja", web: "https://www.marquesdemurrieta.com" }
@@ -1881,6 +2055,21 @@ const BODEGA_GEO = {
 
 function bodegaGeo(w) {
   return BODEGA_GEO[w.producer] || { lat: 40.4, lng: -3.7, zone: w.region, web: "" };
+}
+function openExternal(url) {
+  if (!url) return false;
+  try {
+    const a = document.createElement("a");
+    a.href = url;
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  } catch (e) {
+    location.href = url;
+  }
+  return false;
 }
 
 function zoneStrip(w) {
@@ -1905,21 +2094,24 @@ function mapTabs(on) {
 function mapaBlock(w) {
   const art = estateArt(w);
   const g = bodegaGeo(w);
-  const pad = 0.18;
-  const embed = `https://www.openstreetmap.org/export/embed.html?bbox=${g.lng-pad}%2C${g.lat-pad}%2C${g.lng+pad}%2C${g.lat+pad}&layer=mapnik&marker=${g.lat}%2C${g.lng}`;
-  const osm = `https://www.openstreetmap.org/?mlat=${g.lat}&mlon=${g.lng}#map=12/${g.lat}/${g.lng}`;
-  const gmaps = `https://maps.google.com/?q=${encodeURIComponent(w.producer + " " + g.zone)}`;
+  const file = (p) => "./" + String(p || "").replace(/^\.\//, "");
+  const mapSrc = file(art.map || "mapa-ribera.jpg");
+  const landSrc = file(art.land || "vinedo-ribera.jpg");
+  const osm = `https://www.openstreetmap.org/?mlat=${g.lat}&mlon=${g.lng}#map=16/${g.lat}/${g.lng}`;
+  const pin = `${g.lat},${g.lng}`;
+  const gmaps = `https://www.google.com/maps?q=${pin}`;
+  const apple = `https://maps.apple.com/?ll=${pin}&q=${pin}`;
   return `
-    <p class="muted">${w.appellation} · ${w.region}</p>
-    ${art.land ? `<img class="estate-wide" src="${art.land}" alt="${w.producer}">` : ""}
-    <div class="card">
-      <h3>${w.producer}</h3>
-      <p class="muted" style="margin-top:4px">${g.zone}</p>
-    </div>
-    ${art.map ? `<img class="map-art" src="${art.map}" alt="Mapa de ${g.zone}">` : `<div class="map-frame"><iframe title="Mapa de la bodega" src="${embed}" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe></div>`}
-    <a class="btn btn-ghost" style="width:100%;margin-top:10px;display:block;text-align:center" href="${gmaps}" target="_blank" rel="noopener">Abrir en Mapas</a>
-    <a class="btn btn-ghost" style="width:100%;margin-top:8px;display:block;text-align:center" href="${osm}" target="_blank" rel="noopener">OpenStreetMap</a>
-    ${g.web ? `<a class="btn btn-gold" style="width:100%;margin-top:8px;display:block;text-align:center" href="${g.web}" target="_blank" rel="noopener">Web de la bodega</a>` : ""}`;
+    <img class="map-art" src="${mapSrc}" alt="" data-fb="${landSrc}"
+      onerror="if(this.dataset.step!=='1'){this.dataset.step='1';this.src=this.dataset.fb;}else{this.style.display='none';}">
+    <p class="tiny" style="margin:0 0 10px;text-align:center">${g.zone || w.region}</p>
+    <p class="eyebrow" style="font-size:10px;letter-spacing:.14em;margin:2px 0 0">${w.appellation || ""}</p>
+    <h3 style="font-size:17px;margin:2px 0 2px;line-height:1.2">${w.producer}</h3>
+    <p class="muted" style="margin:0 0 12px;font-size:13px">${g.address || (g.zone + " · " + w.region)}</p>
+    <a class="btn btn-ghost" style="width:100%;margin-top:10px;display:block;text-align:center" href="${gmaps}" target="_blank" rel="noopener noreferrer" onclick="return openExternal(this.href)">Google Maps</a>
+    <a class="btn btn-ghost" style="width:100%;margin-top:8px;display:block;text-align:center" href="${apple}" target="_blank" rel="noopener noreferrer" onclick="return openExternal(this.href)">Mapas de Apple</a>
+    <a class="btn btn-ghost" style="width:100%;margin-top:8px;display:block;text-align:center" href="${osm}" target="_blank" rel="noopener noreferrer" onclick="return openExternal(this.href)">OpenStreetMap</a>
+    ${g.web ? `<a class="btn btn-gold" style="width:100%;margin-top:8px;display:block;text-align:center" href="${g.web}" target="_blank" rel="noopener noreferrer" onclick="return openExternal(this.href)">Web de la bodega</a>` : ""}`;
 }
 
 function mercadoSkeleton(w) {

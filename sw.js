@@ -1,4 +1,4 @@
-const CACHE = "casa-llavaneras-ios-v16";
+const CACHE = "casa-llavaneras-ios-v34";
 const ASSETS = ["./", "./index.html", "./styles.css", "./app.js", "./wines.js", "./dossiers.js", "./providers/wineProvider.js", "./pairings.js", "./manifest.json", "./icon.svg", "./apple-touch-icon.png", "./icon-192.png", "./icon-512.png", "./cave-principal.jpg", "./capsula.jpg"];
 self.addEventListener("install", e => {
   self.skipWaiting();
@@ -17,7 +17,13 @@ self.addEventListener("fetch", e => {
     }).catch(() => caches.match(e.request)));
     return;
   }
-  e.respondWith(caches.match(e.request).then(r => r || fetch(e.request)));
+  e.respondWith(fetch(e.request).then(r => {
+    if (r && r.ok && /\.(jpg|jpeg|png|svg|webp)$/i.test(url)) {
+      const copy = r.clone();
+      caches.open(CACHE).then(c => c.put(e.request, copy)).catch(() => {});
+    }
+    return r;
+  }).catch(() => caches.match(e.request)));
 });
 
 self.addEventListener("message", e => {
