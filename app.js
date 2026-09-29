@@ -69,7 +69,8 @@ const defaultState = () => ({
     lastBackup: null,
     sources: { vivino: true, penin: true, parker: true, spectator: true, decanter: true, vinous: true, suckling: true }
   },
-  activity: []
+  activity: [],
+  customWines: []
 });
 
 let state = load();
@@ -107,6 +108,7 @@ function load() {
     }, parsed.prefs);
     if (!parsed.prefs.sources) parsed.prefs.sources = { vivino: true, penin: true, parker: true, spectator: true, decanter: true, vinous: true, suckling: true };
     if (!parsed.activity) parsed.activity = [];
+    if (!parsed.customWines) parsed.customWines = [];
     parsed.vinotecas.forEach(v => { if (!v.houseId) v.houseId = "h1"; });
     const main = parsed.vinotecas.find(v => v.id === "v1");
     if (main) {
@@ -133,9 +135,22 @@ function load() {
     return defaultState();
   }
 }
-function save() { localStorage.setItem(STORE, JSON.stringify(state)); }
+function save() {
+  try {
+    localStorage.setItem(STORE, JSON.stringify(state));
+  } catch (err) {
+    state.bottles.forEach(b => {
+      if (b.labelPhoto && String(b.labelPhoto).length > 4000) b.labelPhoto = "";
+      if (b.photo && String(b.photo).length > 4000) b.photo = "";
+    });
+    try { localStorage.setItem(STORE, JSON.stringify(state)); }
+    catch (err2) { console.warn("save quota", err2); }
+  }
+}
 
-function wineById(id) { return WINE_CATALOG.find(w => w.id === id); }
+function wineById(id) {
+  return WINE_CATALOG.find(w => w.id === id) || (state.customWines || []).find(w => w.id === id);
+}
 
 function phaseOf(wine) {
   const a = wine.aging;
@@ -1622,6 +1637,10 @@ function openPhotoInput(input) {
 
 function captureLabel() {
   const video = $("#cam");
+  if (lastLabelData && (!video || video.hidden || !video.videoWidth)) {
+    identifyFromPhoto(lastLabelData);
+    return;
+  }
   if (!video || !video.videoWidth) {
     pickLabelPhoto();
     return;
@@ -1703,18 +1722,20 @@ async function identifyFromPhoto(dataUrl) {
   }
   ocrBusy = false;
   const n = normTxt(text);
-  if (/sommelier|sommeliere|sommelière/.test(n) || /16[\.,]?7/.test(text)) {
+  if (/sommelier|sommeliere|sommeliere/.test(n) || /16[\.,]?7/.test(text)) {
     const main = state.vinotecas.find(v => v.id === "v1");
     if (main) {
-      main.brand = "La Sommelière · 2 zonas";
+      main.brand = "La Sommelière VIP 185";
       main.tHigh = 16.7;
       save();
     }
   }
   const hits = rankFromText(text);
-  if (hits.length) {
+  const picked = hits[0] || inferWineFromText(text);
+  if (picked) {
+    const wine = ensureScannedWine(picked, text);
     setScanStatus("Reconocido. Guardado en la vinoteca principal.");
-    quickAdd(hits[0].id);
+    quickAdd(wine.id);
     return;
   }
   setScanStatus(text ? ("Leído: " + text.replace(/\s+/g, " ").slice(0, 120) + " — escribe el nombre") : "No se leyó. Foto más cerca o escribe el nombre.");
@@ -1739,14 +1760,68 @@ function rankFromText(raw) {
     if (hay.includes("tondonia") && /tondonia/.test(normTxt(w.name))) score += 30;
     if (hay.includes("valbuena") && /valbuena/.test(normTxt(w.name))) score += 26;
     if (hay.includes("pazo") && /pazo/.test(normTxt(w.producer))) score += 24;
+    if (hay.includes("margaux") && /margaux/.test(normTxt(w.producer + " " + w.name))) score += 36;
+    if (hay.includes("chateau") && /chateau/.test(normTxt(w.producer))) score += 10;
     return { w, score };
-  }).filter(x => x.score >= 18).sort((a, b) => b.score - a.score);
+  }).filter(x => x.score >= 14).sort((a, b) => b.score - a.score);
   const uniq = [];
   const seen = new Set();
   scored.forEach(x => {
     if (!seen.has(x.w.id)) { seen.add(x.w.id); uniq.push(x.w); }
   });
   return uniq.slice(0, 6);
+}
+
+function yearFromText(raw) {
+  const m = String(raw || "").match(/\b((?:19|20)\d{2})\b/);
+  return m ? parseInt(m[1], 10) : 0;
+}
+function ensureScannedWine(base, raw) {
+  if (!base) return null;
+  const year = yearFromText(raw);
+  if (!year || year === Number(base.vintage)) return base;
+  const nid = String(base.id).replace(/-?\d{4}$/, "") + "-" + year;
+  const existed = wineById(nid);
+  if (existed) return existed;
+  const copy = JSON.parse(JSON.stringify(base));
+  copy.id = nid;
+  copy.vintage = year;
+  state.customWines = state.customWines || [];
+  state.customWines.push(copy);
+  return copy;
+}
+function inferWineFromText(raw) {
+  const hay = normTxt(raw);
+  if (!hay || hay.length < 6) return null;
+  const year = yearFromText(raw) || YEAR;
+  const catalog = WINE_CATALOG.find(w => {
+    const p = normTxt(w.producer);
+    const n = normTxt(w.name);
+    return (p.length >= 5 && hay.includes(p.split(" ")[0])) || (n.length >= 5 && hay.includes(n));
+  });
+  if (catalog) return catalog;
+  const words = hay.split(" ").filter(x => x.length > 2).slice(0, 4);
+  const label = words.map(x => x.charAt(0).toUpperCase() + x.slice(1)).join(" ") || "Vino escaneado";
+  const id = "scan-" + Date.now();
+  const w = {
+    id, name: label, producer: label, vintage: year,
+    region: "", country: "", appellation: "", type: "tinto", style: "escaneo",
+    grapes: [], abv: 13.5, color: "#4a1020",
+    ratings: {
+      vivino: { score: 0, count: 0, scale: 5, note: "" },
+      penin: { score: 0, scale: 100, note: "" },
+      parker: { score: 0, scale: 100, reviewer: "", note: "Alta por etiqueta. Completa la ficha." },
+      spectator: { score: 0, scale: 100, note: "" },
+      decanter: { score: 0, scale: 100, note: "" }
+    },
+    priceHint: "—",
+    tasting: "Ficha creada al escanear la etiqueta.",
+    conservation: { cellarMin: 12, cellarMax: 14, serveMin: 16, serveMax: 18, humidity: "65–75%", position: "horizontal", light: "oscura" },
+    aging: { drinkFrom: year + 1, peakStart: year + 3, peakEnd: year + 10, drinkTo: year + 14 }
+  };
+  state.customWines = state.customWines || [];
+  state.customWines.push(w);
+  return w;
 }
 
 function identifyFromCatalog(q) {
@@ -1776,17 +1851,27 @@ function nextBin(cellarId) {
 
 function quickAdd(wineId) {
   const w = wineById(wineId);
-  if (!w) return;
+  if (!w) {
+    setScanStatus("No se pudo crear la ficha. Escribe bodega y añada.");
+    return;
+  }
   currentWine = w;
-  const cellarId = preferredCellar(w, 0);
+  const cellarId = preferredCellar(w, 0) || "v1";
+  const thumb = lastLabelData && lastLabelData.length < 120000 ? lastLabelData : "";
   currentBottle = mergeOrCreateLot({
-    wineId, cellarId, bin: nextBin(cellarId), qty: 1, price: 0,
-    note: "Alta rápida", photo: lastLabelData || ""
+    wineId: w.id, cellarId, bin: nextBin(cellarId), qty: 1, price: 0,
+    note: "Alta por etiqueta", photo: thumb
   });
-  logAct(`Alta rápida ${w.producer} ${w.name} → ${cellarName(cellarId)}`);
+  try { logAct(`Alta rápida ${w.producer} ${w.name} → ${cellarName(cellarId)}`); } catch (e) {}
   save();
-  toast("1 en " + cellarName(cellarId) + " · " + w.conservation.cellarMin + "–" + w.conservation.cellarMax + " °C · HR " + corkHumidity(w));
-  openWine(wineId, currentBottle);
+  const tmin = w.conservation && w.conservation.cellarMin;
+  const tmax = w.conservation && w.conservation.cellarMax;
+  toast(tmin ? ("1 en " + cellarName(cellarId) + " · " + tmin + "–" + tmax + " °C") : ("1 botella en " + cellarName(cellarId)));
+  try { openWine(w.id, currentBottle); }
+  catch (e) {
+    setScanStatus("Guardado. Ábrelo en Botellas.");
+    show("cellar", { tab: true });
+  }
 }
 function consumeMany() {
   if (!currentBottle) return;
