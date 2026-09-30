@@ -768,6 +768,13 @@ label.field span {
   position: absolute; inset: 0;
 }
 .scan-hit-actions { display: flex; gap: 8px; margin-top: 10px; }
+.inbox-card{display:flex;gap:12px;padding:10px;margin:0 0 12px;border:1px solid rgba(201,162,39,.35);border-radius:16px;background:#100c0a}
+.inbox-card img,.inbox-ph{width:92px;height:128px;object-fit:cover;object-position:center;border-radius:10px;background:#000;flex-shrink:0}
+.inbox-copy{flex:1;min-width:0}
+.inbox-copy h3{color:#c9a227;font-size:17px;margin:0}
+.inbox-copy p{margin:4px 0 0;color:#d7cfc2;font-size:14px}
+.inbox-actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.inbox-actions .btn{flex:1;min-width:120px;padding:10px 8px;font-size:14px}
 .fav.on { color: var(--gold2); }
 .wine-scroll { padding-top: 4px; }
 .more-nav {

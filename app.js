@@ -70,7 +70,8 @@ const defaultState = () => ({
     sources: { vivino: true, penin: true, parker: true, spectator: true, decanter: true, vinous: true, suckling: true }
   },
   activity: [],
-  customWines: []
+  customWines: [],
+  inbox: []
 });
 
 let state = load();
@@ -109,6 +110,7 @@ function load() {
     if (!parsed.prefs.sources) parsed.prefs.sources = { vivino: true, penin: true, parker: true, spectator: true, decanter: true, vinous: true, suckling: true };
     if (!parsed.activity) parsed.activity = [];
     if (!parsed.customWines) parsed.customWines = [];
+    if (!parsed.inbox) parsed.inbox = [];
     parsed.vinotecas.forEach(v => { if (!v.houseId) v.houseId = "h1"; });
     const main = parsed.vinotecas.find(v => v.id === "v1");
     if (main) {
@@ -221,6 +223,7 @@ function show(id, opts) {
   document.querySelector(".app")?.classList.toggle("fiche", id === "wine" || id === "wine-sub" || id === "dish");
   if (id !== "scan") stopCam();
   if (id === "home") renderHome();
+  if (id === "inbox") renderInbox();
   if (id === "caves") renderCaves();
   if (id === "cellar") renderCellar();
   if (id === "calendar") renderCalendar();
@@ -234,7 +237,7 @@ function backCaption() {
   if (!p) return "Inicio";
   const names = {
     home: "Inicio", caves: "Vinotecas", "cave-detail-screen": "Vinoteca",
-    cellar: "Botellas", calendar: "Fechas", pairings: "Mesa", scan: "Escanear",
+    cellar: "Botellas", calendar: "Fechas", pairings: "Mesa", scan: "Escanear", inbox: "Entradas",
     perfil: "Perfil", "perfil-sub": "Perfil", zonas: "Zonas", catas: "Catas",
     dish: "Plato", wine: "Ficha", "wine-sub": "Ficha"
   };
@@ -317,7 +320,8 @@ function renderHome() {
   const on = state.notify && state.notify.on && perm === "granted";
   $("#home-notify").innerHTML = `
     <h2 style="margin-top:18px">Páginas</h2>
-    <div class="card" role="button" onclick="show('caves',{tab:true})" style="margin-top:10px"><div class="row"><h3>Vinotecas</h3><span class="tiny">›</span></div><p class="muted">VIP 185 y el resto de cavas</p></div>
+    <div class="card" role="button" onclick="show('inbox')" style="margin-top:10px"><div class="row"><h3>Entradas del escáner</h3><span class="tiny">${(state.inbox||[]).filter(x=>!x.entered).length || "›"}</span></div><p class="muted">Fotos leídas pendientes de stock y hueco</p></div>
+    <div class="card" role="button" onclick="show('caves',{tab:true})" style="margin-top:8px"><div class="row"><h3>Vinotecas</h3><span class="tiny">›</span></div><p class="muted">VIP 185 y el resto de cavas</p></div>
     <div class="card" role="button" onclick="openCave('v1')" style="margin-top:8px"><div class="row"><h3>Detalle VIP 185</h3><span class="tiny">›</span></div><p class="muted">Foto, huecos, temperatura</p></div>
     <div class="card" role="button" onclick="show('cellar',{tab:true})" style="margin-top:8px"><div class="row"><h3>Botellas</h3><span class="tiny">›</span></div><p class="muted">Inventario, lotes y ubicación</p></div>
     <div class="card" role="button" onclick="show('pairings',{tab:true})" style="margin-top:8px"><div class="row"><h3>Mesa</h3><span class="tiny">›</span></div><p class="muted">Maridajes por plato y por vino</p></div>
@@ -328,6 +332,7 @@ function renderHome() {
     <div class="card" role="button" onclick="setCellarView('ubicaciones');show('cellar',{tab:true})" style="margin-top:8px"><div class="row"><h3>Ubicación física</h3><span class="tiny">›</span></div><p class="muted">Hueco, lote, servir y mover</p></div>
     <div class="chip-row" style="margin-top:14px">
       <button class="chip on" onclick="startScan()">Escanear</button>
+      <button class="chip" onclick="show('inbox')">Entradas</button>
       <button class="chip" onclick="quickTaste()">Cata rápida</button>
       <button class="chip" onclick="openHomeMap()">Mapa</button>
     </div>
@@ -1522,10 +1527,21 @@ function addCurrentToCellar() {
   currentBottle = mergeOrCreateLot({
     wineId: currentWine.id, cellarId, bin, qty, price, note, photo: lastLabelData || ""
   });
-  logAct(`Alta +${qty} ${currentWine.producer} ${currentWine.name} → ${cellarName(cellarId)} ${bin}`);
+  const inboxUid = $("#add-inbox-uid") && $("#add-inbox-uid").value;
+  if (inboxUid) {
+    const row = (state.inbox || []).find(x => x.uid === inboxUid);
+    if (row) {
+      row.entered = true;
+      row.cellarId = cellarId;
+      row.bin = bin;
+    }
+    $("#add-inbox-uid").value = "";
+  }
+  try { logAct(`Alta +${qty} ${currentWine.producer} ${currentWine.name} → ${cellarName(cellarId)} ${bin}`); } catch (e) {}
   save();
   hideSheets();
-  toast(`${qty} en ${cellarName(cellarId)} · ${currentWine.conservation.cellarMin}–${currentWine.conservation.cellarMax} °C · HR ${corkHumidity(currentWine)}`);
+  const tmin = currentWine.conservation && currentWine.conservation.cellarMin;
+  toast(tmin ? `${qty} en ${cellarName(cellarId)} · ${bin}` : `${qty} en ${cellarName(cellarId)}`);
   openWine(currentWine.id, currentBottle);
 }
 
@@ -1724,11 +1740,10 @@ async function identifyFromPhoto(dataUrl) {
     }
   }
   const hits = rankFromText(text);
-  const picked = hits[0] || inferWineFromText(text);
+  const picked = hits[0] || inferWineFromText(text || "vino escaneado etiqueta");
   if (picked) {
     const wine = ensureScannedWine(picked, text);
-    setScanStatus("Reconocido. Guardado en la vinoteca principal.");
-    quickAdd(wine.id);
+    parkScanInInbox(wine, text);
     return;
   }
   setScanStatus(text ? ("Leído: " + text.replace(/\s+/g, " ").slice(0, 120) + " — escribe el nombre") : "No se leyó. Foto más cerca o escribe el nombre.");
@@ -1765,6 +1780,72 @@ function rankFromText(raw) {
   return uniq.slice(0, 6);
 }
 
+function parkScanInInbox(wine, text) {
+  if (!wine) return;
+  state.inbox = state.inbox || [];
+  const row = {
+    uid: "in" + Date.now(),
+    wineId: wine.id,
+    created: new Date().toISOString(),
+    text: String(text || "").replace(/\s+/g, " ").slice(0, 180),
+    photo: (lastLabelData && lastLabelData.length < 140000) ? lastLabelData : "",
+    entered: false,
+    cellarId: "",
+    bin: ""
+  };
+  state.inbox.unshift(row);
+  save();
+  setScanStatus("Leído. Está en Entradas, pendiente de stock.");
+  toast(wine.producer + " " + wine.vintage + " · dar entrada");
+  show("inbox");
+}
+function renderInbox() {
+  const box = $("#inbox-list");
+  if (!box) return;
+  const rows = state.inbox || [];
+  if (!rows.length) {
+    box.innerHTML = `<div class="card muted">Aún no hay lecturas. Escanea una etiqueta.</div>
+      <button class="btn btn-gold" style="width:100%;margin-top:12px" onclick="startScan()">Abrir cámara</button>`;
+    return;
+  }
+  box.innerHTML = rows.map(row => {
+    const w = wineById(row.wineId);
+    const title = w ? `${w.producer}` : "Vino leído";
+    const sub = w ? `${w.name} ${w.vintage}` : "";
+    const zone = w ? `${w.appellation || w.region || "—"}` : "—";
+    const badge = row.entered ? `<span class="badge ok">En stock</span>` : `<span class="badge warn">Pendiente</span>`;
+    const where = row.entered ? `<p class="tiny">${cellarName(row.cellarId)} · ${row.bin || "sin hueco"}</p>` : `<p class="tiny">${zone}</p>`;
+    return `<article class="inbox-card">
+      ${row.photo ? `<img src="${row.photo}" alt="">` : `<div class="inbox-ph"></div>`}
+      <div class="inbox-copy">
+        <div class="row"><h3>${title}</h3>${badge}</div>
+        <p>${sub}</p>
+        ${where}
+        <div class="inbox-actions">
+          ${row.entered
+            ? `<button class="btn btn-ghost" onclick="openWine('${row.wineId}')">Ver ficha</button>`
+            : `<button class="btn btn-gold" onclick="enterInbox('${row.uid}')">Dar entrada</button>
+               <button class="btn btn-ghost" onclick="openWine('${row.wineId}')">Ficha</button>`}
+        </div>
+      </div>
+    </article>`;
+  }).join("") + `<button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="startScan()">Escanear otra</button>`;
+}
+function enterInbox(uid) {
+  const row = (state.inbox || []).find(x => x.uid === uid);
+  if (!row) return;
+  const w = wineById(row.wineId);
+  if (!w) return toast("Ficha no encontrada");
+  currentWine = w;
+  lastLabelData = row.photo || lastLabelData;
+  fillSelects();
+  if ($("#add-inbox-uid")) $("#add-inbox-uid").value = uid;
+  if ($("#add-cellar")) $("#add-cellar").value = preferredCellar(w, 0) || "v1";
+  if ($("#add-bin")) $("#add-bin").value = nextBin($("#add-cellar").value);
+  if ($("#add-qty")) $("#add-qty").value = "1";
+  if ($("#add-keep-hint")) $("#add-keep-hint").textContent = (w.appellation || w.region || "") + " · elige vinoteca y hueco";
+  showSheet("add-sheet");
+}
 function yearFromText(raw) {
   const m = String(raw || "").match(/\b((?:19|20)\d{2})\b/);
   return m ? parseInt(m[1], 10) : 0;
@@ -2509,6 +2590,9 @@ window.setTaste = setTaste;
 window.openWineMenu = openWineMenu;
 window.openCave = openCave;
 window.startScan = startScan;
+window.renderInbox = renderInbox;
+window.enterInbox = enterInbox;
+window.parkScanInInbox = parkScanInInbox;
 window.runIdentify = runIdentify;
 window.fakeScan = runIdentify;
 window.captureLabel = captureLabel;

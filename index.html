@@ -125,6 +125,16 @@
         <div class="scroll" id="catas-body"></div>
       </section>
 
+      <section id="inbox" class="screen">
+        <div class="scroll">
+          <button class="back" onclick="show('home',{tab:true})">‹ Inicio</button>
+          <p class="eyebrow">Escáner</p>
+          <h1>Entradas</h1>
+          <p class="muted" style="margin:0 0 14px">Vinos leídos por foto. Aún no están en stock hasta que les des entrada.</p>
+          <div id="inbox-list"></div>
+        </div>
+      </section>
+
       <section id="scan" class="screen">
         <div class="scroll">
           <button class="back" onclick="goBack()">‹ Inicio</button>
@@ -214,6 +224,7 @@
         <label class="field"><span>Botellas</span><input id="add-qty" type="number" min="1" value="1" /></label>
         <label class="field"><span>Precio € / botella</span><input id="add-price" type="number" step="0.01" /></label>
         <label class="field"><span>Nota</span><textarea id="add-note" placeholder="Caja, ocasión, proveedor…"></textarea></label>
+        <input type="hidden" id="add-inbox-uid" value="" />
         <button class="btn btn-gold" style="width:100%" onclick="addCurrentToCellar()">Guardar en la cava</button>
       </div>
     </div>
