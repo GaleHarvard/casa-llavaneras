@@ -130,22 +130,26 @@
           <button class="back" onclick="goBack()">‹ Inicio</button>
           <p class="eyebrow">Un toque</p>
           <h1>Escanear</h1>
-          <div class="card">
+          <div class="card" role="button" onclick="pickLabelPhoto()">
             <h3>Etiqueta</h3>
-            <p class="muted">Foto de la botella. Se guarda en la vinoteca.</p>
+            <p class="muted">Abre la cámara. Foto vertical de la botella y se crea la ficha.</p>
           </div>
-          <div class="card">
+          <div class="card" role="button" onclick="pickFromRoll()">
             <h3>Carta o lineal</h3>
-            <p class="muted">Foto de una carta o de un estante. Buscamos coincidencias en el catálogo.</p>
+            <p class="muted">Elige una foto del carrete. Buscamos coincidencias y guardamos.</p>
           </div>
-          <div class="scan-stage" onclick="captureLabel()">
-            <video id="cam" playsinline autoplay muted></video>
+          <div class="scan-stage scan-stage-vert" onclick="pickLabelPhoto()">
+            <video id="cam" playsinline muted hidden></video>
             <img id="scan-preview" alt="Etiqueta capturada" hidden />
             <canvas id="scan-canvas" hidden></canvas>
-            <div class="viewfinder" id="scan-finder"></div>
+            <div class="viewfinder viewfinder-vert" id="scan-finder">
+              <span>Cámara · etiqueta en vertical</span>
+            </div>
           </div>
-          <input id="scan-file" type="file" accept="image/*" capture="environment" hidden />
-          <button class="btn btn-gold" style="width:100%" onclick="captureLabel()">Foto y guardar</button>
+          <input id="scan-file-cam" type="file" accept="image/*" capture="environment" hidden />
+          <input id="scan-file-lib" type="file" accept="image/*" hidden />
+          <input id="scan-file" type="file" accept="image/*" hidden />
+          <button class="btn btn-gold" style="width:100%" onclick="pickLabelPhoto()">Abrir cámara</button>
           <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="pickFromRoll()">Elegir de fotos</button>
           <div id="scan-status" class="tiny" style="margin-top:10px"></div>
           <div id="scan-results" style="margin-top:14px"></div>

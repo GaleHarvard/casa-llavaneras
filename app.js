@@ -902,7 +902,19 @@ function toggleFav(id) {
 
 function openWine(wineId, bottle) {
   const w = wineById(wineId);
-  if (!w) return;
+  if (!w) {
+    toast("No hay ficha para este vino");
+    show("cellar", { tab: true });
+    return;
+  }
+  if (!w.conservation) w.conservation = { cellarMin: 12, cellarMax: 14, serveMin: 16, serveMax: 18, humidity: "65–75%", position: "horizontal", light: "oscura" };
+  if (!w.aging) {
+    const y = Number(w.vintage) || YEAR;
+    w.aging = { drinkFrom: y + 1, peakStart: y + 3, peakEnd: y + 10, drinkTo: y + 14 };
+  }
+  if (!w.ratings) {
+    w.ratings = { vivino: { score: 0, count: 0, scale: 5 }, penin: { score: 0, scale: 100 }, parker: { score: 0, scale: 100, note: "" }, spectator: { score: 0, scale: 100 }, decanter: { score: 0, scale: 100 } };
+  }
   currentWine = w;
   currentBottle = bottle || state.bottles.find(b => b.wineId === wineId) || null;
   const p = phaseOf(w);
@@ -1579,22 +1591,15 @@ function normTxt(s) {
 async function startScan() {
   show("scan");
   lastList = "scan";
+  stopCam();
   const preview = $("#scan-preview");
   if (preview) { preview.hidden = true; preview.removeAttribute("src"); }
   const finder = $("#scan-finder");
   if (finder) finder.style.display = "";
-  setScanStatus("Toca la foto. Se reconoce y entra solo en la vinoteca principal.");
-  $("#scan-results").innerHTML = "";
   const video = $("#cam");
-  video.hidden = false;
-  try {
-    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 } }, audio: false });
-    video.srcObject = stream;
-    await video.play();
-  } catch {
-    setScanStatus("Cámara no disponible. Usa Galería para subir la foto de la etiqueta.");
-    video.hidden = true;
-  }
+  if (video) { video.hidden = true; video.srcObject = null; }
+  setScanStatus("Abre la cámara o elige una foto. La etiqueta va en vertical.");
+  if ($("#scan-results")) $("#scan-results").innerHTML = "";
 }
 
 function stopCam() {
@@ -1612,14 +1617,18 @@ function setScanStatus(msg) {
 }
 
 function pickLabelPhoto() {
-  const input = $("#scan-file");
+  const input = $("#scan-file-cam") || $("#scan-file");
+  if (!input) return;
+  input.setAttribute("accept", "image/*");
   input.setAttribute("capture", "environment");
   openPhotoInput(input);
 }
 
 function pickFromRoll() {
-  const input = $("#scan-file");
+  const input = $("#scan-file-lib") || $("#scan-file");
+  if (!input) return;
   input.removeAttribute("capture");
+  input.setAttribute("accept", "image/*");
   openPhotoInput(input);
 }
 
@@ -1636,23 +1645,7 @@ function openPhotoInput(input) {
 }
 
 function captureLabel() {
-  const video = $("#cam");
-  if (lastLabelData && (!video || video.hidden || !video.videoWidth)) {
-    identifyFromPhoto(lastLabelData);
-    return;
-  }
-  if (!video || !video.videoWidth) {
-    pickLabelPhoto();
-    return;
-  }
-  const canvas = $("#scan-canvas");
-  const maxW = 900;
-  const scale = Math.min(1, maxW / video.videoWidth);
-  canvas.width = Math.round(video.videoWidth * scale);
-  canvas.height = Math.round(video.videoHeight * scale);
-  const ctx = canvas.getContext("2d");
-  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-  ingestLabelImage(canvas.toDataURL("image/jpeg", 0.82));
+  pickLabelPhoto();
 }
 
 function showLabelPreview(dataUrl) {

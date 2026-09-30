@@ -373,6 +373,12 @@ label.field span {
   margin-bottom: 14px;
   border: 1px solid #1c1c1c;
 }
+.scan-stage-vert {
+  height: auto;
+  aspect-ratio: 3 / 4;
+  max-height: 62vh;
+  min-height: 360px;
+}
 .scan-stage video, .scan-stage canvas {
   width: 100%; height: 100%; object-fit: cover;
 }
@@ -383,8 +389,14 @@ label.field span {
   box-shadow: 0 0 0 200px rgba(0,0,0,.4);
   pointer-events: none;
 }
+.viewfinder-vert { inset: 36px 52px; }
+.viewfinder-vert span {
+  position: absolute; left: 8px; right: 8px; bottom: 10px;
+  text-align: center; font-size: 11px; letter-spacing: .12em;
+  color: #c9a227; text-transform: uppercase;
+}
 .viewfinder::after {
-  content: "Toca para foto y guardar";
+  content: "Toca para abrir la cámara";
   position: absolute;
   left: 0; right: 0; bottom: -28px;
   text-align: center;
