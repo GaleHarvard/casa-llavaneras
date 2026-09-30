@@ -1692,9 +1692,41 @@ function compressDataUrl(dataUrl, maxW = 900, quality = 0.8) {
 }
 
 async function ingestLabelImage(dataUrl) {
-  lastLabelData = await compressDataUrl(dataUrl);
+  lastLabelData = await compressDataUrl(dataUrl, 720, 0.72);
   showLabelPreview(lastLabelData);
   await identifyFromPhoto(lastLabelData);
+}
+
+function preprocessLabel(dataUrl) {
+  return new Promise(resolve => {
+    const img = new Image();
+    img.onload = () => {
+      const c = document.createElement("canvas");
+      const w = Math.min(900, img.width);
+      const h = Math.round(img.height * (w / img.width));
+      c.width = w; c.height = h;
+      const ctx = c.getContext("2d");
+      ctx.drawImage(img, 0, 0, w, h);
+      const x0 = Math.round(w * 0.12), y0 = Math.round(h * 0.08);
+      const cw = Math.round(w * 0.76), ch = Math.round(h * 0.84);
+      const cut = document.createElement("canvas");
+      cut.width = cw; cut.height = ch;
+      const g = cut.getContext("2d");
+      g.drawImage(c, x0, y0, cw, ch, 0, 0, cw, ch);
+      const pix = g.getImageData(0, 0, cw, ch);
+      const d = pix.data;
+      for (let i = 0; i < d.length; i += 4) {
+        let v = 0.21 * d[i] + 0.72 * d[i + 1] + 0.07 * d[i + 2];
+        v = (v - 128) * 1.55 + 128;
+        v = v < 90 ? 0 : v > 190 ? 255 : v;
+        d[i] = d[i + 1] = d[i + 2] = v;
+      }
+      g.putImageData(pix, 0, 0);
+      resolve(cut.toDataURL("image/jpeg", 0.85));
+    };
+    img.onerror = () => resolve(dataUrl);
+    img.src = dataUrl;
+  });
 }
 
 function loadTesseract() {
@@ -1710,68 +1742,92 @@ function loadTesseract() {
   return tesseractReady;
 }
 
+async function readLabelText(dataUrl) {
+  const prep = await preprocessLabel(dataUrl);
+  const Tesseract = await loadTesseract();
+  const job = Tesseract.recognize(prep, "eng", {
+    logger: m => {
+      if (m.status === "recognizing text" && m.progress) {
+        setScanStatus("Leyendo la etiqueta… " + Math.round(m.progress * 100) + "%");
+      }
+    }
+  });
+  const timer = new Promise((_, rej) => setTimeout(() => rej(new Error("ocr-timeout")), 18000));
+  const result = await Promise.race([job, timer]);
+  return (result && result.data && result.data.text) || "";
+}
+
+function showScanConfirm(text, hits) {
+  const clean = String(text || "").replace(/\s+/g, " ").trim();
+  const list = (hits || []).slice(0, 4);
+  setScanStatus(clean ? ("Leído: " + clean.slice(0, 140)) : "No se leyó la etiqueta. Escribe bodega y añada.");
+  const el = $("#scan-results");
+  if (!el) return;
+  el.innerHTML = `
+    <div class="card">
+      <p class="tiny">Texto de la etiqueta</p>
+      <p style="margin-top:6px">${clean ? clean.slice(0, 220) : "— sin lectura OCR —"}</p>
+    </div>
+    ${list.length ? `<h2 style="margin-top:14px">¿Cuál es?</h2>` + list.map(w => `
+      <div class="card">
+        <h3>${w.producer}</h3>
+        <p class="muted">${w.name} ${w.vintage} · ${w.appellation || w.region}</p>
+        <button class="btn btn-gold" style="width:100%;margin-top:8px" onclick="confirmScanWine('${w.id}')">Este es</button>
+      </div>`).join("") : `<p class="empty">Ningún vino del catálogo coincide. Escribe el nombre abajo.</p>`}
+    <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="confirmScanCustom()">Usar el texto leído como ficha nueva</button>`;
+}
+
+function confirmScanWine(id) {
+  const w = wineById(id);
+  if (!w) return;
+  const q = ($("#scan-q") && $("#scan-q").value) || "";
+  parkScanInInbox(ensureScannedWine(w, q), q);
+}
+
+function confirmScanCustom() {
+  const q = (($("#scan-q") && $("#scan-q").value) || "").trim();
+  const raw = q || ($("#scan-results") && $("#scan-results").innerText) || "";
+  const w = inferWineFromText(q || raw);
+  if (!w) return toast("Escribe bodega y añada");
+  parkScanInInbox(w, q);
+}
+
 async function identifyFromPhoto(dataUrl) {
   if (ocrBusy) return;
   ocrBusy = true;
   setScanStatus("Leyendo la etiqueta…");
-  $("#scan-results").innerHTML = `<div class="card muted">Analizando la foto. Un momento.</div>`;
+  if ($("#scan-results")) $("#scan-results").innerHTML = `<div class="card muted">Analizando la foto. Un momento.</div>`;
   let text = "";
   try {
-    const Tesseract = await loadTesseract();
-    const result = await Tesseract.recognize(dataUrl, "eng+spa", {
-      logger: m => {
-        if (m.status === "recognizing text" && m.progress) {
-          setScanStatus("Leyendo la etiqueta… " + Math.round(m.progress * 100) + "%");
-        }
-      }
-    });
-    text = result?.data?.text || "";
+    text = await readLabelText(dataUrl);
   } catch {
     text = "";
   }
   ocrBusy = false;
-  const n = normTxt(text);
-  if (/sommelier|sommeliere|sommeliere/.test(n) || /16[\.,]?7/.test(text)) {
-    const main = state.vinotecas.find(v => v.id === "v1");
-    if (main) {
-      main.brand = "La Sommelière VIP 185";
-      main.tHigh = 16.7;
-      save();
-    }
-  }
   const hits = rankFromText(text);
-  const picked = hits[0] || inferWineFromText(text || "vino escaneado etiqueta");
-  if (picked) {
-    const wine = ensureScannedWine(picked, text);
-    parkScanInInbox(wine, text);
-    return;
-  }
-  setScanStatus(text ? ("Leído: " + text.replace(/\s+/g, " ").slice(0, 120) + " — escribe el nombre") : "No se leyó. Foto más cerca o escribe el nombre.");
-  renderHits([], "Sin coincidencia", false);
+  showScanConfirm(text, hits);
 }
 
 function rankFromText(raw) {
   const hay = normTxt(raw);
-  if (!hay) return [];
+  if (!hay || hay.length < 4) return [];
   const scored = WINE_CATALOG.map(w => {
     let score = 0;
-    const bits = [w.producer, w.name, String(w.vintage), w.region, w.appellation, ...(w.grapes || [])];
-    bits.forEach(b => {
-      const t = normTxt(b);
-      if (t.length >= 4 && hay.includes(t)) score += Math.min(28, t.length);
-    });
-    const producerFirst = normTxt(w.producer.split(" ")[0]);
-    if (producerFirst.length >= 4 && hay.includes(producerFirst)) score += 14;
-    if (hay.includes(String(w.vintage))) score += 22;
-    if (hay.includes("unico") && /unico/.test(normTxt(w.name))) score += 30;
-    if (hay.includes("vega") && hay.includes("sicilia") && /vega sicilia/.test(normTxt(w.producer))) score += 36;
-    if (hay.includes("tondonia") && /tondonia/.test(normTxt(w.name))) score += 30;
-    if (hay.includes("valbuena") && /valbuena/.test(normTxt(w.name))) score += 26;
-    if (hay.includes("pazo") && /pazo/.test(normTxt(w.producer))) score += 24;
-    if (hay.includes("margaux") && /margaux/.test(normTxt(w.producer + " " + w.name))) score += 36;
-    if (hay.includes("chateau") && /chateau/.test(normTxt(w.producer))) score += 10;
+    const prod = normTxt(w.producer);
+    const nam = normTxt(w.name);
+    const tokens = prod.split(" ").filter(t => t.length >= 5 && !/chateau|bodegas|celler|dominio|tenuta/.test(t));
+    tokens.forEach(t => { if (hay.includes(t)) score += 28; });
+    if (nam.length >= 5 && hay.includes(nam)) score += 22;
+    if (hay.includes(String(w.vintage))) score += 8;
+    if (hay.includes("unico") && /unico/.test(nam)) score += 30;
+    if (hay.includes("vega") && hay.includes("sicilia") && /vega sicilia/.test(prod)) score += 40;
+    if (hay.includes("tondonia") && /tondonia/.test(nam)) score += 30;
+    if (hay.includes("valbuena") && /valbuena/.test(nam)) score += 26;
+    if (hay.includes("pazo") && /pazo/.test(prod)) score += 24;
+    if (hay.includes("margaux") && /margaux/.test(prod + " " + nam)) score += 40;
+    if (hay.includes("pingus") && /pingus/.test(prod + " " + nam)) score += 40;
     return { w, score };
-  }).filter(x => x.score >= 14).sort((a, b) => b.score - a.score);
+  }).filter(x => x.score >= 28).sort((a, b) => b.score - a.score);
   const uniq = [];
   const seen = new Set();
   scored.forEach(x => {
@@ -1869,9 +1925,8 @@ function inferWineFromText(raw) {
   if (!hay || hay.length < 6) return null;
   const year = yearFromText(raw) || YEAR;
   const catalog = WINE_CATALOG.find(w => {
-    const p = normTxt(w.producer);
-    const n = normTxt(w.name);
-    return (p.length >= 5 && hay.includes(p.split(" ")[0])) || (n.length >= 5 && hay.includes(n));
+    const tokens = normTxt(w.producer).split(" ").filter(t => t.length >= 5 && !/chateau|bodegas|celler|dominio/.test(t));
+    return tokens.some(t => hay.includes(t)) || (normTxt(w.name).length >= 5 && hay.includes(normTxt(w.name)));
   });
   if (catalog) return catalog;
   const words = hay.split(" ").filter(x => x.length > 2).slice(0, 4);
@@ -1908,7 +1963,7 @@ function runIdentify() {
   const q = $("#scan-q").value;
   const hits = identifyFromCatalog(q);
   if (q && hits.length === 1) {
-    quickAdd(hits[0].id);
+    parkScanInInbox(ensureScannedWine(hits[0], q), q);
     return;
   }
   renderHits(hits, q ? `Coincidencias para “${q}”` : "Catálogo", true);
@@ -2598,6 +2653,8 @@ window.fakeScan = runIdentify;
 window.captureLabel = captureLabel;
 window.pickLabelPhoto = pickLabelPhoto;
 window.pickFromRoll = pickFromRoll;
+window.confirmScanWine = confirmScanWine;
+window.confirmScanCustom = confirmScanCustom;
 window.quickAdd = quickAdd;
 window.toggleFav = toggleFav;
 window.addCurrentToCellar = addCurrentToCellar;
