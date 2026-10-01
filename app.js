@@ -2372,7 +2372,7 @@ function mercadoSkeleton(w) {
   const d = dossierOf(w);
   const mine = currentBottle && currentBottle.price ? currentBottle.price + " €" : "—";
   return `
-    <p class="muted" style="margin:6px 0 10px">Vivino no tiene API oficial. Ahora: dossier demo. Si activas live (Wine-Searcher), se sustituye esta horquilla.</p>
+    <p class="muted" style="margin:6px 0 10px">Vivino no tiene API oficial. Ahora: dossier de demostración. Si activas el modo en vivo (Wine-Searcher), se sustituye esta horquilla.</p>
     <div class="temp-grid">
       <div class="temp"><span class="tiny">Baja</span><b>${d.market.low ? d.market.low + " €" : "—"}</b></div>
       <div class="temp"><span class="tiny">Media</span><b>${d.market.mid ? d.market.mid + " €" : "—"}</b></div>
@@ -2422,7 +2422,7 @@ function savePriceCfg() {
     apiKey: key
   });
   hideSheets();
-  toast(live && key ? "Precios: modo live" : "Precios: dossier demo");
+  toast(live && key ? "Precios: modo en vivo" : "Precios: dossier de demostración");
 }
 function hydratePriceFields() {
   if (!window.WineDataProvider) return;

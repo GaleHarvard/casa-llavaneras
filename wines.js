@@ -18,8 +18,8 @@ window.WINE_CATALOG = [
       vivino: { score: 4.7, count: 1840, scale: 5 , note: "Media de usuarios: Ciruela negra, cedro, grafito, cacao y una mineralidad de tiza."},
       penin: { score: 97, scale: 100 , note: "Ciruela negra, cedro, grafito, cacao y una mineralidad de tiza. Perfil de guía española."},
       parker: { score: 96, scale: 100, reviewer: "Luis Gutiérrez / WA" , note: "Tanino pulido, acidez viva, final interminable. Lectura de añada (dossier)."},
-      spectator: { score: 95, scale: 100 , note: "Ciruela negra, cedro, grafito, cacao y una mineralidad de tiza. Vintage assessment from the file."},
-      decanter: { score: 96, scale: 100 , note: "Ciruela negra, cedro, grafito, cacao y una mineralidad de tiza. Drink inside the published window."}
+      spectator: { score: 95, scale: 100 , note: "Ciruela negra, cedro, grafito, cacao y una mineralidad de tiza. Valoración de añada del dossier."},
+      decanter: { score: 96, scale: 100 , note: "Ciruela negra, cedro, grafito, cacao y una mineralidad de tiza. Beber dentro de la ventana publicada."}
     },
     priceHint: "450–650 €",
     tasting: "Ciruela negra, cedro, grafito, cacao y una mineralidad de tiza. Tanino pulido, acidez viva, final interminable.",
@@ -99,8 +99,8 @@ window.WINE_CATALOG = [
       vivino: { score: 4.8, count: 620, scale: 5 , note: "Media de usuarios: Concentración casi meditativa: mora, violeta, grafito húmedo, cacao."},
       penin: { score: 99, scale: 100 , note: "Concentración casi meditativa: mora, violeta, grafito húmedo, cacao. Perfil de guía española."},
       parker: { score: 99, scale: 100, reviewer: "Luis Gutiérrez / WA" , note: "Textura sedosa pese a la densidad. Lectura de añada (dossier)."},
-      spectator: { score: 97, scale: 100 , note: "Concentración casi meditativa: mora, violeta, grafito húmedo, cacao. Vintage assessment from the file."},
-      decanter: { score: 98, scale: 100 , note: "Concentración casi meditativa: mora, violeta, grafito húmedo, cacao. Drink inside the published window."}
+      spectator: { score: 97, scale: 100 , note: "Concentración casi meditativa: mora, violeta, grafito húmedo, cacao. Valoración de añada del dossier."},
+      decanter: { score: 98, scale: 100 , note: "Concentración casi meditativa: mora, violeta, grafito húmedo, cacao. Beber dentro de la ventana publicada."}
     },
     priceHint: "1.200–1.800 €",
     tasting: "Concentración casi meditativa: mora, violeta, grafito húmedo, cacao. Textura sedosa pese a la densidad.",
@@ -130,8 +130,8 @@ window.WINE_CATALOG = [
       vivino: { score: 4.4, count: 12600, scale: 5, note: "Media de usuarios: fresa, cuero y naranja confitada. Reserva clásica de Haro, muy bien valorada." },
       penin: { score: 94, scale: 100, note: "Cereza picota. Nariz compleja de crianza: cedro, té y fruta roja. Boca viva, tanino pulido, final largo." },
       parker: { score: 94, scale: 100, reviewer: "Luis Gutiérrez / WA", note: "La 2011 está en meseta: acidez brillante, tanino de Rioja Alta, sin maquillaje de roble nuevo." },
-      spectator: { score: 93, scale: 100, note: "Dried cherry, orange peel and cedar. Elegant, traditional Rioja with a long, savory finish." },
-      decanter: { score: 95, scale: 100, note: "Classic López de Heredia: tea, wild strawberry, fine leather. Drink now–2036." }
+      spectator: { score: 93, scale: 100, note: "Cereza pasa, piel de naranja y cedro. Rioja elegante y tradicional, con final largo y sabroso." },
+      decanter: { score: 95, scale: 100, note: "Clásico López de Heredia: té, fresa silvestre, cuero fino. Beber ahora–2036." }
     },
     priceHint: "38–55 €",
     tasting: "Nariz de fresa silvestre, naranja confitada, té negro, cedro y cuero de talabartería. En boca la acidez manda: tanino de Rioja Alta, no de barrica nueva. Final largo, salino, con poso de té. No es un vino de puntuación explosiva; es un reserva de calado que pide cordero o bacalao, no un filete a la pimienta.",
@@ -161,8 +161,8 @@ window.WINE_CATALOG = [
       vivino: { score: 4.2, count: 48200, scale: 5 , note: "Media de usuarios: Cereza negra, regaliz, vainilla y un fondo balsámico."},
       penin: { score: 92, scale: 100 , note: "Cereza negra, regaliz, vainilla y un fondo balsámico. Perfil de guía española."},
       parker: { score: 91, scale: 100, reviewer: "Wine Advocate" , note: "Estructura media, listo y con recorrido. Lectura de añada (dossier)."},
-      spectator: { score: 91, scale: 100 , note: "Cereza negra, regaliz, vainilla y un fondo balsámico. Vintage assessment from the file."},
-      decanter: { score: 92, scale: 100 , note: "Cereza negra, regaliz, vainilla y un fondo balsámico. Drink inside the published window."}
+      spectator: { score: 91, scale: 100 , note: "Cereza negra, regaliz, vainilla y un fondo balsámico. Valoración de añada del dossier."},
+      decanter: { score: 92, scale: 100 , note: "Cereza negra, regaliz, vainilla y un fondo balsámico. Beber dentro de la ventana publicada."}
     },
     priceHint: "18–26 €",
     tasting: "Cereza negra, regaliz, vainilla y un fondo balsámico. Estructura media, listo y con recorrido.",
@@ -191,8 +191,8 @@ window.WINE_CATALOG = [
       vivino: { score: 4.7, count: 410, scale: 5 , note: "Media de usuarios: Fresco pese a la ladera: cereza, flor de jaras, pizarra mojada, grafito."},
       penin: { score: 99, scale: 100 , note: "Fresco pese a la ladera: cereza, flor de jaras, pizarra mojada, grafito. Perfil de guía española."},
       parker: { score: 98, scale: 100, reviewer: "Luis Gutiérrez / WA" , note: "Profundidad y levedad a la vez. Lectura de añada (dossier)."},
-      spectator: { score: 96, scale: 100 , note: "Fresco pese a la ladera: cereza, flor de jaras, pizarra mojada, grafito. Vintage assessment from the file."},
-      decanter: { score: 97, scale: 100 , note: "Fresco pese a la ladera: cereza, flor de jaras, pizarra mojada, grafito. Drink inside the published window."}
+      spectator: { score: 96, scale: 100 , note: "Fresco pese a la ladera: cereza, flor de jaras, pizarra mojada, grafito. Valoración de añada del dossier."},
+      decanter: { score: 97, scale: 100 , note: "Fresco pese a la ladera: cereza, flor de jaras, pizarra mojada, grafito. Beber dentro de la ventana publicada."}
     },
     priceHint: "1.100–1.600 €",
     tasting: "Fresco pese a la ladera: cereza, flor de jaras, pizarra mojada, grafito. Profundidad y levedad a la vez.",
@@ -221,8 +221,8 @@ window.WINE_CATALOG = [
       vivino: { score: 4.1, count: 22100, scale: 5, note: "Usuarios: cítrico, salino, fácil de beber. Lo sitúan como albariño de aperitivo más que de guarda." },
       penin: { score: 92, scale: 100, note: "Color pajizo. Nariz de pomelo y hierba fresca. Boca seca, acidez alta, final amargoso de cáscara." },
       parker: { score: 91, scale: 100, reviewer: "Wine Advocate", note: "Albariño directo, sin madera. Fruta de hueso blanca y un punto de CO2 residual que alarga el paso." },
-      spectator: { score: 90, scale: 100, note: "Crisp apple and sea spray. Light body, clean finish. Best young." },
-      decanter: { score: 91, scale: 100, note: "Atlantic albariño: grapefruit, wet stone, short lees. Drink 2024–2027." }
+      spectator: { score: 90, scale: 100, note: "Manzana crujiente y brisa marina. Cuerpo ligero, final limpio. Mejor joven." },
+      decanter: { score: 91, scale: 100, note: "Albariño atlántico: pomelo, piedra húmeda, lías cortas. Beber 2024–2027." }
     },
     priceHint: "16–22 €",
     tasting: "Pomelo, manzana verde, flor de saúco y sal marina. Acidez crujiente, final largo y atlántico.",
@@ -251,8 +251,8 @@ window.WINE_CATALOG = [
       vivino: { score: 4.0, count: 5400, scale: 5 , note: "Media de usuarios: Manzana asada, hinojo, almendra y un toque de velo."},
       penin: { score: 93, scale: 100 , note: "Manzana asada, hinojo, almendra y un toque de velo. Perfil de guía española."},
       parker: { score: 93, scale: 100, reviewer: "Luis Gutiérrez / WA" , note: "Blanco de guarda con nervio. Lectura de añada (dossier)."},
-      spectator: { score: 92, scale: 100 , note: "Manzana asada, hinojo, almendra y un toque de velo. Vintage assessment from the file."},
-      decanter: { score: 92, scale: 100 , note: "Manzana asada, hinojo, almendra y un toque de velo. Drink inside the published window."}
+      spectator: { score: 92, scale: 100 , note: "Manzana asada, hinojo, almendra y un toque de velo. Valoración de añada del dossier."},
+      decanter: { score: 92, scale: 100 , note: "Manzana asada, hinojo, almendra y un toque de velo. Beber dentro de la ventana publicada."}
     },
     priceHint: "22–30 €",
     tasting: "Manzana asada, hinojo, almendra y un toque de velo. Blanco de guarda con nervio.",
@@ -281,8 +281,8 @@ window.WINE_CATALOG = [
       vivino: { score: 4.3, count: 3800, scale: 5 , note: "Media de usuarios: Brioche, manzana golden, almendra tostada y burbuja extrafina."},
       penin: { score: 96, scale: 100 , note: "Brioche, manzana golden, almendra tostada y burbuja extrafina. Perfil de guía española."},
       parker: { score: 94, scale: 100, reviewer: "Wine Advocate" , note: "Larga crianza en rima. Lectura de añada (dossier)."},
-      spectator: { score: 93, scale: 100 , note: "Brioche, manzana golden, almendra tostada y burbuja extrafina. Vintage assessment from the file."},
-      decanter: { score: 95, scale: 100 , note: "Brioche, manzana golden, almendra tostada y burbuja extrafina. Drink inside the published window."}
+      spectator: { score: 93, scale: 100 , note: "Brioche, manzana golden, almendra tostada y burbuja extrafina. Valoración de añada del dossier."},
+      decanter: { score: 95, scale: 100 , note: "Brioche, manzana golden, almendra tostada y burbuja extrafina. Beber dentro de la ventana publicada."}
     },
     priceHint: "38–52 €",
     tasting: "Brioche, manzana golden, almendra tostada y burbuja extrafina. Larga crianza en rima.",
@@ -311,8 +311,8 @@ window.WINE_CATALOG = [
       vivino: { score: 4.6, count: 18400, scale: 5 , note: "Media de usuarios: Cítrico confitado, piedra de yeso, flor blanca y un ahumado delicado."},
       penin: { score: 96, scale: 100 , note: "Cítrico confitado, piedra de yeso, flor blanca y un ahumado delicado. Perfil de guía española."},
       parker: { score: 96, scale: 100, reviewer: "William Kelley / WA" , note: "Tensión y persistencia. Lectura de añada (dossier)."},
-      spectator: { score: 95, scale: 100 , note: "Cítrico confitado, piedra de yeso, flor blanca y un ahumado delicado. Vintage assessment from the file."},
-      decanter: { score: 97, scale: 100 , note: "Cítrico confitado, piedra de yeso, flor blanca y un ahumado delicado. Drink inside the published window."}
+      spectator: { score: 95, scale: 100 , note: "Cítrico confitado, piedra de yeso, flor blanca y un ahumado delicado. Valoración de añada del dossier."},
+      decanter: { score: 97, scale: 100 , note: "Cítrico confitado, piedra de yeso, flor blanca y un ahumado delicado. Beber dentro de la ventana publicada."}
     },
     priceHint: "180–240 €",
     tasting: "Cítrico confitado, piedra de yeso, flor blanca y un ahumado delicado. Tensión y persistencia.",
@@ -341,8 +341,8 @@ window.WINE_CATALOG = [
       vivino: { score: 4.7, count: 2100, scale: 5 , note: "Media de usuarios: Violeta, cassis, grafito y una textura de seda."},
       penin: { score: 98, scale: 100 , note: "Violeta, cassis, grafito y una textura de seda. Perfil de guía española."},
       parker: { score: 99, scale: 100, reviewer: "Lisa Perrotti-Brown / WA" , note: "2016 es añada de guarda larga. Lectura de añada (dossier)."},
-      spectator: { score: 97, scale: 100 , note: "Violeta, cassis, grafito y una textura de seda. Vintage assessment from the file."},
-      decanter: { score: 100, scale: 100 , note: "Violeta, cassis, grafito y una textura de seda. Drink inside the published window."}
+      spectator: { score: 97, scale: 100 , note: "Violeta, cassis, grafito y una textura de seda. Valoración de añada del dossier."},
+      decanter: { score: 100, scale: 100 , note: "Violeta, cassis, grafito y una textura de seda. Beber dentro de la ventana publicada."}
     },
     priceHint: "650–900 €",
     tasting: "Violeta, cassis, grafito y una textura de seda. 2016 es añada de guarda larga.",
@@ -371,8 +371,8 @@ window.WINE_CATALOG = [
       vivino: { score: 4.6, count: 8900, scale: 5 , note: "Media de usuarios: Cassis, eucalipto, grafito y brisa marina."},
       penin: { score: 96, scale: 100 , note: "Cassis, eucalipto, grafito y brisa marina. Perfil de guía española."},
       parker: { score: 98, scale: 100, reviewer: "Monica Larner / WA" , note: "Elegancia toscana de corte bordelés. Lectura de añada (dossier)."},
-      spectator: { score: 97, scale: 100 , note: "Cassis, eucalipto, grafito y brisa marina. Vintage assessment from the file."},
-      decanter: { score: 97, scale: 100 , note: "Cassis, eucalipto, grafito y brisa marina. Drink inside the published window."}
+      spectator: { score: 97, scale: 100 , note: "Cassis, eucalipto, grafito y brisa marina. Valoración de añada del dossier."},
+      decanter: { score: 97, scale: 100 , note: "Cassis, eucalipto, grafito y brisa marina. Beber dentro de la ventana publicada."}
     },
     priceHint: "280–380 €",
     tasting: "Cassis, eucalipto, grafito y brisa marina. Elegancia toscana de corte bordelés.",
@@ -401,8 +401,8 @@ window.WINE_CATALOG = [
       vivino: { score: 4.6, count: 1500, scale: 5 , note: "Media de usuarios: Mora, regaliz, cacao, roble americano integrado y una potencia controlada."},
       penin: { score: 97, scale: 100 , note: "Mora, regaliz, cacao, roble americano integrado y una potencia controlada. Perfil de guía española."},
       parker: { score: 99, scale: 100, reviewer: "Erin Larkin / WA" , note: "Mora, regaliz, cacao, roble americano integrado y una potencia controlada. Lectura de añada (dossier)."},
-      spectator: { score: 98, scale: 100 , note: "Mora, regaliz, cacao, roble americano integrado y una potencia controlada. Vintage assessment from the file."},
-      decanter: { score: 98, scale: 100 , note: "Mora, regaliz, cacao, roble americano integrado y una potencia controlada. Drink inside the published window."}
+      spectator: { score: 98, scale: 100 , note: "Mora, regaliz, cacao, roble americano integrado y una potencia controlada. Valoración de añada del dossier."},
+      decanter: { score: 98, scale: 100 , note: "Mora, regaliz, cacao, roble americano integrado y una potencia controlada. Beber dentro de la ventana publicada."}
     },
     priceHint: "550–750 €",
     tasting: "Mora, regaliz, cacao, roble americano integrado y una potencia controlada.",
@@ -431,8 +431,8 @@ window.WINE_CATALOG = [
       vivino: { score: 4.5, count: 6200, scale: 5 , note: "Media de usuarios: Cereza picota, violeta, cedro y cacao."},
       penin: { score: 95, scale: 100 , note: "Cereza picota, violeta, cedro y cacao. Perfil de guía española."},
       parker: { score: 96, scale: 100, reviewer: "Luis Gutiérrez / WA" , note: "Más accesible que Único, misma estirpe. Lectura de añada (dossier)."},
-      spectator: { score: 94, scale: 100 , note: "Cereza picota, violeta, cedro y cacao. Vintage assessment from the file."},
-      decanter: { score: 95, scale: 100 , note: "Cereza picota, violeta, cedro y cacao. Drink inside the published window."}
+      spectator: { score: 94, scale: 100 , note: "Cereza picota, violeta, cedro y cacao. Valoración de añada del dossier."},
+      decanter: { score: 95, scale: 100 , note: "Cereza picota, violeta, cedro y cacao. Beber dentro de la ventana publicada."}
     },
     priceHint: "140–190 €",
     tasting: "Cereza picota, violeta, cedro y cacao. Más accesible que Único, misma estirpe.",
@@ -461,8 +461,8 @@ window.WINE_CATALOG = [
       vivino: { score: 4.4, count: 7800, scale: 5 , note: "Media de usuarios: Guinda en licor, tabaco rubio, clavo y una boca amplia de gran reserva clásico."},
       penin: { score: 96, scale: 100 , note: "Guinda en licor, tabaco rubio, clavo y una boca amplia de gran reserva clásico. Perfil de guía española."},
       parker: { score: 95, scale: 100, reviewer: "Luis Gutiérrez / WA" , note: "Guinda en licor, tabaco rubio, clavo y una boca amplia de gran reserva clásico. Lectura de añada (dossier)."},
-      spectator: { score: 94, scale: 100 , note: "Guinda en licor, tabaco rubio, clavo y una boca amplia de gran reserva clásico. Vintage assessment from the file."},
-      decanter: { score: 96, scale: 100 , note: "Guinda en licor, tabaco rubio, clavo y una boca amplia de gran reserva clásico. Drink inside the published window."}
+      spectator: { score: 94, scale: 100 , note: "Guinda en licor, tabaco rubio, clavo y una boca amplia de gran reserva clásico. Valoración de añada del dossier."},
+      decanter: { score: 96, scale: 100 , note: "Guinda en licor, tabaco rubio, clavo y una boca amplia de gran reserva clásico. Beber dentro de la ventana publicada."}
     },
     priceHint: "55–75 €",
     tasting: "Guinda en licor, tabaco rubio, clavo y una boca amplia de gran reserva clásico.",
@@ -491,8 +491,8 @@ window.WINE_CATALOG = [
       vivino: { score: 4.1, count: 4100, scale: 5 , note: "Media de usuarios: Fruta roja madura, tomillo, pizarra."},
       penin: { score: 92, scale: 100 , note: "Fruta roja madura, tomillo, pizarra. Perfil de guía española."},
       parker: { score: 92, scale: 100, reviewer: "Wine Advocate" , note: "Priorat más ágil que monumental. Lectura de añada (dossier)."},
-      spectator: { score: 91, scale: 100 , note: "Fruta roja madura, tomillo, pizarra. Vintage assessment from the file."},
-      decanter: { score: 92, scale: 100 , note: "Fruta roja madura, tomillo, pizarra. Drink inside the published window."}
+      spectator: { score: 91, scale: 100 , note: "Fruta roja madura, tomillo, pizarra. Valoración de añada del dossier."},
+      decanter: { score: 92, scale: 100 , note: "Fruta roja madura, tomillo, pizarra. Beber dentro de la ventana publicada."}
     },
     priceHint: "22–30 €",
     tasting: "Fruta roja madura, tomillo, pizarra. Priorat más ágil que monumental.",
@@ -520,8 +520,8 @@ window.WINE_CATALOG = [
       vivino: { score: 4.0, count: 1800, scale: 5 , note: "Media de usuarios: Piña asada, mantequilla fina, avellana y un final mediterráneo."},
       penin: { score: 92, scale: 100 , note: "Piña asada, mantequilla fina, avellana y un final mediterráneo. Perfil de guía española."},
       parker: { score: 90, scale: 100, reviewer: "Wine Advocate" , note: "Piña asada, mantequilla fina, avellana y un final mediterráneo. Lectura de añada (dossier)."},
-      spectator: { score: 90, scale: 100 , note: "Piña asada, mantequilla fina, avellana y un final mediterráneo. Vintage assessment from the file."},
-      decanter: { score: 91, scale: 100 , note: "Piña asada, mantequilla fina, avellana y un final mediterráneo. Drink inside the published window."}
+      spectator: { score: 90, scale: 100 , note: "Piña asada, mantequilla fina, avellana y un final mediterráneo. Valoración de añada del dossier."},
+      decanter: { score: 91, scale: 100 , note: "Piña asada, mantequilla fina, avellana y un final mediterráneo. Beber dentro de la ventana publicada."}
     },
     priceHint: "14–20 €",
     tasting: "Piña asada, mantequilla fina, avellana y un final mediterráneo.",
@@ -549,8 +549,8 @@ window.WINE_CATALOG = [
       vivino: { score: 4.3, count: 9700, scale: 5 , note: "Media de usuarios: Mora, cacao, pimienta negra y tanino de Toro que pide botella."},
       penin: { score: 94, scale: 100 , note: "Mora, cacao, pimienta negra y tanino de Toro que pide botella. Perfil de guía española."},
       parker: { score: 94, scale: 100, reviewer: "Wine Advocate" , note: "Mora, cacao, pimienta negra y tanino de Toro que pide botella. Lectura de añada (dossier)."},
-      spectator: { score: 93, scale: 100 , note: "Mora, cacao, pimienta negra y tanino de Toro que pide botella. Vintage assessment from the file."},
-      decanter: { score: 94, scale: 100 , note: "Mora, cacao, pimienta negra y tanino de Toro que pide botella. Drink inside the published window."}
+      spectator: { score: 93, scale: 100 , note: "Mora, cacao, pimienta negra y tanino de Toro que pide botella. Valoración de añada del dossier."},
+      decanter: { score: 94, scale: 100 , note: "Mora, cacao, pimienta negra y tanino de Toro que pide botella. Beber dentro de la ventana publicada."}
     },
     priceHint: "45–65 €",
     tasting: "Mora, cacao, pimienta negra y tanino de Toro que pide botella.",
@@ -610,8 +610,8 @@ window.WINE_CATALOG = [
       vivino: { score: 3.9, count: 2100, scale: 5 , note: "Media de usuarios: Fresa, sandía y pétalo."},
       penin: { score: 90, scale: 100 , note: "Fresa, sandía y pétalo. Perfil de guía española."},
       parker: { score: 89, scale: 100, reviewer: "Wine Advocate" , note: "Seco, salino, de trago largo. Lectura de añada (dossier)."},
-      spectator: { score: 88, scale: 100 , note: "Fresa, sandía y pétalo. Vintage assessment from the file."},
-      decanter: { score: 90, scale: 100 , note: "Fresa, sandía y pétalo. Drink inside the published window."}
+      spectator: { score: 88, scale: 100 , note: "Fresa, sandía y pétalo. Valoración de añada del dossier."},
+      decanter: { score: 90, scale: 100 , note: "Fresa, sandía y pétalo. Beber dentro de la ventana publicada."}
     },
     priceHint: "12–16 €",
     tasting: "Fresa, sandía y pétalo. Seco, salino, de trago largo.",

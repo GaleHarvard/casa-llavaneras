@@ -294,10 +294,10 @@
         <button class="btn btn-gold" style="width:100%" onclick="enableNotifications()">Permitir en el iPhone</button>
         <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="testNotification()">Probar aviso</button>
         <h3 style="margin-top:22px">Precios de mercado</h3>
-        <p class="muted" style="margin:6px 0 10px">Vivino no tiene API. Demo = dossier. Live = Wine-Searcher si pegas la clave.</p>
-        <label class="switch-row"><span>Usar API live</span><input id="p-live" type="checkbox" onchange="setPriceMode(this.checked)" /></label>
-        <label class="field"><span>API URL</span><input id="p-url" placeholder="https://www.wine-searcher.com/ws_api.php" /></label>
-        <label class="field"><span>API key</span><input id="p-key" placeholder="Tu clave (no se comparte)" autocomplete="off" /></label>
+        <p class="muted" style="margin:6px 0 10px">Vivino no tiene API. Demo = dossier. En vivo = Wine-Searcher si pegas la clave.</p>
+        <label class="switch-row"><span>Usar API en vivo</span><input id="p-live" type="checkbox" onchange="setPriceMode(this.checked)" /></label>
+        <label class="field"><span>URL de la API</span><input id="p-url" placeholder="https://www.wine-searcher.com/ws_api.php" /></label>
+        <label class="field"><span>Clave API</span><input id="p-key" placeholder="Tu clave (no se comparte)" autocomplete="off" /></label>
         <button class="btn btn-gold" style="width:100%" onclick="savePriceCfg()">Guardar precios</button>
       </div>
     </div>

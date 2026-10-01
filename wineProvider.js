@@ -35,7 +35,7 @@
       high: m.high || null,
       hint: wine.priceHint || "",
       trend: m.trend || "",
-      note: "Precio de dossier. Vivino no ofrece API; esto no es un scrape."
+      note: "Precio de dossier. Vivino no ofrece API; esto no es una extracción automática."
     };
   }
 
@@ -53,7 +53,7 @@
       high: n(json["price-max"] || json.price_max || json.max || json.high),
       hint: "",
       trend: json.trend || "Cotización en vivo",
-      note: json.region ? ("Fuente live · " + json.region) : "Fuente live (Wine-Searcher u otra API documentada)."
+      note: json.region ? ("Fuente en vivo · " + json.region) : "Fuente en vivo (Wine-Searcher u otra API documentada)."
     };
   }
 
@@ -82,7 +82,7 @@
       return await livePrice(wine, cfg);
     } catch (err) {
       const fallback = demoPrice(wine);
-      fallback.note = "Live no disponible (" + (err.message || "error") + "). Se muestra el dossier.";
+      fallback.note = "Modo en vivo no disponible (" + (err.message || "error") + "). Se muestra el dossier.";
       fallback.source = "demo";
       return fallback;
     }
