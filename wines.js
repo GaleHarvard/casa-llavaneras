@@ -562,6 +562,38 @@ window.WINE_CATALOG = [
     ]
   },
   {
+    id: "pesquera-reserva-2016",
+    name: "Tinto Pesquera Reserva",
+    producer: "Bodegas Alejandro Fernández",
+    vintage: 2016,
+    region: "Ribera del Duero",
+    country: "España",
+    appellation: "DO Ribera del Duero",
+    type: "tinto",
+    style: "reserva",
+    grapes: ["Tempranillo"],
+    abv: 14.5,
+    color: "#6a1a22",
+    aliases: ["pesquera", "tinto pesquera", "alejandro fernandez"],
+    ratings: {
+      vivino: { score: 4.2, count: 6400, scale: 5, note: "Media de usuarios: cereza negra, vainilla, cacao y tanino de Ribera." },
+      penin: { score: 93, scale: 100, note: "Reserva clásica de Pesquera: fruta madura, roble y longitud." },
+      parker: { score: 92, scale: 100, reviewer: "Wine Advocate", note: "Tinto Fino de Pesquera de Duero, crianza de reserva, estructura para mesa." },
+      spectator: { score: 91, scale: 100, note: "Cereza, cedro y cacao. Reserva de guarda media." },
+      decanter: { score: 92, scale: 100, note: "Etiqueta blanca de reserva. Beber en su ventana, con aire." }
+    },
+    priceHint: "28–40 €",
+    tasting: "Cereza negra, vainilla, cacao y un tanino de Ribera todavía firme. Reserva de Alejandro Fernández, Pesquera de Duero.",
+    pairing: ["Lechazo", "Chuletón", "Queso curado"],
+    conservation: { cellarMin: 12, cellarMax: 14, serveMin: 16, serveMax: 18, humidity: "65–75%", position: "horizontal", light: "oscura" },
+    aging: { drinkFrom: 2021, peakStart: 2024, peakEnd: 2032, holdTo: 2036, structure: 86 },
+    evolutionNotes: [
+      { year: 2019, phase: "Salida", text: "Reserva con crianza en roble antes de comercializar." },
+      { year: 2026, phase: "Ventana", text: "Añejo 2016 en plena mesa. Decantar 45–60 min." },
+      { year: 2032, phase: "Madurez", text: "Terciarios de cuero y caja de puros si la botella se guardó bien." }
+    ]
+  },
+  {
     id: "raidue-rose-2024",
     name: "Rosado",
     producer: "Marqués de Murrieta",

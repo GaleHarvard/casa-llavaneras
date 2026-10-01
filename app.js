@@ -1697,32 +1697,44 @@ async function ingestLabelImage(dataUrl) {
   await identifyFromPhoto(lastLabelData);
 }
 
+let lastOcrText = "";
+
+function repairOcr(raw) {
+  let s = " " + normTxt(raw) + " ";
+  s = s.replace(/pesquera|pesq[a-z0-9]{0,6}|r?c?s?squera|squer[a4]/g, " pesquera ");
+  s = s.replace(/ribera\s*del\s*duer[a-z]*/g, " ribera del duero ");
+  s = s.replace(/denominaci[o0]n/g, " denominacion ");
+  s = s.replace(/\breserva\b/g, " reserva ");
+  s = s.replace(/\bcrianza\b/g, " crianza ");
+  s = s.replace(/\btinto\b/g, " tinto ");
+  s = s.replace(/[oO](?=\d)/g, "0").replace(/(?<=\d)[oO]/g, "0");
+  s = s.replace(/\b(19|20)[\s\-]?([0-9]{2})\b/g, "$1$2");
+  const years = s.match(/\b(?:19|20)\d{2}\b/g) || [];
+  return { text: s.replace(/\s+/g, " ").trim(), years };
+}
+
 function preprocessLabel(dataUrl) {
   return new Promise(resolve => {
     const img = new Image();
     img.onload = () => {
+      const scale = Math.min(2, 1600 / img.width);
+      const w = Math.round(img.width * scale);
+      const h = Math.round(img.height * scale);
       const c = document.createElement("canvas");
-      const w = Math.min(900, img.width);
-      const h = Math.round(img.height * (w / img.width));
       c.width = w; c.height = h;
       const ctx = c.getContext("2d");
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(0, 0, w, h);
       ctx.drawImage(img, 0, 0, w, h);
-      const x0 = Math.round(w * 0.12), y0 = Math.round(h * 0.08);
-      const cw = Math.round(w * 0.76), ch = Math.round(h * 0.84);
-      const cut = document.createElement("canvas");
-      cut.width = cw; cut.height = ch;
-      const g = cut.getContext("2d");
-      g.drawImage(c, x0, y0, cw, ch, 0, 0, cw, ch);
-      const pix = g.getImageData(0, 0, cw, ch);
+      const pix = ctx.getImageData(0, 0, w, h);
       const d = pix.data;
       for (let i = 0; i < d.length; i += 4) {
-        let v = 0.21 * d[i] + 0.72 * d[i + 1] + 0.07 * d[i + 2];
-        v = (v - 128) * 1.55 + 128;
-        v = v < 90 ? 0 : v > 190 ? 255 : v;
-        d[i] = d[i + 1] = d[i + 2] = v;
+        let v = 0.3 * d[i] + 0.59 * d[i + 1] + 0.11 * d[i + 2];
+        v = (v - 128) * 1.25 + 138;
+        d[i] = d[i + 1] = d[i + 2] = Math.max(0, Math.min(255, v));
       }
-      g.putImageData(pix, 0, 0);
-      resolve(cut.toDataURL("image/jpeg", 0.85));
+      ctx.putImageData(pix, 0, 0);
+      resolve(c.toDataURL("image/png"));
     };
     img.onerror = () => resolve(dataUrl);
     img.src = dataUrl;
@@ -1742,19 +1754,35 @@ function loadTesseract() {
   return tesseractReady;
 }
 
-async function readLabelText(dataUrl) {
-  const prep = await preprocessLabel(dataUrl);
-  const Tesseract = await loadTesseract();
-  const job = Tesseract.recognize(prep, "eng", {
+async function ocrOnce(Tesseract, img) {
+  const result = await Tesseract.recognize(img, "eng+spa", {
     logger: m => {
       if (m.status === "recognizing text" && m.progress) {
         setScanStatus("Leyendo la etiqueta… " + Math.round(m.progress * 100) + "%");
       }
     }
   });
-  const timer = new Promise((_, rej) => setTimeout(() => rej(new Error("ocr-timeout")), 18000));
-  const result = await Promise.race([job, timer]);
   return (result && result.data && result.data.text) || "";
+}
+
+async function readLabelText(dataUrl) {
+  const Tesseract = await loadTesseract();
+  const prep = await preprocessLabel(dataUrl);
+  let best = "";
+  let bestScore = -1;
+  for (const img of [dataUrl, prep]) {
+    try {
+      const text = await Promise.race([
+        ocrOnce(Tesseract, img),
+        new Promise((_, rej) => setTimeout(() => rej(new Error("ocr-timeout")), 20000))
+      ]);
+      const fixed = repairOcr(text);
+      const score = (fixed.text.match(/pesquera|margaux|vega|tondonia|pingus|ribera|reserva|rioja|priorat/g) || []).length * 10 + (fixed.years.length ? 8 : 0) + Math.min(text.length, 80) / 20;
+      if (score > bestScore) { bestScore = score; best = fixed.text || text; }
+      if (score >= 18) break;
+    } catch (e) {}
+  }
+  return best;
 }
 
 function showScanConfirm(text, hits) {
@@ -1780,7 +1808,7 @@ function showScanConfirm(text, hits) {
 function confirmScanWine(id) {
   const w = wineById(id);
   if (!w) return;
-  const q = ($("#scan-q") && $("#scan-q").value) || "";
+  const q = (($("#scan-q") && $("#scan-q").value) || lastOcrText || "").trim();
   parkScanInInbox(ensureScannedWine(w, q), q);
 }
 
@@ -1804,8 +1832,9 @@ async function identifyFromPhoto(dataUrl) {
     text = "";
   }
   ocrBusy = false;
-  const hits = rankFromText(text);
-  showScanConfirm(text, hits);
+  lastOcrText = repairOcr(text).text || text;
+  const hits = rankFromText(lastOcrText);
+  showScanConfirm(lastOcrText, hits);
 }
 
 function rankFromText(raw) {
@@ -1825,7 +1854,11 @@ function rankFromText(raw) {
     if (hay.includes("valbuena") && /valbuena/.test(nam)) score += 26;
     if (hay.includes("pazo") && /pazo/.test(prod)) score += 24;
     if (hay.includes("margaux") && /margaux/.test(prod + " " + nam)) score += 40;
-    if (hay.includes("pingus") && /pingus/.test(prod + " " + nam)) score += 40;
+    const aliases = (w.aliases || []).map(normTxt);
+    aliases.forEach(t => { if (t.length >= 5 && hay.includes(t)) score += 46; });
+    if (hay.includes("pesquera") && /pesquera/.test(prod + " " + nam + " " + aliases.join(" "))) score += 40;
+    if (hay.includes("reserva") && /reserva/.test(nam)) score += 12;
+    if (hay.includes("ribera") && /ribera/.test(normTxt(w.region + " " + w.appellation))) score += 10;
     return { w, score };
   }).filter(x => x.score >= 28).sort((a, b) => b.score - a.score);
   const uniq = [];
