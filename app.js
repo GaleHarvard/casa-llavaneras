@@ -692,22 +692,133 @@ function syncUsed() {
 
 function openCave(id) {
   const v = state.vinotecas.find(x => x.id === id);
+  if (!v) return;
+  ensureCaveSlots(v);
   $("#cave-house").textContent = v.house || v.brand || "Casa Llavaneras";
   $("#cave-title").textContent = v.name;
   $("#cave-detail").innerHTML = `
     <p class="muted">${v.brand}${v.role === "prestige" ? " · reserva de las botellas más caras" : ""}</p>
     <img class="cave-photo" src="${v.photo || "cave-render-sommeliere.jpg"}" alt="${v.name}" onerror="this.src='cave-principal.jpg'" />
+    <h2>Temperatura</h2>
+    <div class="temp-grid" style="margin:12px 0">
+      <label class="temp"><span class="tiny">Zona alta °C</span><input id="cave-thigh" type="number" step="0.1" value="${Number(v.tHigh).toFixed(1)}" style="width:100%;background:transparent;border:0;color:#c9a227;font:700 22px inherit" /></label>
+      <label class="temp"><span class="tiny">Zona baja °C</span><input id="cave-tlow" type="number" step="0.1" value="${Number(v.tLow || v.tHigh).toFixed(1)}" style="width:100%;background:transparent;border:0;color:#c9a227;font:700 22px inherit" /></label>
+    </div>
+    <label class="field"><span>Humedad %</span><input id="cave-hr" type="number" value="${v.humidity || 65}" /></label>
+    <button class="btn btn-gold" style="width:100%;margin:8px 0" onclick="saveCaveTemp('${v.id}')">Modificar temperatura</button>
     <h2>Mapa de huecos</h2>
     ${rackGrid(id)}
-    <div class="temp-grid" style="margin:12px 0">
-      <div class="temp"><span class="tiny">Temperatura</span><b>${v.tHigh.toFixed(1)} °C</b></div>
-      <div class="temp"><span class="tiny">Humedad</span><b>${v.humidity}% HR</b></div>
-    </div>
+    <button class="btn btn-ghost" style="width:100%;margin:8px 0" onclick="openSpaceSheet('${v.id}')">Añadir espacios</button>
     <button class="btn btn-ghost" style="width:100%;margin:8px 0" onclick="deleteCave('${v.id}')">Dar de baja esta vinoteca</button>`;
   show("cave-detail-screen");
 }
 
+function saveCaveTemp(id) {
+  const v = state.vinotecas.find(x => x.id === id);
+  if (!v) return;
+  const hi = parseFloat($("#cave-thigh").value);
+  const lo = parseFloat($("#cave-tlow").value);
+  const hr = parseInt($("#cave-hr").value, 10);
+  if (!Number.isFinite(hi) || hi < 0 || hi > 25) return toast("Temperatura no válida");
+  v.tHigh = Math.round(hi * 10) / 10;
+  v.tLow = Number.isFinite(lo) ? Math.round(lo * 10) / 10 : v.tHigh;
+  if (Number.isFinite(hr)) v.humidity = hr;
+  save();
+  toast("Temperatura guardada · " + v.tHigh.toFixed(1) + " °C");
+  openCave(id);
+}
+
+function slotCode(n) {
+  return "E-" + String(n).padStart(2, "0");
+}
+function slotNumber(code) {
+  const m = String(code || "").match(/(\d+)\s*$/);
+  return m ? parseInt(m[1], 10) : 0;
+}
+function ensureCaveSlots(v) {
+  if (v.slots && v.slots.length) return v.slots;
+  const fromRack = rackSlots(v.id);
+  const seen = new Set();
+  v.slots = fromRack.filter(code => {
+    if (seen.has(code)) return false;
+    seen.add(code);
+    return true;
+  });
+  save();
+  return v.slots;
+}
+function nextSlotNumbers(v, count) {
+  const used = new Set((v.slots || []).map(slotNumber));
+  state.bottles.filter(b => b.cellarId === v.id && b.bin).forEach(b => used.add(slotNumber(b.bin)));
+  const out = [];
+  let n = 1;
+  while (out.length < count) {
+    if (!used.has(n)) {
+      out.push(slotCode(n));
+      used.add(n);
+    }
+    n += 1;
+    if (n > 500) break;
+  }
+  return out;
+}
+function openSpaceSheet(id) {
+  currentCaveId = id;
+  const v = state.vinotecas.find(x => x.id === id);
+  if (!v) return;
+  ensureCaveSlots(v);
+  const hint = $("#space-hint");
+  if (hint) hint.textContent = v.name + " · " + v.slots.length + " espacios. El siguiente sigue el orden E-01, E-02…";
+  const select = $("#space-existing");
+  if (select) {
+    const mine = new Set(v.slots);
+    const codes = [];
+    state.vinotecas.forEach(other => {
+      ensureCaveSlots(other);
+      other.slots.forEach(code => { if (!mine.has(code) && !codes.includes(code)) codes.push(code); });
+    });
+    select.innerHTML = codes.length
+      ? codes.map(c => `<option value="${c}">${c}</option>`).join("")
+      : `<option value="">No hay espacios libres en otras vinotecas</option>`;
+  }
+  showSheet("space-sheet");
+}
+function addSequentialSpaces() {
+  const v = state.vinotecas.find(x => x.id === currentCaveId);
+  if (!v) return;
+  ensureCaveSlots(v);
+  const count = Math.max(1, parseInt(($("#space-count") && $("#space-count").value) || "1", 10));
+  const fresh = nextSlotNumbers(v, count);
+  fresh.forEach(code => { if (!v.slots.includes(code)) v.slots.push(code); });
+  v.slots.sort((a, b) => slotNumber(a) - slotNumber(b) || a.localeCompare(b));
+  v.capacity = Math.max(v.capacity || 0, v.slots.length);
+  save();
+  hideSheets();
+  toast(fresh.length + " espacios añadidos");
+  openCave(v.id);
+}
+function assignExistingSpace() {
+  const v = state.vinotecas.find(x => x.id === currentCaveId);
+  const code = $("#space-existing") && $("#space-existing").value;
+  if (!v || !code) return toast("No hay espacio para asignar");
+  ensureCaveSlots(v);
+  if (v.slots.includes(code)) return toast("Ese espacio ya está en esta vinoteca");
+  v.slots.push(code);
+  v.slots.sort((a, b) => slotNumber(a) - slotNumber(b) || a.localeCompare(b));
+  v.capacity = Math.max(v.capacity || 0, v.slots.length);
+  save();
+  hideSheets();
+  toast("Espacio " + code + " asignado");
+  openCave(v.id);
+}
+function previewNewSlots() {
+  const n = Math.max(1, parseInt(($("#new-cave-slots") && $("#new-cave-slots").value) || "12", 10));
+  const el = $("#new-slots-preview");
+  if (el) el.textContent = "Se crearán " + Array.from({ length: Math.min(n, 6) }, (_, i) => slotCode(i + 1)).join(", ") + (n > 6 ? "…" : "");
+}
+
 let cellarView = "botellas";
+let currentCaveId = "";
 function setCellarView(v) {
   cellarView = v;
   renderCellar();
@@ -811,6 +922,11 @@ function calBlock(title, arr) {
 }
 
 function rackSlots(cellarId) {
+  const v = state.vinotecas.find(x => x.id === cellarId);
+  if (v && v.slots && v.slots.length) {
+    const extra = state.bottles.filter(b => b.cellarId === cellarId && b.bin && !v.slots.includes(b.bin)).map(b => b.bin);
+    return [...v.slots, ...extra.filter((c, i, a) => a.indexOf(c) === i)];
+  }
   const rows = cellarId === "v1" ? ["A", "B", "C", "D", "E"] : ["A", "B", "C"];
   const cols = cellarId === "v1" ? [1, 2, 3, 4, 5, 6] : [1, 2, 3, 4];
   const base = [];
@@ -1590,6 +1706,7 @@ function addCave() {
     tLow: parseFloat($("#new-cave-tl").value || "11"),
     humidity: parseInt($("#new-cave-hr").value || "68", 10),
     bins: ($("#new-cave-bins") && $("#new-cave-bins").value.trim()) || "",
+    slots: nextSlotNumbers({ slots: [], id: "new" }, Math.max(1, parseInt(($("#new-cave-slots") && $("#new-cave-slots").value) || "12", 10))),
     place: ($("#new-cave-place") && $("#new-cave-place").value.trim()) || "",
     houseId: ensureHouse(($("#new-cave-house") && $("#new-cave-house").value.trim()) || "Casa Llavaneras"),
     zones: ["Personalizada"]
@@ -2737,6 +2854,11 @@ window.enableNotifications = enableNotifications;
 window.testNotification = testNotification;
 window.moveBottle = moveBottle;
 window.addCave = addCave;
+window.saveCaveTemp = saveCaveTemp;
+window.openSpaceSheet = openSpaceSheet;
+window.addSequentialSpaces = addSequentialSpaces;
+window.assignExistingSpace = assignExistingSpace;
+window.previewNewSlots = previewNewSlots;
 window.consumeBottle = consumeBottle;
 window.showSheet = showSheet;
 window.hideSheets = hideSheets;

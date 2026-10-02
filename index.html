@@ -254,12 +254,25 @@
         <label class="field"><span>Temp. zona 1 °C</span><input id="new-cave-th" type="number" step="0.1" placeholder="13.0" /></label>
         <label class="field"><span>Temp. zona 2 °C</span><input id="new-cave-tl" type="number" step="0.1" placeholder="10.5" /></label>
         <label class="field"><span>Humedad relativa %</span><input id="new-cave-hr" type="number" placeholder="68" /></label>
+        <label class="field"><span>Espacios a crear</span><input id="new-cave-slots" type="number" min="1" value="12" /></label>
+        <button class="btn btn-ghost" style="width:100%;margin-bottom:8px" onclick="previewNewSlots()">Añadir espacios</button>
+        <p class="tiny" id="new-slots-preview"></p>
         <button class="btn btn-gold" style="width:100%" onclick="addCave()">Crear</button>
         <p class="tiny" style="margin-top:10px;text-align:center">Se creará en la casa que indiques. Los huecos sirven para localizar cada botella.</p>
       </div>
     </div>
 
-    <div id="wine-menu-sheet" class="modal-bg" onclick="if(event.target===this)hideSheets()">
+    <div id="space-sheet" class="modal-bg" onclick="if(event.target===this)hideSheets()">
+      <div class="sheet">
+        <div class="handle"></div>
+        <h3>Añadir espacios</h3>
+        <p class="tiny" id="space-hint"></p>
+        <label class="field"><span>Nuevos espacios seguidos</span><input id="space-count" type="number" min="1" value="6" /></label>
+        <button class="btn btn-gold" style="width:100%" onclick="addSequentialSpaces()">Crear espacios nuevos</button>
+        <label class="field" style="margin-top:14px"><span>Asignar un espacio ya existente</span><select id="space-existing"></select></label>
+        <button class="btn btn-ghost" style="width:100%" onclick="assignExistingSpace()">Asignar a esta vinoteca</button>
+      </div>
+    </div>
       <div class="sheet">
         <div class="handle"></div>
         <h3>Más de este vino</h3>
