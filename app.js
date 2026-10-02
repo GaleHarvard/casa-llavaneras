@@ -1042,14 +1042,21 @@ function bottleAsset(w) {
   if (kind === "white" || kind === "slim" || kind === "rose") return "botellas/blanco.jpg";
   return "botellas/tinto.jpg";
 }
+function bottleSilhouette(kind) {
+  const glass = kind === "white" || kind === "slim" || kind === "rose" ? "#d7c48a" : kind === "spark" ? "#e6d7a2" : "#6b1c28";
+  const neck = kind === "slim" || kind === "white" || kind === "spark" ? 18 : 22;
+  return `<svg class="bottle-svg" viewBox="0 0 80 200" aria-label="Silueta ${kind}">
+    <path d="M${40-neck/2} 8 h${neck} v28 c8 8 16 18 16 36 v96 c0 14-10 24-${16+neck/2} 24 h-${neck} c-${6+neck/2} 0-${16+neck/2}-10-${16+neck/2}-24 V72 c0-18 8-28 16-36 V8z" fill="${glass}" stroke="#e2c56a" stroke-width="1.4"/>
+    <rect x="${40-neck/2+1}" y="8" width="${neck-2}" height="16" rx="2" fill="#c9a227"/>
+    <rect x="24" y="92" width="32" height="46" rx="3" fill="#f4efe4" opacity="0.9"/>
+  </svg>`;
+}
 function estateSVG(w) {
   const art = estateArt(w);
   const kind = bottleKind(w);
   return `
-    <img class="estate-photo" src="${art.land}" alt="Viñedo">
-    <div class="foil-wrap">
-      <img class="bottle-photo bottle-${kind}" src="${bottleAsset(w)}" alt="Silueta ${kind}">
-    </div>`;
+    <img class="estate-photo" src="${art.land}" alt="Viñedo" onerror="this.style.display='none'">
+    <div class="foil-wrap">${bottleSilhouette(kind)}</div>`;
 }
 
 function dishArt() {
@@ -1102,7 +1109,7 @@ function openWine(wineId, bottle) {
       <button class="back" onclick="goBack()">‹ ${backCaption()}</button>
       <div class="spacer"></div>
       <button class="icon-btn fav ${isFav(w.id) ? "on" : ""}" onclick="toggleFav('${w.id}')" aria-label="Favorito">${isFav(w.id) ? "♥" : "♡"}</button>
-      <button class="icon-btn" onclick="openWineMenu()">···</button>
+      <button type="button" class="icon-btn" onclick="openWineMenu()" aria-label="Más de este vino">···</button>
     </div>
     <div class="wine-hero">${estateSVG(w)}</div>
     <h1 class="wine-producer">${w.producer}</h1>

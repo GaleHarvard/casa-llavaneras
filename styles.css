@@ -572,14 +572,7 @@ label.field span {
   align-items: flex-end;
   justify-content: flex-end;
 }
-.bottle-photo {
-  width: 148px;
-  height: 214px;
-  object-fit: cover;
-  border-radius: 16px;
-  border: 1px solid rgba(226,197,106,.45);
-  box-shadow: 0 12px 22px rgba(0,0,0,.45);
-}
+.bottle-svg { width: 92px; height: 210px; filter: drop-shadow(0 14px 18px rgba(0,0,0,.5)); }
 .bottle-spark { object-position: 78% 40%; }
 .bottle-white, .bottle-slim, .bottle-rose { object-position: 70% 42%; }
 .bottle-red { object-position: 58% 48%; }
