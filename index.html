@@ -309,10 +309,12 @@
         <button class="btn btn-gold" style="width:100%" onclick="enableNotifications()">Permitir en el iPhone</button>
         <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="testNotification()">Probar aviso</button>
         <h3 style="margin-top:22px">Precios de mercado</h3>
-        <p class="muted" style="margin:6px 0 10px">Vivino no tiene API. Demo = dossier. Live = Wine-Searcher si pegas la clave.</p>
-        <label class="switch-row"><span>Usar API live</span><input id="p-live" type="checkbox" onchange="setPriceMode(this.checked)" /></label>
+        <p class="muted" style="margin:6px 0 10px">Vivino no tiene API. Sin clave se usa el dossier. Gemini estima la horquilla (no es una cotización). Wine-Searcher solo si tienes su clave.</p>
+        <label class="switch-row"><span>Estimar con Gemini</span><input id="p-gemini" type="checkbox" /></label>
+        <label class="field"><span>Clave Gemini (AI Studio)</span><input id="p-gemini-key" type="password" placeholder="No se guarda en el código" autocomplete="off" /></label>
+        <label class="switch-row"><span>Usar Wine-Searcher</span><input id="p-live" type="checkbox" onchange="setPriceMode(this.checked)" /></label>
         <label class="field"><span>API URL</span><input id="p-url" placeholder="https://www.wine-searcher.com/ws_api.php" /></label>
-        <label class="field"><span>API key</span><input id="p-key" placeholder="Tu clave (no se comparte)" autocomplete="off" /></label>
+        <label class="field"><span>Clave Wine-Searcher</span><input id="p-key" placeholder="Opcional" autocomplete="off" /></label>
         <button class="btn btn-gold" style="width:100%" onclick="savePriceCfg()">Guardar precios</button>
       </div>
     </div>
@@ -324,7 +326,7 @@
   <script src="dossiers.js"></script>
   <script src="providers/wineProvider.js"></script>
   <script src="pairings.js"></script>
-  <script src="app.js?v=50"></script>
+  <script src="app.js?v=51"></script>
   <script>
     document.querySelectorAll(".tab").forEach((t, i) => {
       const icons = [
@@ -336,7 +338,7 @@
       ];
       t.querySelector("span").outerHTML = icons[i];
     });
-    if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=50").catch(() => {});
+    if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=51").catch(() => {});
   </script>
 </body>
 </html>

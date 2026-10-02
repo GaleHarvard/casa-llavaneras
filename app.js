@@ -2566,23 +2566,31 @@ function mercadoSkeleton(w) {
   const d = dossierOf(w);
   const mine = currentBottle && currentBottle.price ? currentBottle.price + " €" : "—";
   return `
-    <p class="muted" style="margin:6px 0 10px">Vivino no tiene API oficial. Ahora: dossier demo. Si activas live (Wine-Searcher), se sustituye esta horquilla.</p>
+    <p class="muted" style="margin:6px 0 10px">Dossier local. Si Gemini está activo, la horquilla se sustituye al responder.</p>
     <div class="temp-grid">
       <div class="temp"><span class="tiny">Baja</span><b>${d.market.low ? d.market.low + " €" : "—"}</b></div>
       <div class="temp"><span class="tiny">Media</span><b>${d.market.mid ? d.market.mid + " €" : "—"}</b></div>
       <div class="temp"><span class="tiny">Alta</span><b>${d.market.high ? d.market.high + " €" : "—"}</b></div>
       <div class="temp"><span class="tiny">Tu coste</span><b>${mine}</b></div>
     </div>
-    <p class="tiny" id="mercado-src">Cargando fuente…</p>`;
+    <p class="tiny" id="mercado-src">Dossier · EUR</p>`;
 }
 
 async function fillMercado(w) {
   const box = document.getElementById("mercado-box");
   if (!box || !window.WineDataProvider) return;
-  const quote = await WineDataProvider.priceOf(w);
+  let quote;
+  try {
+    quote = await WineDataProvider.priceOf(w);
+  } catch (err) {
+    quote = WineDataProvider.demoPrice(w);
+    quote.note = "No se pudo estimar (" + (err.message || "error") + "). Dossier.";
+  }
+  if (!document.getElementById("mercado-box")) return;
   const d = dossierOf(w);
   const mine = currentBottle && currentBottle.price ? currentBottle.price + " €" : "—";
   const euro = (n) => n ? n + " €" : "—";
+  const tag = quote.source === "gemini" ? "Gemini" : quote.source === "live" ? "Live" : "Dossier";
   box.innerHTML = `
     <p class="muted" style="margin:6px 0 10px">${quote.note}</p>
     <div class="temp-grid">
@@ -2591,7 +2599,7 @@ async function fillMercado(w) {
       <div class="temp"><span class="tiny">Alta</span><b>${euro(quote.high)}</b></div>
       <div class="temp"><span class="tiny">Tu coste</span><b>${mine}</b></div>
     </div>
-    <div class="card"><p class="tiny">${quote.source === "live" ? "Live" : "Dossier"} · ${quote.currency}</p>
+    <div class="card"><p class="tiny">${tag} · ${quote.currency || "EUR"}${quote.confianza ? " · confianza " + quote.confianza : ""}</p>
       <p class="muted" style="margin-top:6px">${quote.trend || ""}</p></div>
     ${d.similar && d.similar.length ? `<h2 style="margin:16px 0 8px">Parecidos en catálogo</h2>${d.similar.map(id => {
       const s = wineById(id);
@@ -2610,13 +2618,17 @@ function savePriceCfg() {
   const url = ($("#p-url") && $("#p-url").value.trim()) || "";
   const key = ($("#p-key") && $("#p-key").value.trim()) || "";
   const live = $("#p-live") && $("#p-live").checked;
+  const geminiOn = $("#p-gemini") && $("#p-gemini").checked;
+  const geminiKey = ($("#p-gemini-key") && $("#p-gemini-key").value.trim()) || "";
   WineDataProvider.saveCfg({
     mode: live && key ? "live" : "demo",
     apiUrl: url || "https://www.wine-searcher.com/ws_api.php",
-    apiKey: key
+    apiKey: key,
+    geminiOn: !!(geminiOn && geminiKey),
+    geminiKey: geminiKey
   });
   hideSheets();
-  toast(live && key ? "Precios: modo live" : "Precios: dossier demo");
+  toast(geminiOn && geminiKey ? "Precios: estimación Gemini" : live && key ? "Precios: Wine-Searcher" : "Precios: dossier");
 }
 function hydratePriceFields() {
   if (!window.WineDataProvider) return;
@@ -2624,6 +2636,8 @@ function hydratePriceFields() {
   if ($("#p-live")) $("#p-live").checked = cfg.mode === "live" && !!cfg.apiKey;
   if ($("#p-url")) $("#p-url").value = cfg.apiUrl || "";
   if ($("#p-key")) $("#p-key").value = cfg.apiKey || "";
+  if ($("#p-gemini")) $("#p-gemini").checked = !!cfg.geminiOn && !!cfg.geminiKey;
+  if ($("#p-gemini-key")) $("#p-gemini-key").value = cfg.geminiKey || "";
 }
 
 function prefs() { return state.prefs || (state.prefs = {}); }
