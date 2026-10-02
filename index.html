@@ -15,7 +15,7 @@
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
   <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png" />
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="styles.css?v=50" />
 </head>
 <body>
   <div class="device">
@@ -324,7 +324,7 @@
   <script src="dossiers.js"></script>
   <script src="providers/wineProvider.js"></script>
   <script src="pairings.js"></script>
-  <script src="app.js"></script>
+  <script src="app.js?v=50"></script>
   <script>
     document.querySelectorAll(".tab").forEach((t, i) => {
       const icons = [
@@ -336,7 +336,7 @@
       ];
       t.querySelector("span").outerHTML = icons[i];
     });
-    if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+    if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=50").catch(() => {});
   </script>
 </body>
 </html>
