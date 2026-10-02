@@ -1452,9 +1452,7 @@ function openWineSub(kind) {
       </div>`;
   }
   const art = estateArt(w);
-  const bodegaImg = kind === "mapa" && art.land
-    ? `<img class="estate-wide" src="${art.land}" alt="${w.producer}" style="margin:6px 0 12px;height:200px;object-fit:contain;background:#000">`
-    : "";
+  const bodegaImg = "";
   const titleCss = kind === "mapa" ? "font-size:22px;margin:4px 0 10px;line-height:1.15" : "margin-bottom:16px";
   const eyeCss = kind === "mapa" ? "font-size:10px;margin:0" : "";
   $("#wine-sub-body").innerHTML = `
@@ -2491,7 +2489,8 @@ const BODEGA_GEO = {
   "Scala Dei": { lat: 41.2547, lng: 0.8095, zone: "Escaladei · Priorat", address: "Rambla de la Cartoixa, 5, 43379 Escaladei, Tarragona", web: "https://www.cellersdescaladei.com" },
   "Enrique Mendoza": { lat: 38.580, lng: -0.103, zone: "Alfaz del Pi · Alicante", web: "https://www.bodegasmendoza.com" },
   "Numanthia": { lat: 41.525, lng: -5.395, zone: "Valdefinjas · Toro", web: "https://www.numanthia.com" },
-  "Marqués de Murrieta": { lat: 42.430, lng: -2.445, zone: "Ygay · Rioja", web: "https://www.marquesdemurrieta.com" }
+  "Marqués de Murrieta": { lat: 42.430, lng: -2.445, zone: "Ygay · Rioja", web: "https://www.marquesdemurrieta.com" },
+  "Bodegas Alejandro Fernández": { lat: 41.641, lng: -4.158, zone: "Pesquera de Duero", address: "Pesquera de Duero, Valladolid", web: "https://www.grupopesquera.com" }
 };
 
 function bodegaGeo(w) {
@@ -2539,12 +2538,45 @@ function mapTabs(on) {
     <button type="button" class="${on === "vinos" ? "on" : ""}" onclick="openWineSub('vinos')">Vinos</button>
   </div>`;
 }
+function placeLine(w, g) {
+  if (g.address) return g.address;
+  const zone = String(g.zone || "").trim();
+  const region = String(w.region || "").trim();
+  if (!zone) return region;
+  if (!region || zone.toLowerCase() === region.toLowerCase() || zone.toLowerCase().includes(region.toLowerCase())) return zone;
+  return zone + " · " + region;
+}
+function marketBand(w) {
+  const d = dossierOf(w);
+  const m = (d && d.market) || {};
+  if (m.low || m.mid || m.high) {
+    return { low: m.low || null, mid: m.mid || null, high: m.high || null, note: m.trend || "Dossier de la casa", source: "dossier" };
+  }
+  const nums = String((w && w.priceHint) || "").match(/\d+(?:[.,]\d+)?/g);
+  if (nums && nums.length) {
+    const vals = nums.map(n => Math.round(Number(String(n).replace(",", ".")))).filter(n => n > 0);
+    if (vals.length) {
+      const low = Math.min.apply(null, vals);
+      const high = Math.max.apply(null, vals);
+      const mid = vals.length === 1 ? vals[0] : Math.round((low + high) / 2);
+      return {
+        low: vals.length === 1 ? Math.round(vals[0] * 0.9) : low,
+        mid: mid,
+        high: vals.length === 1 ? Math.round(vals[0] * 1.12) : high,
+        note: "Horquilla de la ficha (" + w.priceHint + "). No es cotización.",
+        source: "ficha"
+      };
+    }
+  }
+  return { low: null, mid: null, high: null, note: "Sin precio en la ficha. Activa Gemini en Avisos si quieres una estimación.", source: "vacio" };
+}
 function mapaBlock(w) {
   const art = estateArt(w);
   const g = bodegaGeo(w);
   const file = (p) => "./" + String(p || "").replace(/^\.\//, "");
   const mapSrc = file(art.map || "mapa-ribera.jpg");
-  const landSrc = file(art.land || "vinedo-ribera.jpg");
+  const same = String(art.land || "") === String(art.map || "");
+  const landSrc = same ? "" : file(art.land || "");
   const osm = `https://www.openstreetmap.org/?mlat=${g.lat}&mlon=${g.lng}#map=16/${g.lat}/${g.lng}`;
   const pin = `${g.lat},${g.lng}`;
   const gmaps = `https://www.google.com/maps?q=${pin}`;
@@ -2555,7 +2587,7 @@ function mapaBlock(w) {
     <p class="tiny" style="margin:0 0 10px;text-align:center">${g.zone || w.region}</p>
     <p class="eyebrow" style="font-size:10px;letter-spacing:.14em;margin:2px 0 0">${w.appellation || ""}</p>
     <h3 style="font-size:17px;margin:2px 0 2px;line-height:1.2">${w.producer}</h3>
-    <p class="muted" style="margin:0 0 12px;font-size:13px">${g.address || (g.zone + " · " + w.region)}</p>
+    <p class="muted" style="margin:0 0 12px;font-size:13px">${placeLine(w, g)}</p>
     <a class="btn btn-ghost" style="width:100%;margin-top:10px;display:block;text-align:center" href="${gmaps}" target="_blank" rel="noopener noreferrer" onclick="return openExternal(this.href)">Google Maps</a>
     <a class="btn btn-ghost" style="width:100%;margin-top:8px;display:block;text-align:center" href="${apple}" target="_blank" rel="noopener noreferrer" onclick="return openExternal(this.href)">Mapas de Apple</a>
     <a class="btn btn-ghost" style="width:100%;margin-top:8px;display:block;text-align:center" href="${osm}" target="_blank" rel="noopener noreferrer" onclick="return openExternal(this.href)">OpenStreetMap</a>
@@ -2563,28 +2595,36 @@ function mapaBlock(w) {
 }
 
 function mercadoSkeleton(w) {
-  const d = dossierOf(w);
+  const band = marketBand(w);
   const mine = currentBottle && currentBottle.price ? currentBottle.price + " €" : "—";
+  const euro = (n) => n ? n + " €" : "—";
   return `
-    <p class="muted" style="margin:6px 0 10px">Dossier local. Si Gemini está activo, la horquilla se sustituye al responder.</p>
+    <p class="muted" style="margin:6px 0 10px">${band.note}</p>
     <div class="temp-grid">
-      <div class="temp"><span class="tiny">Baja</span><b>${d.market.low ? d.market.low + " €" : "—"}</b></div>
-      <div class="temp"><span class="tiny">Media</span><b>${d.market.mid ? d.market.mid + " €" : "—"}</b></div>
-      <div class="temp"><span class="tiny">Alta</span><b>${d.market.high ? d.market.high + " €" : "—"}</b></div>
+      <div class="temp"><span class="tiny">Baja</span><b>${euro(band.low)}</b></div>
+      <div class="temp"><span class="tiny">Media</span><b>${euro(band.mid)}</b></div>
+      <div class="temp"><span class="tiny">Alta</span><b>${euro(band.high)}</b></div>
       <div class="temp"><span class="tiny">Tu coste</span><b>${mine}</b></div>
     </div>
-    <p class="tiny" id="mercado-src">Dossier · EUR</p>`;
+    <p class="tiny" id="mercado-src">${band.source === "ficha" ? "Ficha" : band.source === "dossier" ? "Dossier" : "Sin fuente"} · EUR</p>`;
 }
 
 async function fillMercado(w) {
   const box = document.getElementById("mercado-box");
   if (!box || !window.WineDataProvider) return;
+  const band = marketBand(w);
   let quote;
   try {
     quote = await WineDataProvider.priceOf(w);
   } catch (err) {
-    quote = WineDataProvider.demoPrice(w);
-    quote.note = "No se pudo estimar (" + (err.message || "error") + "). Dossier.";
+    quote = { low: band.low, mid: band.mid, high: band.high, currency: "EUR", source: band.source, note: band.note, trend: "" };
+  }
+  if (!quote.low && !quote.mid && !quote.high) {
+    quote.low = band.low;
+    quote.mid = band.mid;
+    quote.high = band.high;
+    quote.note = (quote.note ? quote.note + " " : "") + band.note;
+    quote.source = band.source;
   }
   if (!document.getElementById("mercado-box")) return;
   const d = dossierOf(w);
