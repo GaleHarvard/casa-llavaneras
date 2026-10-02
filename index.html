@@ -88,7 +88,7 @@
                       </div>
           <div class="search">
             <span>⌕</span>
-            <input id="cellar-q" placeholder="Buscar botellas…" oninput="renderCellar()" />
+            <input id="cellar-q" placeholder="Buscar en cava y catálogo…" oninput="renderCellar()" />
           </div>
           <div class="chip-row">
             <button class="chip on" onclick="setFilter('todos', this)">Todos</button>
@@ -131,6 +131,10 @@
           <p class="eyebrow">Escáner</p>
           <h1>Entradas</h1>
           <p class="muted" style="margin:0 0 14px">Vinos leídos por foto. Aún no están en stock hasta que les des entrada.</p>
+          <div class="search">
+            <span>⌕</span>
+            <input id="inbox-q" placeholder="Buscar en entradas…" oninput="renderInbox()" />
+          </div>
           <div id="inbox-list"></div>
         </div>
       </section>
@@ -165,7 +169,7 @@
           <div id="scan-results" style="margin-top:14px"></div>
           <div class="search" style="margin-top:12px">
             <span>⌕</span>
-            <input id="scan-q" placeholder="O escribe bodega / añada" onkeydown="if(event.key==='Enter')runIdentify()" />
+            <input id="scan-q" placeholder="O escribe bodega / añada" oninput="previewScanQuery()" onkeydown="if(event.key==='Enter')runIdentify()" />
           </div>
         </div>
       </section>
@@ -326,7 +330,7 @@
   <script src="dossiers.js"></script>
   <script src="providers/wineProvider.js"></script>
   <script src="pairings.js"></script>
-  <script src="app.js?v=52"></script>
+  <script src="app.js?v=53"></script>
   <script>
     document.querySelectorAll(".tab").forEach((t, i) => {
       const icons = [
@@ -338,7 +342,7 @@
       ];
       t.querySelector("span").outerHTML = icons[i];
     });
-    if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=52").catch(() => {});
+    if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=53").catch(() => {});
   </script>
 </body>
 </html>

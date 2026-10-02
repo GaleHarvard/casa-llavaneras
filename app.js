@@ -823,14 +823,24 @@ function setCellarView(v) {
   cellarView = v;
   renderCellar();
 }
+function fold(s) {
+  return String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+function wineHay(w, extra) {
+  if (!w) return "";
+  return fold([w.producer, w.name, w.vintage, w.region, w.appellation, w.type, (w.aliases || []).join(" "), w.priceHint, extra || ""].join(" "));
+}
+function catalogWines() {
+  return WINE_CATALOG.concat(state.customWines || []);
+}
 function renderCellar() {
-  const q = ($("#cellar-q")?.value || "").toLowerCase();
+  const q = fold($("#cellar-q")?.value || "");
+  const typeOk = (w) => filterType === "todos" || w.type === filterType || (filterType === "rosado" && w.type === "rose");
   let list = state.bottles.filter(b => {
     const w = wineById(b.wineId);
     if (!w) return false;
-    const hay = `${w.producer} ${w.name} ${w.vintage} ${w.region} ${w.type} ${cellarName(b.cellarId)} ${b.bin || ""}`.toLowerCase();
-    const typeOk = filterType === "todos" || w.type === filterType;
-    return typeOk && hay.includes(q);
+    const hay = wineHay(w, cellarName(b.cellarId) + " " + (b.bin || ""));
+    return typeOk(w) && (!q || hay.includes(q));
   });
   const tabs = [["botellas","Botellas"],["productores","Productores"],["lotes","Lotes"],["ubicaciones","Ubicaciones"]];
   const tabHtml = `<div class="chip-row" style="margin:0 0 10px">${tabs.map(([k,l]) => `<button class="chip ${cellarView===k?"on":""}" onclick="setCellarView('${k}')">${l}</button>`).join("")}</div>`;
@@ -844,12 +854,12 @@ function renderCellar() {
     body = Object.keys(by).sort().map(p => {
       const qty = by[p].reduce((n, x) => n + x.qty, 0);
       const w = wineById(by[p][0].wineId);
-      return `<div class="card" role="button" onclick="openWine('${w.id}')"><div class="row"><h3>${p}</h3><span class="tiny">${qty} ud</span></div><p class="muted">${by[p].length} lote${by[p].length>1?"s":""}</p></div>`;
+      return `<div class="card" role="button" onclick="openWine('${w.id}')"><div class="row"><h3>${p}</h3><span class="tiny">${qty} ud</span></div><p class="muted">${by[p].length} lote${by[p].length>1?"s":""}</p><button class="btn btn-ghost" style="margin-top:8px" onclick="event.stopPropagation();removeWineLots('${w.id}')">Quitar</button></div>`;
     }).join("");
   } else if (cellarView === "lotes") {
     body = list.map(b => {
       const w = wineById(b.wineId);
-      return `<div class="card" role="button" onclick="openBottle('${b.uid}')"><div class="row"><h3>${w.producer}</h3><span class="tiny">×${b.qty}</span></div><p class="muted">${w.name} ${w.vintage}</p><p class="tiny">${cellarName(b.cellarId)} · ${state.prefs.hideBin ? "hueco oculto" : (b.bin || "sin hueco")}</p></div>`;
+      return `<div class="card" role="button" onclick="openBottle('${b.uid}')"><div class="row"><h3>${w.producer}</h3><span class="tiny">×${b.qty}</span></div><p class="muted">${w.name} ${w.vintage}</p><p class="tiny">${cellarName(b.cellarId)} · ${state.prefs.hideBin ? "hueco oculto" : (b.bin || "sin hueco")}</p><button class="btn btn-ghost" style="margin-top:8px" onclick="event.stopPropagation();removeLot('${b.uid}')">Quitar lote</button></div>`;
     }).join("");
   } else if (cellarView === "ubicaciones") {
     const by = {};
@@ -867,7 +877,41 @@ function renderCellar() {
     list.forEach(b => { (byWine[b.wineId] || (byWine[b.wineId] = [])).push(b); });
     body = Object.keys(byWine).map(id => wineStockCard(byWine[id])).join("");
   }
-  $("#cellar-list").innerHTML = tabHtml + (body || `<p class="empty">Sin coincidencias. Escanea o añade a mano.</p>`);
+  const stockIds = new Set(state.bottles.map(b => b.wineId));
+  const catalog = q ? catalogWines().filter(w => typeOk(w) && !stockIds.has(w.id) && wineHay(w).includes(q)).slice(0, 12) : [];
+  const catalogHtml = catalog.length ? `<p class="tiny" style="margin:14px 0 8px">En catálogo, no en cava</p>` + catalog.map(catalogHit).join("") : "";
+  const empty = !body && !catalogHtml ? `<p class="empty">${q ? "Sin coincidencias para «" + ($("#cellar-q").value || "") + "»." : "La cava está vacía. Escanea o añade a mano."}</p>` : "";
+  $("#cellar-list").innerHTML = tabHtml + body + catalogHtml + empty;
+}
+function catalogHit(w) {
+  return `<div class="inv-card" role="button" onclick="openWine('${w.id}')">
+    <div class="inv-sil" style="--c:${w.color || "#6a1a22"}"></div>
+    <div class="inv-meta">
+      <div class="row"><h3>${w.producer.split(" ").slice(0,3).join(" ")}</h3><span class="badge">Catálogo</span></div>
+      <p class="inv-title">${w.name} ${w.vintage}</p>
+      <p class="muted">${w.appellation || w.region} · ${w.priceHint || "sin horquilla"}</p>
+    </div>
+  </div>`;
+}
+function removeLot(uid) {
+  const b = state.bottles.find(x => x.uid === uid);
+  if (!b) return;
+  const w = wineById(b.wineId);
+  if (!confirm("Quitar este lote" + (w ? " de " + w.name : "") + " del listado?")) return;
+  state.bottles = state.bottles.filter(x => x.uid !== uid);
+  save();
+  renderCellar();
+  toast("Lote quitado");
+}
+function removeWineLots(wineId) {
+  const w = wineById(wineId);
+  const n = state.bottles.filter(b => b.wineId === wineId).reduce((s, b) => s + b.qty, 0);
+  if (!n) return;
+  if (!confirm("Quitar " + n + " botella" + (n > 1 ? "s" : "") + (w ? " de " + w.name : "") + " del inventario?")) return;
+  state.bottles = state.bottles.filter(b => b.wineId !== wineId);
+  save();
+  renderCellar();
+  toast("Quitado del listado");
 }
 
 function wineStockCard(lots) {
@@ -883,6 +927,7 @@ function wineStockCard(lots) {
       <p class="inv-title">${w.name} ${w.vintage}</p>
       <p class="muted">${qty} botella${qty>1?"s":""} · ${lots.length} lote${lots.length>1?"s":""}</p>
       <p class="tiny">${locs}</p>
+      <button class="btn btn-ghost" style="margin-top:8px" onclick="event.stopPropagation();removeWineLots('${w.id}')">Quitar del listado</button>
     </div>
     <div class="inv-score">★ ${w.ratings.parker.score}</div>
   </div>`;
@@ -2083,10 +2128,19 @@ function parkScanInInbox(wine, text) {
 function renderInbox() {
   const box = $("#inbox-list");
   if (!box) return;
-  const rows = state.inbox || [];
-  if (!rows.length) {
+  const q = fold(($("#inbox-q") && $("#inbox-q").value) || "");
+  const rows = (state.inbox || []).filter(row => {
+    const w = wineById(row.wineId);
+    const hay = wineHay(w, row.text || "");
+    return !q || hay.includes(q);
+  });
+  if (!(state.inbox || []).length) {
     box.innerHTML = `<div class="card muted">Aún no hay lecturas. Escanea una etiqueta.</div>
       <button class="btn btn-gold" style="width:100%;margin-top:12px" onclick="startScan()">Abrir cámara</button>`;
+    return;
+  }
+  if (!rows.length) {
+    box.innerHTML = `<p class="empty">Ninguna entrada coincide. Borra la búsqueda para ver el listado.</p>`;
     return;
   }
   box.innerHTML = rows.map(row => {
@@ -2107,10 +2161,21 @@ function renderInbox() {
             ? `<button class="btn btn-ghost" onclick="openWine('${row.wineId}')">Ver ficha</button>`
             : `<button class="btn btn-gold" onclick="enterInbox('${row.uid}')">Dar entrada</button>
                <button class="btn btn-ghost" onclick="openWine('${row.wineId}')">Ficha</button>`}
+          <button class="btn btn-ghost" onclick="deleteInbox('${row.uid}')">Eliminar</button>
         </div>
       </div>
     </article>`;
   }).join("") + `<button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="startScan()">Escanear otra</button>`;
+}
+function deleteInbox(uid) {
+  const row = (state.inbox || []).find(x => x.uid === uid);
+  if (!row) return;
+  const w = wineById(row.wineId);
+  if (!confirm("Eliminar esta lectura" + (w ? " de " + w.name : "") + " del listado?")) return;
+  state.inbox = (state.inbox || []).filter(x => x.uid !== uid);
+  save();
+  renderInbox();
+  toast("Lectura eliminada");
 }
 function enterInbox(uid) {
   const row = (state.inbox || []).find(x => x.uid === uid);
@@ -2179,9 +2244,21 @@ function inferWineFromText(raw) {
 }
 
 function identifyFromCatalog(q) {
-  const s = normTxt(q);
+  const s = fold(q);
   if (!s) return WINE_CATALOG.slice(0, 8);
-  return WINE_CATALOG.filter(w => normTxt(`${w.producer} ${w.name} ${w.vintage} ${w.region} ${w.grapes.join(" ")}`).includes(s));
+  const tokens = s.split(/\s+/).filter(t => t.length > 1);
+  return catalogWines().filter(w => {
+    const hay = wineHay(w, (w.grapes || []).join(" "));
+    return tokens.every(t => hay.includes(t));
+  });
+}
+function previewScanQuery() {
+  const q = ($("#scan-q") && $("#scan-q").value) || "";
+  if (!fold(q)) {
+    if ($("#scan-results")) $("#scan-results").innerHTML = "";
+    return;
+  }
+  renderHits(identifyFromCatalog(q).slice(0, 8), "Coincidencias", true);
 }
 
 function runIdentify() {
@@ -2973,6 +3050,10 @@ window.previewNewSlots = previewNewSlots;
 window.consumeBottle = consumeBottle;
 window.showSheet = showSheet;
 window.hideSheets = hideSheets;
+window.removeLot = removeLot;
+window.removeWineLots = removeWineLots;
+window.deleteInbox = deleteInbox;
+window.previewScanQuery = previewScanQuery;
 window.setFilter = (t, btn) => {
   filterType = t;
   $$(".chip").forEach(c => c.classList.toggle("on", c === btn));
