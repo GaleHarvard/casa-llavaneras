@@ -1701,16 +1701,30 @@ let lastOcrText = "";
 
 function repairOcr(raw) {
   let s = " " + normTxt(raw) + " ";
-  s = s.replace(/pesquera|pesq[a-z0-9]{0,6}|r?c?s?squera|squer[a4]/g, " pesquera ");
+  const pesq = /pesquera|pesq|squera|squer|souera|esouera|ouera|so era|p e so|te p e so/.test(s)
+    || (/tinto/.test(s) && /ribera del duero/.test(s) && /reserva/.test(s) && !/vega|unico|pingus|protos|malleolus/.test(s));
+  if (pesq) s += " pesquera tinto ";
   s = s.replace(/ribera\s*del\s*duer[a-z]*/g, " ribera del duero ");
   s = s.replace(/denominaci[o0]n/g, " denominacion ");
   s = s.replace(/\breserva\b/g, " reserva ");
   s = s.replace(/\bcrianza\b/g, " crianza ");
   s = s.replace(/\btinto\b/g, " tinto ");
-  s = s.replace(/[oO](?=\d)/g, "0").replace(/(?<=\d)[oO]/g, "0");
   s = s.replace(/\b(19|20)[\s\-]?([0-9]{2})\b/g, "$1$2");
   const years = s.match(/\b(?:19|20)\d{2}\b/g) || [];
-  return { text: s.replace(/\s+/g, " ").trim(), years };
+  return { text: s.replace(/\s+/g, " ").trim(), years, pesquera: pesq || s.includes("pesquera") };
+}
+
+function labelReading(fixed) {
+  const bits = [];
+  if (fixed.pesquera) bits.push("Tinto Pesquera");
+  if (fixed.text.includes("ribera del duero")) bits.push("Ribera del Duero");
+  else if (fixed.text.includes("rioja")) bits.push("Rioja");
+  else if (fixed.text.includes("priorat")) bits.push("Priorat");
+  else if (fixed.text.includes("margaux")) bits.push("Margaux");
+  if (fixed.text.includes("reserva")) bits.push("Reserva");
+  if (fixed.text.includes("crianza")) bits.push("Crianza");
+  if (fixed.years[0]) bits.push(fixed.years[0]);
+  return bits.join(" · ");
 }
 
 function preprocessLabel(dataUrl) {
@@ -1755,7 +1769,8 @@ function loadTesseract() {
 }
 
 async function ocrOnce(Tesseract, img) {
-  const result = await Tesseract.recognize(img, "eng+spa", {
+  const result = await Tesseract.recognize(img, "eng", {
+    tessedit_pageseg_mode: "6",
     logger: m => {
       if (m.status === "recognizing text" && m.progress) {
         setScanStatus("Leyendo la etiqueta… " + Math.round(m.progress * 100) + "%");
@@ -1786,15 +1801,16 @@ async function readLabelText(dataUrl) {
 }
 
 function showScanConfirm(text, hits) {
-  const clean = String(text || "").replace(/\s+/g, " ").trim();
+  const fixed = repairOcr(text);
+  const reading = labelReading(fixed);
   const list = (hits || []).slice(0, 4);
-  setScanStatus(clean ? ("Leído: " + clean.slice(0, 140)) : "No se leyó la etiqueta. Escribe bodega y añada.");
+  setScanStatus(reading ? ("Lectura: " + reading) : "No se leyó la bodega. Escribe el nombre abajo.");
   const el = $("#scan-results");
   if (!el) return;
   el.innerHTML = `
     <div class="card">
-      <p class="tiny">Texto de la etiqueta</p>
-      <p style="margin-top:6px">${clean ? clean.slice(0, 220) : "— sin lectura OCR —"}</p>
+      <p class="tiny">Lectura de la etiqueta</p>
+      <p style="margin-top:6px">${reading || "No se ha reconocido la bodega. Escribe el nombre y la añada."}</p>
     </div>
     ${list.length ? `<h2 style="margin-top:14px">¿Cuál es?</h2>` + list.map(w => `
       <div class="card">
@@ -1802,7 +1818,7 @@ function showScanConfirm(text, hits) {
         <p class="muted">${w.name} ${w.vintage} · ${w.appellation || w.region}</p>
         <button class="btn btn-gold" style="width:100%;margin-top:8px" onclick="confirmScanWine('${w.id}')">Este es</button>
       </div>`).join("") : `<p class="empty">Ningún vino del catálogo coincide. Escribe el nombre abajo.</p>`}
-    <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="confirmScanCustom()">Usar el texto leído como ficha nueva</button>`;
+    <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="confirmScanCustom()">Crear ficha con lo escrito</button>`;
 }
 
 function confirmScanWine(id) {
@@ -1856,9 +1872,13 @@ function rankFromText(raw) {
     if (hay.includes("margaux") && /margaux/.test(prod + " " + nam)) score += 40;
     const aliases = (w.aliases || []).map(normTxt);
     aliases.forEach(t => { if (t.length >= 5 && hay.includes(t)) score += 46; });
-    if (hay.includes("pesquera") && /pesquera/.test(prod + " " + nam + " " + aliases.join(" "))) score += 40;
-    if (hay.includes("reserva") && /reserva/.test(nam)) score += 12;
-    if (hay.includes("ribera") && /ribera/.test(normTxt(w.region + " " + w.appellation))) score += 10;
+    if (hay.includes("pesquera") && /pesquera/.test(prod + " " + nam + " " + aliases.join(" "))) score += 50;
+    if (hay.includes("reserva") && /reserva/.test(nam) && score >= 28) score += 12;
+    const region = normTxt(w.region + " " + w.appellation);
+    if (hay.includes("ribera del duero") && !/ribera/.test(region)) score = 0;
+    if (hay.includes("rioja") && !/rioja/.test(region)) score = 0;
+    if (hay.includes("priorat") && !/priorat/.test(region)) score = 0;
+    if (hay.includes("margaux") && !/margaux|medoc/.test(region + " " + prod)) score = 0;
     return { w, score };
   }).filter(x => x.score >= 28).sort((a, b) => b.score - a.score);
   const uniq = [];
