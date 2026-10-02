@@ -1053,10 +1053,10 @@ function bottleSilhouette(kind) {
 }
 function estateSVG(w) {
   const art = estateArt(w);
-  const kind = bottleKind(w);
+  const src = bottleAsset(w) + "?v=47";
   return `
-    <img class="estate-photo" src="${art.land}" alt="Viñedo" onerror="this.style.display='none'">
-    <div class="foil-wrap">${bottleSilhouette(kind)}</div>`;
+    <img class="estate-photo" src="${art.land}" alt="" onerror="this.style.display='none'">
+    <div class="foil-wrap"><img class="bottle-photo" src="${src}" alt=""></div>`;
 }
 
 function dishArt() {
