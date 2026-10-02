@@ -1036,11 +1036,20 @@ function bottleSVG(w) {
     <defs><linearGradient id="foil" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f6e7b4"/><stop offset=".5" stop-color="#c9a24a"/><stop offset="1" stop-color="#8a6a28"/></linearGradient></defs>
   </svg>`;
 }
+function bottleAsset(w) {
+  const kind = bottleKind(w);
+  if (kind === "spark") return "botellas/espumoso.jpg";
+  if (kind === "white" || kind === "slim" || kind === "rose") return "botellas/blanco.jpg";
+  return "botellas/tinto.jpg";
+}
 function estateSVG(w) {
   const art = estateArt(w);
+  const kind = bottleKind(w);
   return `
     <img class="estate-photo" src="${art.land}" alt="Viñedo">
-    <div class="foil-wrap">${bottleSVG(w)}</div>`;
+    <div class="foil-wrap">
+      <img class="bottle-photo bottle-${kind}" src="${bottleAsset(w)}" alt="Silueta ${kind}">
+    </div>`;
 }
 
 function dishArt() {

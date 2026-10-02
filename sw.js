@@ -1,5 +1,5 @@
-const CACHE = "casa-llavaneras-ios-v44";
-const ASSETS = ["./", "./index.html", "./styles.css", "./app.js", "./wines.js", "./dossiers.js", "./providers/wineProvider.js", "./pairings.js", "./manifest.json", "./icon.svg", "./apple-touch-icon.png", "./icon-192.png", "./icon-512.png", "./cave-principal.jpg", "./capsula.jpg"];
+const CACHE = "casa-llavaneras-ios-v45";
+const ASSETS = ["./", "./index.html", "./styles.css", "./app.js", "./wines.js", "./dossiers.js", "./providers/wineProvider.js", "./pairings.js", "./manifest.json", "./icon.svg", "./apple-touch-icon.png", "./icon-192.png", "./icon-512.png", "./cave-principal.jpg", "./capsula.jpg", "./botellas/espumoso.jpg", "./botellas/blanco.jpg", "./botellas/tinto.jpg"];
 self.addEventListener("install", e => {
   self.skipWaiting();
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).catch(() => {}));

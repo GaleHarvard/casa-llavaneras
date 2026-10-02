@@ -536,43 +536,57 @@ label.field span {
 .wine-top .back {
   padding: 10px 14px;
   font-size: 18px;
-  color: #f6edd8;
-  background: rgba(201,162,39,.18);
-  border: 1px solid rgba(201,162,39,.55);
+  font-weight: 650;
+  letter-spacing: .01em;
+  color: #fff8e8;
+  background: #1a1408;
+  border: 1.5px solid #e2c56a;
   border-radius: 12px;
+  box-shadow: 0 0 0 1px rgba(0,0,0,.7);
 }
 .wine-top .spacer { flex: 1; }
 .icon-btn {
-  width: 44px; height: 44px;
-  border: 1px solid rgba(201,162,39,.55);
-  background: rgba(201,162,39,.18);
-  color: #f6edd8;
+  width: 46px; height: 46px;
+  border: 1.5px solid #e2c56a;
+  background: #1a1408;
+  color: #fff8e8;
   border-radius: 12px;
-  font-size: 20px;
+  font-size: 22px;
+  font-weight: 650;
   display: grid; place-items: center;
   cursor: pointer;
+  box-shadow: 0 0 0 1px rgba(0,0,0,.7);
 }
-.bottle-svg { width: 118px; height: 200px; filter: drop-shadow(0 12px 18px rgba(0,0,0,.45)); }
-.bottle-white path, .bottle-slim path, .bottle-rose path, .bottle-spark path { opacity: .92; }
 .wine-hero {
   position: relative;
-  height: 200px;
+  height: 228px;
   margin: 4px 0 18px;
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
 }
+.foil-wrap {
+  width: 46%;
+  height: 220px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+}
+.bottle-photo {
+  width: 148px;
+  height: 214px;
+  object-fit: cover;
+  border-radius: 16px;
+  border: 1px solid rgba(226,197,106,.45);
+  box-shadow: 0 12px 22px rgba(0,0,0,.45);
+}
+.bottle-spark { object-position: 78% 40%; }
+.bottle-white, .bottle-slim, .bottle-rose { object-position: 70% 42%; }
+.bottle-red { object-position: 58% 48%; }
 .estate-mark {
   width: 54%;
   height: 150px;
   color: var(--gold2);
-}
-.foil-wrap {
-  width: 46%;
-  height: 200px;
-  display: flex;
-  align-items: flex-end;
-  justify-content: flex-end;
 }
 .foil-photo {
   width: 120px;
