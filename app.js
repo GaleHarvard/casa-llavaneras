@@ -992,13 +992,55 @@ function estateArt(w) {
   return { land: "mapa-rioja.jpg", cap: "capsula.jpg", map: "mapa-rioja.jpg" };
 }
 
+function capsuleLines(w) {
+  const raw = String(w.appellation || w.region || "").replace(/^DO(Ca|P|C)?\s*/i, "").trim();
+  if (!raw) return [];
+  const words = raw.split(/\s+/).slice(0, 5);
+  const lines = [];
+  let line = "";
+  words.forEach(word => {
+    const next = (line + " " + word).trim();
+    if (next.length > 12 && line) { lines.push(line); line = word; }
+    else line = next;
+  });
+  if (line) lines.push(line);
+  if (w.country && lines.length < 3) lines.push(String(w.country).toUpperCase());
+  return lines.slice(0, 3);
+}
+function bottleKind(w) {
+  const t = normTxt(`${w.type || ""} ${w.style || ""} ${w.appellation || ""} ${w.region || ""} ${w.name || ""} ${(w.grapes || []).join(" ")}`);
+  if (/cava|champagne|espumoso|corpinnat/.test(t)) return "spark";
+  if (/albarino|rias baixas|riesling|alsace|mosela/.test(t)) return "slim";
+  if (/blanco|white|chardonnay|godello|verdejo|viura/.test(t)) return "white";
+  if (/rosado|rose/.test(t)) return "rose";
+  return "red";
+}
+function bottleSVG(w) {
+  const kind = bottleKind(w);
+  const lines = capsuleLines(w);
+  const label = lines.map((line, i) => `<text x="60" y="${38 + i * 11}" text-anchor="middle" fill="#2a1c08" font-size="8" font-family="Georgia, serif" font-weight="700">${line.toUpperCase()}</text>`).join("");
+  const glass = { red: "#3a1018", white: "#e6d7a2", slim: "#f0e2ae", rose: "#e7b7c0", spark: "#d8c48a" }[kind];
+  const body = kind === "spark"
+    ? `<path d="M46 78h28v18c8 6 14 18 14 40v42c0 10-8 16-28 16s-28-6-28-16v-42c0-22 6-34 14-40V78z" fill="${glass}"/>`
+    : kind === "slim"
+      ? `<path d="M50 78h20v28c6 10 10 22 10 48v28c0 8-6 14-20 14s-20-6-20-14v-28c0-26 4-38 10-48V78z" fill="${glass}"/>`
+      : `<path d="M44 78h32v16c10 8 16 20 16 42v40c0 12-10 18-32 18s-32-6-32-18v-40c0-22 6-34 16-42V78z" fill="${glass}"/>`;
+  const muselet = kind === "spark"
+    ? `<path d="M52 70c4 8 12 8 16 0M60 74v10M50 84h20" fill="none" stroke="#d7d7d7" stroke-width="1.4"/>`
+    : "";
+  return `<svg class="bottle-svg bottle-${kind}" viewBox="0 0 120 200" aria-label="${lines.join(" ") || "Botella"}">
+    <rect x="48" y="8" width="24" height="70" rx="6" fill="url(#foil)"/>
+    ${label}
+    ${muselet}
+    ${body}
+    <defs><linearGradient id="foil" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f6e7b4"/><stop offset=".5" stop-color="#c9a24a"/><stop offset="1" stop-color="#8a6a28"/></linearGradient></defs>
+  </svg>`;
+}
 function estateSVG(w) {
   const art = estateArt(w);
   return `
     <img class="estate-photo" src="${art.land}" alt="Viñedo">
-    <div class="foil-wrap">
-      <img class="foil-photo" src="${art.cap}" alt="Cápsula">
-    </div>`;
+    <div class="foil-wrap">${bottleSVG(w)}</div>`;
 }
 
 function dishArt() {
