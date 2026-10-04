@@ -150,7 +150,7 @@
           </div>
           <div class="card" role="button" onclick="pickFromRoll()">
             <h3>Carta o lineal</h3>
-            <p class="muted">Foto del carrete. Crea la ficha y deja el hueco indicado hasta entrar en la bodega.</p>
+            <p class="muted">Foto del carrete. Lee la etiqueta, busca el vino en internet y puedes confirmar la ficha.</p>
           </div>
           <button id="scan-cam-btn" class="btn btn-gold" style="width:100%" onclick="captureOrOpenCamera()">Abrir cámara</button>
           <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="pickFromRoll()">Elegir de fotos</button>
@@ -331,7 +331,7 @@
   <script src="dossiers.js"></script>
   <script src="providers/wineProvider.js"></script>
   <script src="pairings.js"></script>
-  <script src="app.js?v=55"></script>
+  <script src="app.js?v=56"></script>
   <script>
     document.querySelectorAll(".tab").forEach((t, i) => {
       const icons = [
@@ -343,7 +343,7 @@
       ];
       t.querySelector("span").outerHTML = icons[i];
     });
-    if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=55").catch(() => {});
+    if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=56").catch(() => {});
   </script>
 </body>
 </html>

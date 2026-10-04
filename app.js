@@ -2130,24 +2130,113 @@ async function readLabelText(dataUrl) {
   return best;
 }
 
-function showScanConfirm(text, hits) {
+let lastInternetHits = [];
+let photoSearchGen = 0;
+
+function escHtml(s) {
+  return String(s || "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+function plainWiki(s) {
+  return String(s || "")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#0*39;/g, "'")
+    .replace(/&nbsp;/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+function searchTokens(q) {
+  return normTxt(q).split(" ").filter(t => t.length >= 4 && !/^(vino|wine|bodega|cata|etiqueta)$/.test(t) && !/^(19|20)\d{2}$/.test(t));
+}
+function relevantHits(rows, tokens, source) {
+  return rows.map(row => ({
+    title: plainWiki(row.title),
+    extract: plainWiki(row.snippet).slice(0, 220),
+    pageid: row.pageid || 0,
+    source
+  })).filter(h => {
+    if (!h.title) return false;
+    if (!tokens.length) return true;
+    const title = normTxt(h.title);
+    return tokens.some(t => title.includes(t));
+  });
+}
+async function lookupWineOnline(query) {
+  const q = String(query || "").replace(/\s+/g, " ").trim();
+  if (q.length < 3) {
+    return { query: q, hits: [], state: "sin-texto", note: "La foto no dejó un nombre legible. No hay texto para buscar en internet. Escribe bodega y añada." };
+  }
+  const noYear = q.replace(/\b(?:19|20)\d{2}\b/g, " ").replace(/\s+/g, " ").trim();
+  const attempts = noYear && noYear !== q ? [q, noYear] : [q];
+  const tokens = searchTokens(noYear || q);
+  const hosts = [
+    ["https://es.wikipedia.org", "Wikipedia"],
+    ["https://en.wikipedia.org", "Wikipedia (EN)"]
+  ];
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 12000);
+  let lastNote = "La búsqueda en internet no respondió.";
+  try {
+    for (const [host, source] of hosts) {
+      for (const attempt of attempts) {
+        const url = host + "/w/api.php?action=query&list=search&srlimit=5&utf8=1&format=json&origin=*&srsearch=" + encodeURIComponent(attempt + " vino");
+        let res;
+        try {
+          res = await fetch(url, { signal: ctrl.signal, headers: { Accept: "application/json" } });
+        } catch (err) {
+          if (err && err.name === "AbortError") return { query: q, hits: [], state: "error", note: "La búsqueda en internet tardó demasiado." };
+          lastNote = "Sin conexión para buscar el vino.";
+          continue;
+        }
+        if (!res.ok) { lastNote = "La búsqueda en internet respondió " + res.status + "."; continue; }
+        let json;
+        try { json = await res.json(); } catch (e) { lastNote = "La búsqueda en internet no devolvió datos."; continue; }
+        const rows = (((json || {}).query || {}).search) || [];
+        const hits = relevantHits(rows, tokens, source).slice(0, 4);
+        if (hits.length) return { query: q, hits, state: "ok", note: "Búsqueda en internet · " + source + "." };
+      }
+    }
+    return { query: q, hits: [], state: "vacio", note: "Búsqueda hecha en internet. No hay coincidencia para «" + q + "»." };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+function showScanConfirm(text, hits, remote) {
   const fixed = repairOcr(text);
   const reading = labelReading(fixed);
   const list = (hits || []).slice(0, 4);
-  setScanStatus(reading ? ("Lectura: " + reading) : "No se leyó la bodega. Escribe el nombre abajo.");
+  remote = remote || { hits: [], state: "omitida", note: "Aún no se ha buscado en internet.", query: "" };
+  lastInternetHits = remote.hits || [];
+  const remoteCards = lastInternetHits.length ? lastInternetHits.map((h, i) => `
+      <div class="card">
+        <p class="tiny">${escHtml(h.source || "Internet")}</p>
+        <h3>${escHtml(h.title)}</h3>
+        <p class="muted">${escHtml(h.extract || "Sin extracto.")}</p>
+        <button class="btn btn-gold" style="width:100%;margin-top:8px" onclick="confirmInternetWine(${i})">Usar esta ficha</button>
+      </div>`).join("") : `<div class="card"><p>${escHtml(remote.note || "Sin resultado.")}</p></div>`;
+  const status = remote.state === "ok"
+    ? ("Búsqueda en internet: " + lastInternetHits.length + " resultado" + (lastInternetHits.length === 1 ? "" : "s") + ".")
+    : (remote.note || (reading ? ("Lectura: " + reading) : "No se leyó la bodega."));
+  setScanStatus(status);
   const el = $("#scan-results");
   if (!el) return;
   el.innerHTML = `
     <div class="card">
       <p class="tiny">Lectura de la etiqueta</p>
-      <p style="margin-top:6px">${reading || "No se ha reconocido la bodega. Escribe el nombre y la añada."}</p>
+      <p style="margin-top:6px">${escHtml(reading || text || "No se ha reconocido la bodega. Escribe el nombre y la añada.")}</p>
     </div>
-    ${list.length ? `<h2 style="margin-top:14px">¿Cuál es?</h2>` + list.map(w => `
+    <h2 style="margin-top:14px">Búsqueda en internet</h2>
+    <p class="tiny" style="margin:0 0 8px">${escHtml(remote.note || "")}</p>
+    ${remoteCards}
+    ${list.length ? `<h2 style="margin-top:14px">En el catálogo</h2>` + list.map(w => `
       <div class="card">
-        <h3>${w.producer}</h3>
-        <p class="muted">${w.name} ${w.vintage} · ${w.appellation || w.region}</p>
+        <h3>${escHtml(w.producer)}</h3>
+        <p class="muted">${escHtml(w.name + " " + w.vintage + " · " + (w.appellation || w.region || ""))}</p>
         <button class="btn btn-gold" style="width:100%;margin-top:8px" onclick="confirmScanWine('${w.id}')">Este es</button>
-      </div>`).join("") : `<p class="empty">Ningún vino del catálogo coincide. Escribe el nombre abajo.</p>`}
+      </div>`).join("") : `<p class="empty">Ningún vino del catálogo local coincide.</p>`}
     <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="confirmScanCustom()">Crear ficha con lo escrito</button>`;
 }
 
@@ -2165,6 +2254,52 @@ function confirmScanCustom() {
   if (!w) return toast("Escribe bodega y añada");
   parkScanInInbox(w, raw, intakeSource || "camara");
 }
+function wineFromInternetHit(hit) {
+  const raw = ((hit && hit.title) || "") + " " + (lastOcrText || "");
+  const local = rankFromText(raw);
+  if (local[0]) return ensureScannedWine(local[0], raw);
+  const id = "web-" + ((hit && hit.pageid) || Date.now());
+  const existed = wineById(id);
+  if (existed) return existed;
+  const year = yearFromText(raw) || YEAR;
+  const title = (hit && hit.title) || "Vino buscado";
+  const w = {
+    id, name: title, producer: title, vintage: year,
+    region: "", country: "", appellation: "", type: "tinto", style: "internet",
+    grapes: [], abv: 0, color: "#4a1020",
+    ratings: {
+      vivino: { score: 0, count: 0, scale: 5, note: "" },
+      penin: { score: 0, scale: 100, note: "" },
+      parker: { score: 0, scale: 100, reviewer: "", note: "Ficha a partir de la búsqueda en internet." },
+      spectator: { score: 0, scale: 100, note: "" },
+      decanter: { score: 0, scale: 100, note: "" }
+    },
+    priceHint: "—",
+    tasting: (hit && hit.extract) || "Ficha creada desde la búsqueda de la foto.",
+    pairing: [],
+    conservation: { cellarMin: 12, cellarMax: 14, serveMin: 16, serveMax: 18, humidity: "65–75%", position: "horizontal", light: "oscura" },
+    aging: { drinkFrom: year + 1, peakStart: year + 3, peakEnd: year + 10, holdTo: year + 15 },
+    evolutionNotes: []
+  };
+  state.customWines = state.customWines || [];
+  state.customWines.push(w);
+  return w;
+}
+function confirmInternetWine(i) {
+  const hit = lastInternetHits[i];
+  if (!hit) return toast("Ese resultado ya no está");
+  const w = wineFromInternetHit(hit);
+  if (!w) return toast("No se pudo crear la ficha");
+  parkScanInInbox(w, lastOcrText || hit.title, intakeSource || "fototeca");
+}
+async function searchAndShowLabel(text) {
+  const gen = ++photoSearchGen;
+  setScanStatus("Buscando el vino en internet…");
+  if ($("#scan-results")) $("#scan-results").innerHTML = `<div class="card muted">Buscando el vino en internet…</div>`;
+  const remote = await lookupWineOnline(text);
+  if (gen !== photoSearchGen) return;
+  showScanConfirm(text, rankFromText(text), remote);
+}
 
 async function identifyFromPhoto(dataUrl) {
   if (ocrBusy) {
@@ -2172,8 +2307,9 @@ async function identifyFromPhoto(dataUrl) {
     return;
   }
   ocrBusy = true;
-  setScanStatus("Leyendo la etiqueta…");
-  if ($("#scan-results")) $("#scan-results").innerHTML = `<div class="card muted">Analizando la foto. Un momento.</div>`;
+  const fromRoll = intakeSource === "fototeca";
+  setScanStatus(fromRoll ? "Foto de la fototeca. Leyendo la etiqueta…" : "Leyendo la etiqueta…");
+  if ($("#scan-results")) $("#scan-results").innerHTML = `<div class="card muted">${fromRoll ? "Foto elegida. Leyendo la etiqueta para buscar el vino." : "Analizando la foto. Un momento."}</div>`;
   let text = "";
   try {
     text = await readLabelText(dataUrl);
@@ -2183,8 +2319,7 @@ async function identifyFromPhoto(dataUrl) {
     ocrBusy = false;
   }
   lastOcrText = repairOcr(text).text || text;
-  const hits = rankFromText(lastOcrText);
-  showScanConfirm(lastOcrText, hits);
+  await searchAndShowLabel(lastOcrText);
 }
 
 function rankFromText(raw) {

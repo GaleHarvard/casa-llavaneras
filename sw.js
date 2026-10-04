@@ -1,4 +1,4 @@
-const CACHE = "casa-llavaneras-ios-v55";
+const CACHE = "casa-llavaneras-ios-v56";
 const ASSETS = ["./", "./index.html", "./styles.css", "./app.js", "./wines.js", "./dossiers.js", "./providers/wineProvider.js", "./pairings.js", "./manifest.json", "./icon.svg", "./apple-touch-icon.png", "./icon-192.png", "./icon-512.png", "./cave-principal.jpg", "./capsula.jpg", "./botella-tinto.jpg", "./botella-blanco.jpg", "./botella-espumoso.jpg"];
 self.addEventListener("install", e => {
   self.skipWaiting();
@@ -9,6 +9,7 @@ self.addEventListener("activate", e => {
 });
 self.addEventListener("fetch", e => {
   const url = e.request.url;
+  if (new URL(url).origin !== self.location.origin) return;
   if (/\.(js|css|html)$/.test(url) || e.request.mode === "navigate") {
     e.respondWith(fetch(e.request).then(r => {
       const copy = r.clone();
