@@ -128,9 +128,9 @@
       <section id="inbox" class="screen">
         <div class="scroll">
           <button class="back" onclick="show('home',{tab:true})">‹ Inicio</button>
-          <p class="eyebrow">Escáner</p>
+          <p class="eyebrow">Altas pendientes</p>
           <h1>Entradas</h1>
-          <p class="muted" style="margin:0 0 14px">Vinos leídos por foto. Aún no están en stock hasta que les des entrada.</p>
+          <p class="muted" style="margin:0 0 14px">Fichas ya creadas que aún no están en la bodega. El hueco reservado se ve aquí y en la hoja de la vinoteca.</p>
           <div class="search">
             <span>⌕</span>
             <input id="inbox-q" placeholder="Buscar en entradas…" oninput="renderInbox()" />
@@ -144,15 +144,15 @@
           <button class="back" onclick="goBack()">‹ Inicio</button>
           <p class="eyebrow">Un toque</p>
           <h1>Escanear</h1>
-          <div class="card" role="button" onclick="pickLabelPhoto()">
+          <div class="card" role="button" onclick="captureOrOpenCamera()">
             <h3>Etiqueta</h3>
-            <p class="muted">Abre la cámara. Foto vertical de la botella y se crea la ficha.</p>
+            <p class="muted">Cámara. Lee la etiqueta, crea la ficha y reserva el hueco en altas pendientes.</p>
           </div>
           <div class="card" role="button" onclick="pickFromRoll()">
             <h3>Carta o lineal</h3>
-            <p class="muted">Elige una foto del carrete. Buscamos coincidencias y guardamos.</p>
+            <p class="muted">Foto del carrete. Crea la ficha y deja el hueco indicado hasta entrar en la bodega.</p>
           </div>
-          <div class="scan-stage scan-stage-vert" onclick="pickLabelPhoto()">
+          <div class="scan-stage scan-stage-vert" onclick="onScanStage()">
             <video id="cam" playsinline muted hidden></video>
             <img id="scan-preview" alt="Etiqueta capturada" hidden />
             <canvas id="scan-canvas" hidden></canvas>
@@ -163,7 +163,7 @@
           <input id="scan-file-cam" type="file" accept="image/*" capture="environment" hidden />
           <input id="scan-file-lib" type="file" accept="image/*" hidden />
           <input id="scan-file" type="file" accept="image/*" hidden />
-          <button class="btn btn-gold" style="width:100%" onclick="pickLabelPhoto()">Abrir cámara</button>
+          <button id="scan-cam-btn" class="btn btn-gold" style="width:100%" onclick="captureOrOpenCamera()">Abrir cámara</button>
           <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="pickFromRoll()">Elegir de fotos</button>
           <div id="scan-status" class="tiny" style="margin-top:10px"></div>
           <div id="scan-results" style="margin-top:14px"></div>
@@ -171,6 +171,7 @@
             <span>⌕</span>
             <input id="scan-q" placeholder="O escribe bodega / añada" oninput="previewScanQuery()" onkeydown="if(event.key==='Enter')runIdentify()" />
           </div>
+          <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="manualIntake()">Alta manual</button>
         </div>
       </section>
 
@@ -223,7 +224,7 @@
         <div class="handle"></div>
         <h3>Añadir a vinoteca</h3>
         <p class="tiny" id="add-keep-hint" style="margin:0 0 10px"></p>
-        <label class="field"><span>Vinoteca</span><select id="add-cellar" onchange="refreshAddKeep()"></select></label>
+        <label class="field"><span>Vinoteca</span><select id="add-cellar" onchange="onAddCellarChange()"></select></label>
         <label class="field"><span>Hueco / bandeja</span><input id="add-bin" placeholder="A-14" /></label>
         <label class="field"><span>Botellas</span><input id="add-qty" type="number" min="1" value="1" /></label>
         <label class="field"><span>Precio € / botella</span><input id="add-price" type="number" step="0.01" /></label>
@@ -330,7 +331,7 @@
   <script src="dossiers.js"></script>
   <script src="providers/wineProvider.js"></script>
   <script src="pairings.js"></script>
-  <script src="app.js?v=53"></script>
+  <script src="app.js?v=54"></script>
   <script>
     document.querySelectorAll(".tab").forEach((t, i) => {
       const icons = [
@@ -342,7 +343,7 @@
       ];
       t.querySelector("span").outerHTML = icons[i];
     });
-    if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=53").catch(() => {});
+    if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=54").catch(() => {});
   </script>
 </body>
 </html>
