@@ -87,6 +87,7 @@ let screenId = "home";
 let navStack = [];
 let currentSub = "";
 let lastLabelData = null;
+let intakeSource = "camara";
 let ocrBusy = false;
 let tesseractReady = null;
 
@@ -984,15 +985,31 @@ function rackGrid(cellarId) {
   const list = state.bottles.filter(b => b.cellarId === cellarId);
   const byBin = {};
   list.forEach(b => { if (b.bin) byBin[b.bin] = b; });
+  const pending = {};
+  (state.inbox || []).forEach(r => {
+    if (!r.entered && r.cellarId === cellarId && r.bin && !byBin[r.bin]) pending[r.bin] = r;
+  });
   return `<div class="rack">${rackSlots(cellarId).map(code => {
     const b = byBin[code];
-    if (!b) return `<div class="rack-slot empty"><b>${code}</b><small>—</small><span class="rack-dot off"></span></div>`;
-    const w = wineById(b.wineId);
-    return `<button class="rack-slot" onclick="openBottle('${b.uid}')">
-      <b>${code}</b>
-      <small>${w.producer.split(" ").slice(-2).join(" ")} ${shortWineName(w)} ${w.vintage}</small>
-      <span class="rack-dot"></span>
-    </button>`;
+    if (b) {
+      const w = wineById(b.wineId);
+      return `<button class="rack-slot" onclick="openBottle('${b.uid}')">
+        <b>${code}</b>
+        <small>${w.producer.split(" ").slice(-2).join(" ")} ${shortWineName(w)} ${w.vintage}</small>
+        <span class="rack-dot"></span>
+      </button>`;
+    }
+    const p = pending[code];
+    if (p) {
+      const w = wineById(p.wineId);
+      const name = w ? (w.producer.split(" ").slice(-2).join(" ") + " " + w.vintage) : "Alta";
+      return `<button class="rack-slot" onclick="openWine('${p.wineId}')">
+        <b>${code}</b>
+        <small>${name} · pendiente</small>
+        <span class="rack-dot"></span>
+      </button>`;
+    }
+    return `<div class="rack-slot empty"><b>${code}</b><small>—</small><span class="rack-dot off"></span></div>`;
   }).join("")}</div>`;
 }
 
@@ -1123,6 +1140,33 @@ function toggleFav(id) {
   if (currentWine && currentWine.id === id) openWine(id, currentBottle);
 }
 
+function normalizeWine(w) {
+  if (!w || typeof w !== "object") return w;
+  if (!w.conservation) w.conservation = { cellarMin: 12, cellarMax: 14, serveMin: 16, serveMax: 18, humidity: "65–75%", position: "horizontal", light: "oscura" };
+  const y = Number(w.vintage) || YEAR;
+  if (!w.aging) w.aging = { drinkFrom: y + 1, peakStart: y + 3, peakEnd: y + 10, holdTo: y + 15 };
+  if (!w.aging.holdTo) w.aging.holdTo = w.aging.drinkTo || ((Number(w.aging.peakEnd) || y + 10) + 4);
+  if (!w.aging.drinkFrom) w.aging.drinkFrom = y + 1;
+  if (!w.aging.peakStart) w.aging.peakStart = y + 3;
+  if (!w.aging.peakEnd) w.aging.peakEnd = y + 10;
+  if (!Array.isArray(w.evolutionNotes)) w.evolutionNotes = [];
+  if (!Array.isArray(w.grapes)) w.grapes = [];
+  if (!w.ratings) w.ratings = {};
+  const scales = { vivino: 5, penin: 100, parker: 100, spectator: 100, decanter: 100 };
+  Object.keys(scales).forEach(k => {
+    if (!w.ratings[k]) w.ratings[k] = { score: 0, scale: scales[k], note: "" };
+    if (w.ratings[k].score == null || Number.isNaN(Number(w.ratings[k].score))) w.ratings[k].score = 0;
+  });
+  return w;
+}
+function pendingForWine(wineId) {
+  return (state.inbox || []).filter(r => !r.entered && r.wineId === wineId);
+}
+function pendingPlacementLine(wineId) {
+  const rows = pendingForWine(wineId).filter(r => r.bin);
+  if (!rows.length) return "";
+  return rows.map(r => `<p class="tiny" style="text-align:center;margin:6px 0 4px">Alta pendiente · ${cellarName(r.cellarId)} · ${r.bin}</p>`).join("");
+}
 function openWine(wineId, bottle) {
   const w = wineById(wineId);
   if (!w) {
@@ -1130,14 +1174,7 @@ function openWine(wineId, bottle) {
     show("cellar", { tab: true });
     return;
   }
-  if (!w.conservation) w.conservation = { cellarMin: 12, cellarMax: 14, serveMin: 16, serveMax: 18, humidity: "65–75%", position: "horizontal", light: "oscura" };
-  if (!w.aging) {
-    const y = Number(w.vintage) || YEAR;
-    w.aging = { drinkFrom: y + 1, peakStart: y + 3, peakEnd: y + 10, drinkTo: y + 14 };
-  }
-  if (!w.ratings) {
-    w.ratings = { vivino: { score: 0, count: 0, scale: 5 }, penin: { score: 0, scale: 100 }, parker: { score: 0, scale: 100, note: "" }, spectator: { score: 0, scale: 100 }, decanter: { score: 0, scale: 100 } };
-  }
+  normalizeWine(w);
   currentWine = w;
   currentBottle = bottle || state.bottles.find(b => b.wineId === wineId) || null;
   const p = phaseOf(w);
@@ -1160,6 +1197,7 @@ function openWine(wineId, bottle) {
     <p class="wine-cuvee">${w.name} ${w.vintage}</p>
     <div class="peak-pill">${pill}</div>
     ${currentBottle ? `<p class="tiny" style="text-align:center;margin:6px 0 4px">En mi bodega · ${currentBottle.qty} botella${currentBottle.qty>1?"s":""}</p>` : ""}
+    ${pendingPlacementLine(w.id)}
     <div class="wine-tabs">
       <button type="button" onclick="openWineSub('profile')">General</button>
       <button type="button" onclick="openWineSub('taste')">Cata</button>
@@ -1261,6 +1299,7 @@ function openWineSub(kind) {
   currentSub = kind;
   const w = currentWine;
   if (!w) return;
+  normalizeWine(w);
   const p = phaseOf(w);
   const pr = progressOf(w);
   const r = w.ratings;
@@ -1345,7 +1384,7 @@ function openWineSub(kind) {
   } else if (kind === "tecnica") {
     const d = dossierOf(w);
     body = `
-      <div class="fact"><span>Uvas</span><b>${w.grapes.join(", ")}</b></div>
+      <div class="fact"><span>Uvas</span><b>${(w.grapes || []).join(", ") || "—"}</b></div>
       <div class="fact"><span>Alcohol</span><b>${w.abv}% vol.</b></div>
       <div class="fact"><span>Estilo</span><b>${w.style} · ${w.type}</b></div>
       <div class="fact"><span>Altitud</span><b>${d.elevation}</b></div>
@@ -1378,7 +1417,7 @@ function openWineSub(kind) {
       <div class="bar"><i style="width:${pr.pct}%"></i></div>
       <div class="row tiny"><span>${w.vintage}</span><span>hoy ${YEAR}</span><span>${w.aging.holdTo}</span></div>
       <div class="timeline">
-        ${w.evolutionNotes.map(n => `<div class="tl-item"><em>${n.year} · ${n.phase}</em><strong>${n.text}</strong></div>`).join("")}
+        ${(w.evolutionNotes || []).map(n => `<div class="tl-item"><em>${n.year} · ${n.phase}</em><strong>${n.text}</strong></div>`).join("")}
         <div class="tl-item"><em>${YEAR} · Estado actual</em><strong>${currentAdvice(w, p)}</strong></div>
       </div>`;
   } else if (kind === "profile") {
@@ -1391,7 +1430,7 @@ function openWineSub(kind) {
         <p style="margin-top:8px">${w.tasting}</p>
       </div>
       <div class="card">
-        <p>Uvas: ${w.grapes.join(", ")}</p>
+        <p>Uvas: ${(w.grapes || []).join(", ") || "—"}</p>
         <p class="muted">${w.abv}% vol. · ${w.type} · ${w.style} · ${w.priceHint}</p>
       </div>
       <div class="card">
@@ -1401,9 +1440,12 @@ function openWineSub(kind) {
       <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="openWineSub('tecnica')">Ficha técnica completa ›</button>`;
   } else if (kind === "origen") {
     const b = currentBottle;
+    const pend = pendingForWine(w.id)[0];
+    const pos = b ? (b.bin || "sin hueco") : (pend && pend.bin ? pend.bin + " · pendiente" : "—");
+    const caveLabel = b ? cellarName(b.cellarId) : (pend ? cellarName(pend.cellarId) + " · aún no está en la bodega" : "No está en cava");
     body = `
-      <div class="fact"><span>Posición</span><b>${b ? (b.bin || "sin hueco") : "—"}</b></div>
-      <div class="fact"><span>Vinoteca</span><b>${b ? cellarName(b.cellarId) : "No está en cava"}</b></div>
+      <div class="fact"><span>Posición</span><b>${pos}</b></div>
+      <div class="fact"><span>Vinoteca</span><b>${caveLabel}</b></div>
       <div class="fact"><span>Bodega</span><b>${w.producer}</b></div>
       <div class="fact"><span>Añada</span><b>${w.vintage}</b></div>
       <div class="fact"><span>Denominación</span><b>${w.appellation}</b></div>
@@ -1821,18 +1863,71 @@ function normTxt(s) {
   return (s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, " ").trim();
 }
 
-async function startScan() {
-  show("scan");
-  lastList = "scan";
-  stopCam();
+function setCamButton(label) {
+  const b = $("#scan-cam-btn");
+  if (b) b.textContent = label;
+}
+function resetScanPreview() {
   const preview = $("#scan-preview");
   if (preview) { preview.hidden = true; preview.removeAttribute("src"); }
   const finder = $("#scan-finder");
   if (finder) finder.style.display = "";
   const video = $("#cam");
-  if (video) { video.hidden = true; video.srcObject = null; }
-  setScanStatus("Abre la cámara o elige una foto. La etiqueta va en vertical.");
+  if (video) video.hidden = true;
+}
+async function startLiveCamera() {
+  stopCam();
+  const video = $("#cam");
+  if (!video || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    setCamButton("Abrir cámara");
+    return false;
+  }
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 } },
+      audio: false
+    });
+    video.srcObject = stream;
+    video.hidden = false;
+    const finder = $("#scan-finder");
+    if (finder) finder.style.display = "none";
+    await video.play();
+    setCamButton("Capturar etiqueta");
+    setScanStatus("Encuadra la etiqueta en vertical y pulsa Capturar etiqueta.");
+    return true;
+  } catch (e) {
+    if (video) video.hidden = true;
+    setCamButton("Abrir cámara");
+    return false;
+  }
+}
+async function startScan() {
+  show("scan");
+  lastList = "scan";
+  intakeSource = "camara";
+  resetScanPreview();
   if ($("#scan-results")) $("#scan-results").innerHTML = "";
+  const ok = await startLiveCamera();
+  if (!ok) setScanStatus("Cámara no disponible. Abre la cámara del sistema, elige una foto o usa el alta manual.");
+}
+async function captureOrOpenCamera() {
+  if (screenId !== "scan") {
+    show("scan");
+    lastList = "scan";
+  }
+  intakeSource = "camara";
+  const video = $("#cam");
+  if (video && video.srcObject && video.videoWidth) {
+    captureLabel();
+    return;
+  }
+  const ok = await startLiveCamera();
+  if (!ok) pickLabelPhoto();
+}
+function onScanStage() {
+  const video = $("#cam");
+  if (video && video.srcObject && video.videoWidth) captureLabel();
+  else captureOrOpenCamera();
 }
 
 function stopCam() {
@@ -1850,6 +1945,7 @@ function setScanStatus(msg) {
 }
 
 function pickLabelPhoto() {
+  intakeSource = "camara";
   const input = $("#scan-file-cam") || $("#scan-file");
   if (!input) return;
   input.setAttribute("accept", "image/*");
@@ -1858,6 +1954,11 @@ function pickLabelPhoto() {
 }
 
 function pickFromRoll() {
+  intakeSource = "fototeca";
+  if (screenId !== "scan") {
+    show("scan");
+    lastList = "scan";
+  }
   const input = $("#scan-file-lib") || $("#scan-file");
   if (!input) return;
   input.removeAttribute("capture");
@@ -1878,7 +1979,19 @@ function openPhotoInput(input) {
 }
 
 function captureLabel() {
-  pickLabelPhoto();
+  const video = $("#cam");
+  if (!video || !video.videoWidth) {
+    pickLabelPhoto();
+    return;
+  }
+  intakeSource = "camara";
+  const canvas = $("#scan-canvas");
+  const maxW = 900;
+  const scale = Math.min(1, maxW / video.videoWidth);
+  canvas.width = Math.round(video.videoWidth * scale);
+  canvas.height = Math.round(video.videoHeight * scale);
+  canvas.getContext("2d").drawImage(video, 0, 0, canvas.width, canvas.height);
+  ingestLabelImage(canvas.toDataURL("image/jpeg", 0.82));
 }
 
 function showLabelPreview(dataUrl) {
@@ -2042,19 +2155,22 @@ function confirmScanWine(id) {
   const w = wineById(id);
   if (!w) return;
   const q = (($("#scan-q") && $("#scan-q").value) || lastOcrText || "").trim();
-  parkScanInInbox(ensureScannedWine(w, q), q);
+  parkScanInInbox(ensureScannedWine(w, q), q, intakeSource || "camara");
 }
 
 function confirmScanCustom() {
   const q = (($("#scan-q") && $("#scan-q").value) || "").trim();
-  const raw = q || ($("#scan-results") && $("#scan-results").innerText) || "";
-  const w = inferWineFromText(q || raw);
+  const raw = q || lastOcrText || "";
+  const w = inferWineFromText(raw);
   if (!w) return toast("Escribe bodega y añada");
-  parkScanInInbox(w, q);
+  parkScanInInbox(w, raw, intakeSource || "camara");
 }
 
 async function identifyFromPhoto(dataUrl) {
-  if (ocrBusy) return;
+  if (ocrBusy) {
+    setScanStatus("Sigue la lectura anterior.");
+    return;
+  }
   ocrBusy = true;
   setScanStatus("Leyendo la etiqueta…");
   if ($("#scan-results")) $("#scan-results").innerHTML = `<div class="card muted">Analizando la foto. Un momento.</div>`;
@@ -2063,8 +2179,9 @@ async function identifyFromPhoto(dataUrl) {
     text = await readLabelText(dataUrl);
   } catch {
     text = "";
+  } finally {
+    ocrBusy = false;
   }
-  ocrBusy = false;
   lastOcrText = repairOcr(text).text || text;
   const hits = rankFromText(lastOcrText);
   showScanConfirm(lastOcrText, hits);
@@ -2106,37 +2223,65 @@ function rankFromText(raw) {
   return uniq.slice(0, 6);
 }
 
-function parkScanInInbox(wine, text) {
+function intakeSourceLabel(src) {
+  if (src === "fototeca") return "Fototeca";
+  if (src === "manual") return "Manual";
+  return "Cámara";
+}
+function parkScanInInbox(wine, text, source) {
   if (!wine) return;
+  const via = source || intakeSource || "camara";
   state.inbox = state.inbox || [];
+  const cellarId = preferredCellar(wine, 0) || (state.vinotecas[0] && state.vinotecas[0].id) || "v1";
+  const bin = nextBin(cellarId);
   const row = {
-    uid: "in" + Date.now(),
+    uid: "in" + Date.now() + Math.random().toString(16).slice(2, 6),
     wineId: wine.id,
     created: new Date().toISOString(),
     text: String(text || "").replace(/\s+/g, " ").slice(0, 180),
-    photo: (lastLabelData && lastLabelData.length < 140000) ? lastLabelData : "",
+    photo: (via !== "manual" && lastLabelData && lastLabelData.length < 140000) ? lastLabelData : "",
     entered: false,
-    cellarId: "",
-    bin: ""
+    cellarId,
+    bin,
+    source: via
   };
   state.inbox.unshift(row);
   save();
-  setScanStatus("Leído. Está en Entradas, pendiente de stock.");
-  toast(wine.producer + " " + wine.vintage + " · dar entrada");
+  if ($("#scan-q")) $("#scan-q").value = "";
+  setScanStatus("Ficha lista. Hueco " + bin + " reservado en altas pendientes.");
+  toast(wine.producer + " " + wine.vintage + " · " + cellarName(cellarId) + " " + bin);
   show("inbox");
+}
+function ensurePendingSlots() {
+  let dirty = false;
+  (state.inbox || []).forEach(row => {
+    if (row.entered) return;
+    if (!row.cellarId) {
+      const w = wineById(row.wineId);
+      row.cellarId = (w && preferredCellar(w, 0)) || "v1";
+      dirty = true;
+    }
+    if (!row.bin) {
+      row.bin = nextBin(row.cellarId);
+      dirty = true;
+    }
+  });
+  if (dirty) save();
 }
 function renderInbox() {
   const box = $("#inbox-list");
   if (!box) return;
+  ensurePendingSlots();
   const q = fold(($("#inbox-q") && $("#inbox-q").value) || "");
   const rows = (state.inbox || []).filter(row => {
     const w = wineById(row.wineId);
-    const hay = wineHay(w, row.text || "");
+    const hay = wineHay(w, (row.text || "") + " " + (row.bin || "") + " " + intakeSourceLabel(row.source));
     return !q || hay.includes(q);
   });
   if (!(state.inbox || []).length) {
-    box.innerHTML = `<div class="card muted">Aún no hay lecturas. Escanea una etiqueta.</div>
-      <button class="btn btn-gold" style="width:100%;margin-top:12px" onclick="startScan()">Abrir cámara</button>`;
+    box.innerHTML = `<div class="card muted">Aún no hay altas pendientes. Escanea una etiqueta, elige una foto o da de alta a mano.</div>
+      <button class="btn btn-gold" style="width:100%;margin-top:12px" onclick="startScan()">Abrir cámara</button>
+      <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="pickFromRoll()">Elegir de fotos</button>`;
     return;
   }
   if (!rows.length) {
@@ -2147,19 +2292,22 @@ function renderInbox() {
     const w = wineById(row.wineId);
     const title = w ? `${w.producer}` : "Vino leído";
     const sub = w ? `${w.name} ${w.vintage}` : "";
-    const zone = w ? `${w.appellation || w.region || "—"}` : "—";
-    const badge = row.entered ? `<span class="badge ok">En stock</span>` : `<span class="badge warn">Pendiente</span>`;
-    const where = row.entered ? `<p class="tiny">${cellarName(row.cellarId)} · ${row.bin || "sin hueco"}</p>` : `<p class="tiny">${zone}</p>`;
+    const badge = row.entered ? `<span class="badge ok">En bodega</span>` : `<span class="badge warn">Pendiente</span>`;
+    const where = row.entered
+      ? `<p class="tiny">En bodega · ${cellarName(row.cellarId)} · ${row.bin || "sin hueco"}</p>`
+      : `<p class="tiny">Hueco pendiente · ${cellarName(row.cellarId)} · ${row.bin || "sin hueco"}</p>`;
+    const via = `<p class="tiny">${intakeSourceLabel(row.source)}</p>`;
     return `<article class="inbox-card">
       ${row.photo ? `<img src="${row.photo}" alt="">` : `<div class="inbox-ph"></div>`}
       <div class="inbox-copy">
         <div class="row"><h3>${title}</h3>${badge}</div>
         <p>${sub}</p>
         ${where}
+        ${via}
         <div class="inbox-actions">
           ${row.entered
             ? `<button class="btn btn-ghost" onclick="openWine('${row.wineId}')">Ver ficha</button>`
-            : `<button class="btn btn-gold" onclick="enterInbox('${row.uid}')">Dar entrada</button>
+            : `<button class="btn btn-gold" onclick="enterInbox('${row.uid}')">Introducir en el hueco</button>
                <button class="btn btn-ghost" onclick="openWine('${row.wineId}')">Ficha</button>`}
           <button class="btn btn-ghost" onclick="deleteInbox('${row.uid}')">Eliminar</button>
         </div>
@@ -2179,18 +2327,20 @@ function deleteInbox(uid) {
 }
 function enterInbox(uid) {
   const row = (state.inbox || []).find(x => x.uid === uid);
-  if (!row) return;
+  if (!row || row.entered) return;
   const w = wineById(row.wineId);
   if (!w) return toast("Ficha no encontrada");
+  normalizeWine(w);
   currentWine = w;
-  lastLabelData = row.photo || lastLabelData;
-  fillSelects();
-  if ($("#add-inbox-uid")) $("#add-inbox-uid").value = uid;
-  if ($("#add-cellar")) $("#add-cellar").value = preferredCellar(w, 0) || "v1";
-  if ($("#add-bin")) $("#add-bin").value = nextBin($("#add-cellar").value);
-  if ($("#add-qty")) $("#add-qty").value = "1";
-  if ($("#add-keep-hint")) $("#add-keep-hint").textContent = (w.appellation || w.region || "") + " · elige vinoteca y hueco";
+  if (!row.cellarId) row.cellarId = preferredCellar(w, 0) || "v1";
+  if (!row.bin) row.bin = nextBin(row.cellarId);
+  lastLabelData = row.photo || "";
   showSheet("add-sheet");
+  if ($("#add-inbox-uid")) $("#add-inbox-uid").value = uid;
+  if ($("#add-cellar")) $("#add-cellar").value = row.cellarId;
+  if ($("#add-bin")) $("#add-bin").value = row.bin;
+  if ($("#add-qty")) $("#add-qty").value = "1";
+  if ($("#add-keep-hint")) $("#add-keep-hint").textContent = "Hueco reservado " + row.bin + " · " + cellarName(row.cellarId) + ". Confirma cuando la botella esté en ese espacio.";
 }
 function yearFromText(raw) {
   const m = String(raw || "").match(/\b((?:19|20)\d{2})\b/);
@@ -2218,7 +2368,7 @@ function inferWineFromText(raw) {
     const tokens = normTxt(w.producer).split(" ").filter(t => t.length >= 5 && !/chateau|bodegas|celler|dominio/.test(t));
     return tokens.some(t => hay.includes(t)) || (normTxt(w.name).length >= 5 && hay.includes(normTxt(w.name)));
   });
-  if (catalog) return catalog;
+  if (catalog) return ensureScannedWine(catalog, raw);
   const words = hay.split(" ").filter(x => x.length > 2).slice(0, 4);
   const label = words.map(x => x.charAt(0).toUpperCase() + x.slice(1)).join(" ") || "Vino escaneado";
   const id = "scan-" + Date.now();
@@ -2236,7 +2386,8 @@ function inferWineFromText(raw) {
     priceHint: "—",
     tasting: "Ficha creada al escanear la etiqueta.",
     conservation: { cellarMin: 12, cellarMax: 14, serveMin: 16, serveMax: 18, humidity: "65–75%", position: "horizontal", light: "oscura" },
-    aging: { drinkFrom: year + 1, peakStart: year + 3, peakEnd: year + 10, drinkTo: year + 14 }
+    aging: { drinkFrom: year + 1, peakStart: year + 3, peakEnd: year + 10, holdTo: year + 15, drinkTo: year + 14 },
+    evolutionNotes: []
   };
   state.customWines = state.customWines || [];
   state.customWines.push(w);
@@ -2261,21 +2412,60 @@ function previewScanQuery() {
   renderHits(identifyFromCatalog(q).slice(0, 8), "Coincidencias", true);
 }
 
-function runIdentify() {
-  const q = $("#scan-q").value;
-  const hits = identifyFromCatalog(q);
-  if (q && hits.length === 1) {
-    parkScanInInbox(ensureScannedWine(hits[0], q), q);
+function queueIntake(wineId) {
+  const w = wineById(wineId);
+  if (!w) return toast("No hay ficha");
+  const q = (($("#scan-q") && $("#scan-q").value) || lastOcrText || "").trim();
+  const source = intakeSource === "manual" || !lastLabelData ? "manual" : (intakeSource || "camara");
+  parkScanInInbox(ensureScannedWine(w, q), q, source);
+}
+function manualIntake() {
+  intakeSource = "manual";
+  const q = (($("#scan-q") && $("#scan-q").value) || "").trim();
+  if (!q) {
+    setScanStatus("Escribe bodega, vino y añada. Alta manual es la última opción, sin foto.");
+    if (screenId !== "scan") {
+      show("scan");
+      lastList = "scan";
+    }
+    const input = $("#scan-q");
+    if (input) input.focus();
     return;
   }
-  renderHits(hits, q ? `Coincidencias para “${q}”` : "Catálogo", true);
+  const hits = identifyFromCatalog(q);
+  if (hits.length === 1) {
+    parkScanInInbox(ensureScannedWine(hits[0], q), q, "manual");
+    return;
+  }
+  if (hits.length > 1) {
+    renderHits(hits, "Elige la ficha", true);
+    return;
+  }
+  const w = inferWineFromText(q);
+  if (!w) return toast("Escribe bodega y añada");
+  parkScanInInbox(w, q, "manual");
+}
+function runIdentify() {
+  manualIntake();
 }
 
+function takenBins(cellarId) {
+  const used = new Set();
+  state.bottles.filter(b => b.cellarId === cellarId && b.bin).forEach(b => used.add(b.bin));
+  (state.inbox || []).filter(r => !r.entered && r.cellarId === cellarId && r.bin).forEach(r => used.add(r.bin));
+  return used;
+}
 function nextBin(cellarId) {
-  const used = state.bottles.filter(b => b.cellarId === cellarId).map(b => b.bin);
+  const v = state.vinotecas.find(x => x.id === cellarId);
+  const used = takenBins(cellarId);
+  if (v) {
+    ensureCaveSlots(v);
+    const free = rackSlots(cellarId).find(code => !used.has(code));
+    if (free) return free;
+  }
   for (let i = 1; i <= 40; i++) {
     const bin = "A-" + String(i).padStart(2, "0");
-    if (!used.includes(bin)) return bin;
+    if (!used.has(bin)) return bin;
   }
   return "A-99";
 }
@@ -2339,11 +2529,11 @@ function renderHits(hits, title, withAdd) {
         </div>
       </div>
       ${withAdd ? `<div class="scan-hit-actions">
-        <button class="btn btn-gold" onclick="event.stopPropagation();quickAdd('${w.id}')">Añadir a vinoteca</button>
+        <button class="btn btn-gold" onclick="event.stopPropagation();queueIntake('${w.id}')">Reservar hueco</button>
         <button class="btn btn-ghost" onclick="event.stopPropagation();openWine('${w.id}')">Ver ficha</button>
       </div>` : ""}
     </div>`;
-  }).join("") || `<p class="empty">Sin ficha. Escribe bodega y añada arriba.</p>`);
+  }).join("") || `<p class="empty">Sin ficha en el catálogo.</p><button class="btn btn-gold" style="width:100%;margin-top:8px" onclick="manualIntake()">Crear ficha con lo escrito</button>`);
 }
 
 function fillSelects() {
@@ -2352,9 +2542,15 @@ function fillSelects() {
   $("#move-cellar").innerHTML = opts;
 }
 
+function onAddCellarChange() {
+  const id = $("#add-cellar") && $("#add-cellar").value;
+  if ($("#add-bin") && id) $("#add-bin").value = nextBin(id);
+  refreshAddKeep();
+}
 function showSheet(id) {
   fillSelects();
   if (id === "add-sheet") {
+    if ($("#add-inbox-uid")) $("#add-inbox-uid").value = "";
     const cellar = currentWine ? preferredCellar(currentWine, currentBottle && currentBottle.price) : "v1";
     $("#add-cellar").value = cellar;
     $("#add-bin").value = nextBin(cellar);
