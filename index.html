@@ -152,6 +152,15 @@
             <h3>Carta o lineal</h3>
             <p class="muted">Foto del carrete. Crea la ficha y deja el hueco indicado hasta entrar en la bodega.</p>
           </div>
+          <button id="scan-cam-btn" class="btn btn-gold" style="width:100%" onclick="captureOrOpenCamera()">Abrir cámara</button>
+          <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="pickFromRoll()">Elegir de fotos</button>
+          <div class="search" style="margin-top:12px">
+            <span>⌕</span>
+            <input id="scan-q" placeholder="O escribe bodega / añada" oninput="previewScanQuery()" onkeydown="if(event.key==='Enter')runIdentify()" />
+          </div>
+          <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="manualIntake()">Alta manual</button>
+          <div id="scan-status" class="tiny" style="margin-top:10px"></div>
+          <div id="scan-results" style="margin-top:14px"></div>
           <div class="scan-stage scan-stage-vert" onclick="onScanStage()">
             <video id="cam" playsinline muted hidden></video>
             <img id="scan-preview" alt="Etiqueta capturada" hidden />
@@ -163,15 +172,6 @@
           <input id="scan-file-cam" type="file" accept="image/*" capture="environment" hidden />
           <input id="scan-file-lib" type="file" accept="image/*" hidden />
           <input id="scan-file" type="file" accept="image/*" hidden />
-          <button id="scan-cam-btn" class="btn btn-gold" style="width:100%" onclick="captureOrOpenCamera()">Abrir cámara</button>
-          <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="pickFromRoll()">Elegir de fotos</button>
-          <div id="scan-status" class="tiny" style="margin-top:10px"></div>
-          <div id="scan-results" style="margin-top:14px"></div>
-          <div class="search" style="margin-top:12px">
-            <span>⌕</span>
-            <input id="scan-q" placeholder="O escribe bodega / añada" oninput="previewScanQuery()" onkeydown="if(event.key==='Enter')runIdentify()" />
-          </div>
-          <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="manualIntake()">Alta manual</button>
         </div>
       </section>
 
@@ -331,7 +331,7 @@
   <script src="dossiers.js"></script>
   <script src="providers/wineProvider.js"></script>
   <script src="pairings.js"></script>
-  <script src="app.js?v=54"></script>
+  <script src="app.js?v=55"></script>
   <script>
     document.querySelectorAll(".tab").forEach((t, i) => {
       const icons = [
@@ -343,7 +343,7 @@
       ];
       t.querySelector("span").outerHTML = icons[i];
     });
-    if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=54").catch(() => {});
+    if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=55").catch(() => {});
   </script>
 </body>
 </html>
