@@ -2098,8 +2098,8 @@ function loadTesseract() {
   return tesseractReady;
 }
 
-async function ocrOnce(Tesseract, img) {
-  const result = await Tesseract.recognize(img, "eng", {
+async function ocrOnce(Tesseract, img, lang) {
+  const result = await Tesseract.recognize(img, lang || "spa", {
     tessedit_pageseg_mode: "6",
     logger: m => {
       if (m.status === "recognizing text" && m.progress) {
@@ -2110,22 +2110,32 @@ async function ocrOnce(Tesseract, img) {
   return (result && result.data && result.data.text) || "";
 }
 
+function readableLabel(raw) {
+  return String(raw || "").replace(/[ \t]+\n/g, "\n").replace(/[ \t]{2,}/g, " ").replace(/\n{2,}/g, "\n").trim();
+}
+
 async function readLabelText(dataUrl) {
   const Tesseract = await loadTesseract();
   const prep = await preprocessLabel(dataUrl);
   let best = "";
   let bestScore = -1;
-  for (const img of [dataUrl, prep]) {
-    try {
-      const text = await Promise.race([
-        ocrOnce(Tesseract, img),
-        new Promise((_, rej) => setTimeout(() => rej(new Error("ocr-timeout")), 20000))
-      ]);
-      const fixed = repairOcr(text);
-      const score = (fixed.text.match(/pesquera|margaux|vega|tondonia|pingus|ribera|reserva|rioja|priorat/g) || []).length * 10 + (fixed.years.length ? 8 : 0) + Math.min(text.length, 80) / 20;
-      if (score > bestScore) { bestScore = score; best = fixed.text || text; }
-      if (score >= 18) break;
-    } catch (e) {}
+  for (const lang of ["spa", "eng"]) {
+    for (const img of [dataUrl, prep]) {
+      try {
+        const text = await Promise.race([
+          ocrOnce(Tesseract, img, lang),
+          new Promise((_, rej) => setTimeout(() => rej(new Error("ocr-timeout")), 22000))
+        ]);
+        const raw = readableLabel(text);
+        const fixed = repairOcr(raw);
+        const words = raw.match(/[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]{3,}/g) || [];
+        const known = (fixed.text.match(/pesquera|margaux|vega|tondonia|pingus|ribera|reserva|rioja|priorat/g) || []).length;
+        const score = words.length * 4 + Math.min(raw.length, 160) / 8 + (fixed.years.length ? 6 : 0) + known * 8;
+        if (score > bestScore) { bestScore = score; best = raw; }
+        if (words.length >= 3 && score >= 24) return best;
+      } catch (e) {}
+    }
+    if (bestScore >= 24) break;
   }
   return best;
 }
@@ -2136,99 +2146,209 @@ let photoSearchGen = 0;
 function escHtml(s) {
   return String(s || "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
-function plainWiki(s) {
-  return String(s || "")
-    .replace(/<[^>]+>/g, "")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#0*39;/g, "'")
-    .replace(/&nbsp;/g, " ")
+const WINE_QUERY_GENERIC = new Set("vino vinos wine tinto tintos blanco blanca bodega bodegas reserva crianza gran vieja viejas vina vinas vinedo vinedos del los las con para desde ribera duero rioja ano anos mes meses botella botellas compra comprar tienda precio etiqueta".split(" "));
+function queryTokens(q) {
+  const all = normTxt(q).split(" ").filter(t => t.length >= 4 && !/^(19|20)\d{2}$/.test(t));
+  const distinctive = all.filter(t => !WINE_QUERY_GENERIC.has(t));
+  return distinctive.length ? distinctive : all;
+}
+function hostOf(url) {
+  try { return new URL(url).hostname.replace(/^www\./, ""); } catch (e) { return ""; }
+}
+function sourceFromUrl(url) {
+  const host = hostOf(url);
+  if (!host) return "Web";
+  if (host.includes("vinissimus")) return "Vinissimus";
+  if (host.includes("decantalo")) return "Decántalo";
+  if (host.includes("bigshopper")) return "Bigshopper";
+  if (host.includes("vivino")) return "Vivino";
+  if (host.includes("google.")) return "Google";
+  return host;
+}
+function priceIn(text) {
+  const m = String(text || "").match(/(\d{1,4}[.,]\d{2})\s*€/);
+  return m ? m[1].replace(".", ",") + " €" : "";
+}
+function unwrapSearchUrl(url) {
+  try {
+    const u = new URL(url);
+    const uddg = u.searchParams.get("uddg");
+    if (uddg) return uddg;
+  } catch (e) {}
+  return url;
+}
+function snippetText(raw) {
+  return String(raw || "")
+    .replace(/!\[[^\]]*\]\([^)]+\)/g, " ")
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+    .replace(/\*\*/g, "")
     .replace(/\s+/g, " ")
-    .trim();
+    .trim()
+    .slice(0, 220);
 }
-function searchTokens(q) {
-  return normTxt(q).split(" ").filter(t => t.length >= 4 && !/^(vino|wine|bodega|cata|etiqueta)$/.test(t) && !/^(19|20)\d{2}$/.test(t));
-}
-function relevantHits(rows, tokens, source) {
-  return rows.map(row => ({
-    title: plainWiki(row.title),
-    extract: plainWiki(row.snippet).slice(0, 220),
-    pageid: row.pageid || 0,
-    source
-  })).filter(h => {
-    if (!h.title) return false;
-    if (!tokens.length) return true;
-    const title = normTxt(h.title);
-    return tokens.some(t => title.includes(t));
+function rankWineHits(rows, q) {
+  const tokens = queryTokens(q);
+  const phraseTokens = normTxt(q).split(" ").filter(t => t.length >= 4 && !/^(19|20)\d{2}$/.test(t));
+  const scored = [];
+  const seen = new Set();
+  rows.forEach(row => {
+    const title = String(row.title || "").replace(/\s+/g, " ").trim();
+    const url = String(row.url || "").trim();
+    if (!title || /^image\s+\d+/i.test(title)) return;
+    const key = normTxt(title);
+    if (seen.has(key)) return;
+    const titleHay = normTxt(title);
+    const n = tokens.filter(t => titleHay.includes(t)).length;
+    if (tokens.length && !n) return;
+    const cover = phraseTokens.filter(t => titleHay.includes(t)).length;
+    const host = hostOf(url);
+    const bodega = tokens.some(t => t.length >= 5 && host.includes(t));
+    if (bodega && !/vinissimus|decantalo|bigshopper|google/.test(host)) row.source = "Bodega · " + host;
+    const pref = bodega ? 0 : /decantalo/.test(host) ? 1 : /vinissimus/.test(host) ? 2 : /bigshopper/.test(host) ? 3 : 4;
+    seen.add(key);
+    scored.push(Object.assign({}, row, { title, url, _cover: cover, _price: row.price ? 1 : 0, _pref: pref }));
+  });
+  scored.sort((a, b) => b._cover - a._cover || a._pref - b._pref || b._price - a._price);
+  return scored.map(row => {
+    const copy = Object.assign({}, row);
+    delete copy._cover;
+    delete copy._price;
+    delete copy._pref;
+    return copy;
   });
 }
-async function lookupWineOnline(query) {
-  const q = String(query || "").replace(/\s+/g, " ").trim();
-  if (q.length < 3) {
-    return { query: q, hits: [], state: "sin-texto", note: "La foto no dejó un nombre legible. No hay texto para buscar en internet. Escribe bodega y añada." };
+function parseDdgMarkdown(md) {
+  const hits = [];
+  const re = /^\d+\.\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/gm;
+  let m;
+  while ((m = re.exec(md))) {
+    const rawUrl = m[2];
+    const around = md.slice(m.index, m.index + m[0].length + 80);
+    if (/sponsored|ad_domain|\/y\.js/i.test(rawUrl + around)) continue;
+    const url = unwrapSearchUrl(rawUrl);
+    const host = hostOf(url);
+    if (!host || host.includes("duckduckgo.com")) continue;
+    const rest = md.slice(m.index + m[0].length);
+    const next = rest.search(/\n\d+\.\[/);
+    const extract = snippetText(next >= 0 ? rest.slice(0, next) : rest.slice(0, 500));
+    hits.push({
+      title: m[1].replace(/\s+/g, " ").trim(),
+      url,
+      extract,
+      price: priceIn(extract),
+      source: sourceFromUrl(url),
+      kind: "web"
+    });
   }
-  const noYear = q.replace(/\b(?:19|20)\d{2}\b/g, " ").replace(/\s+/g, " ").trim();
-  const attempts = noYear && noYear !== q ? [q, noYear] : [q];
-  const tokens = searchTokens(noYear || q);
-  const hosts = [
-    ["https://es.wikipedia.org", "Wikipedia"],
-    ["https://en.wikipedia.org", "Wikipedia (EN)"]
+  return hits;
+}
+function parseVinissimusMarkdown(md, query) {
+  const hits = [];
+  const parts = String(md || "").split(/!\[[^\]]*:\s*/).slice(1);
+  parts.forEach(part => {
+    const titleEnd = part.indexOf("]");
+    if (titleEnd < 1) return;
+    const title = part.slice(0, titleEnd).replace(/\s+/g, " ").trim();
+    if (!title || /^image\s+\d+/i.test(title)) return;
+    const body = part.slice(titleEnd, titleEnd + 700);
+    const link = body.match(/https:\/\/www\.vinissimus\.com\/es\/vino\/[a-z0-9-]+\//i);
+    const producer = (body.match(/\n((?:Bodegas|Viñedos|Dominio|Bodega)[^\n]{3,80})/) || [])[1] || "";
+    const region = (body.match(/\n([^\n]{3,60}\(España\))/) || [])[1] || "";
+    const price = priceIn(body);
+    const url = link ? link[0] : ("https://www.vinissimus.com/es/search-result/?name=" + encodeURIComponent(title || query));
+    hits.push({
+      title,
+      url,
+      producer: producer.trim(),
+      price,
+      extract: [producer.trim(), region.trim(), price].filter(Boolean).join(" · "),
+      source: "Vinissimus",
+      kind: "tienda"
+    });
+  });
+  return hits;
+}
+function searchPortals(q) {
+  const enc = encodeURIComponent(q);
+  return [
+    { title: "«" + q + "» en Google", url: "https://www.google.com/search?hl=es&q=" + enc, source: "Google", extract: "La búsqueda en Google: bodega, vino y tiendas.", kind: "buscar" },
+    { title: "«" + q + "» en Vinissimus", url: "https://www.vinissimus.com/es/search-result/?name=" + enc, source: "Vinissimus", extract: "Abrir el vino en la tienda Vinissimus.", kind: "buscar" },
+    { title: "«" + q + "» en Decántalo", url: "https://www.decantalo.com/es/busqueda?controller=search&s=" + enc, source: "Decántalo", extract: "Abrir el vino en la tienda Decántalo.", kind: "buscar" }
   ];
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 12000);
-  let lastNote = "La búsqueda en internet no respondió.";
-  try {
-    for (const [host, source] of hosts) {
-      for (const attempt of attempts) {
-        const url = host + "/w/api.php?action=query&list=search&srlimit=5&utf8=1&format=json&origin=*&srsearch=" + encodeURIComponent(attempt + " vino");
-        let res;
-        try {
-          res = await fetch(url, { signal: ctrl.signal, headers: { Accept: "application/json" } });
-        } catch (err) {
-          if (err && err.name === "AbortError") return { query: q, hits: [], state: "error", note: "La búsqueda en internet tardó demasiado." };
-          lastNote = "Sin conexión para buscar el vino.";
-          continue;
-        }
-        if (!res.ok) { lastNote = "La búsqueda en internet respondió " + res.status + "."; continue; }
-        let json;
-        try { json = await res.json(); } catch (e) { lastNote = "La búsqueda en internet no devolvió datos."; continue; }
-        const rows = (((json || {}).query || {}).search) || [];
-        const hits = relevantHits(rows, tokens, source).slice(0, 4);
-        if (hits.length) return { query: q, hits, state: "ok", note: "Búsqueda en internet · " + source + "." };
-      }
-    }
-    return { query: q, hits: [], state: "vacio", note: "Búsqueda hecha en internet. No hay coincidencia para «" + q + "»." };
-  } finally {
-    clearTimeout(timer);
+}
+async function readPublicPage(target, signal) {
+  const res = await fetch("https://r.jina.ai/" + target, { signal, headers: { Accept: "text/plain" } });
+  if (!res.ok) throw new Error("http-" + res.status);
+  const text = await res.text();
+  if (!text || text.length < 80) throw new Error("vacio");
+  if (/just a moment|tr[aá]fico inusual|unusual traffic|captcha/i.test(text.slice(0, 700))) throw new Error("bloqueo");
+  return text;
+}
+async function lookupWineOnline(query) {
+  const q = readableLabel(query).replace(/\s+/g, " ");
+  if (q.length < 3) {
+    return { query: q, hits: [], state: "sin-texto", note: "No hay un nombre legible. Corrige el texto leído y vuelve a buscar." };
   }
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 16000);
+  const pages = await Promise.allSettled([
+    readPublicPage("https://www.vinissimus.com/es/search-result/?name=" + encodeURIComponent(q), ctrl.signal),
+    readPublicPage("https://lite.duckduckgo.com/lite/?kl=es-es&q=" + encodeURIComponent(q + " vino"), ctrl.signal)
+  ]);
+  clearTimeout(timer);
+  let found = [];
+  if (pages[0].status === "fulfilled") found = found.concat(parseVinissimusMarkdown(pages[0].value, q));
+  if (pages[1].status === "fulfilled") found = found.concat(parseDdgMarkdown(pages[1].value));
+  const ranked = rankWineHits(found, q);
+  const shops = ranked.filter(h => h.kind === "tienda").slice(0, 3);
+  const web = ranked.filter(h => h.kind !== "tienda").slice(0, 3);
+  const chosen = shops.concat(web);
+  const portals = searchPortals(q).filter(p => p.source === "Google" || !chosen.some(h => h.source === p.source));
+  const hits = chosen.concat(portals);
+  const readShops = ranked.length > 0;
+  const bothFailed = pages.every(p => p.status === "rejected");
+  const note = readShops
+    ? "Bodega y tiendas para «" + q + "». Google abre la misma búsqueda."
+    : (bothFailed
+      ? "No se pudo leer el listado. Abre Google, Vinissimus o Decántalo, o corrige el texto."
+      : "No hay una ficha cerrada para «" + q + "». Abre Google o las tiendas, o corrige el texto leído.");
+  return { query: q, hits, state: "ok", note };
 }
 function showScanConfirm(text, hits, remote) {
-  const fixed = repairOcr(text);
-  const reading = labelReading(fixed);
+  const readable = readableLabel(text).replace(/\s+/g, " ");
   const list = (hits || []).slice(0, 4);
   remote = remote || { hits: [], state: "omitida", note: "Aún no se ha buscado en internet.", query: "" };
   lastInternetHits = remote.hits || [];
-  const remoteCards = lastInternetHits.length ? lastInternetHits.map((h, i) => `
+  const remoteCards = lastInternetHits.length ? lastInternetHits.map((h, i) => {
+    const open = h.url ? `<a class="btn btn-ghost" style="width:100%;margin-top:8px;display:block;text-align:center;text-decoration:none" href="${escHtml(h.url)}" target="_blank" rel="noopener">Abrir ${escHtml(h.source || "enlace")}</a>` : "";
+    const use = h.kind === "buscar" ? "" : `<button class="btn btn-gold" style="width:100%;margin-top:8px" onclick="confirmInternetWine(${i})">Usar esta ficha</button>`;
+    const who = h.producer ? `<p class="muted">${escHtml(h.producer)}</p>` : "";
+    const price = h.price ? `<p class="muted">${escHtml(h.price)}</p>` : "";
+    return `
       <div class="card">
-        <p class="tiny">${escHtml(h.source || "Internet")}</p>
+        <p class="tiny">${escHtml(h.source || "Web")}</p>
         <h3>${escHtml(h.title)}</h3>
-        <p class="muted">${escHtml(h.extract || "Sin extracto.")}</p>
-        <button class="btn btn-gold" style="width:100%;margin-top:8px" onclick="confirmInternetWine(${i})">Usar esta ficha</button>
-      </div>`).join("") : `<div class="card"><p>${escHtml(remote.note || "Sin resultado.")}</p></div>`;
+        ${who}
+        ${price}
+        <p class="muted">${escHtml(h.extract || "")}</p>
+        ${use}
+        ${open}
+      </div>`;
+  }).join("") : `<div class="card"><p>${escHtml(remote.note || "Sin resultado.")}</p></div>`;
   const status = remote.state === "ok"
-    ? ("Búsqueda en internet: " + lastInternetHits.length + " resultado" + (lastInternetHits.length === 1 ? "" : "s") + ".")
-    : (remote.note || (reading ? ("Lectura: " + reading) : "No se leyó la bodega."));
+    ? ("Búsqueda: " + lastInternetHits.length + " resultado" + (lastInternetHits.length === 1 ? "" : "s") + " de bodega y tiendas.")
+    : (remote.note || "Revisa el texto leído.");
   setScanStatus(status);
   const el = $("#scan-results");
   if (!el) return;
   el.innerHTML = `
     <div class="card">
-      <p class="tiny">Lectura de la etiqueta</p>
-      <p style="margin-top:6px">${escHtml(reading || text || "No se ha reconocido la bodega. Escribe el nombre y la añada.")}</p>
+      <p class="tiny">Texto leído de la etiqueta</p>
+      <textarea id="scan-read" rows="3">${escHtml(readable)}</textarea>
+      <p class="tiny">Si la lectura falla, corrige el texto y vuelve a buscar.</p>
+      <button class="btn btn-gold" style="width:100%;margin-top:8px" onclick="searchCorrectedLabel()">Buscar este texto</button>
     </div>
-    <h2 style="margin-top:14px">Búsqueda en internet</h2>
+    <h2 style="margin-top:14px">Bodega y tiendas</h2>
     <p class="tiny" style="margin:0 0 8px">${escHtml(remote.note || "")}</p>
     ${remoteCards}
     ${list.length ? `<h2 style="margin-top:14px">En el catálogo</h2>` + list.map(w => `
@@ -2239,6 +2359,16 @@ function showScanConfirm(text, hits, remote) {
       </div>`).join("") : `<p class="empty">Ningún vino del catálogo local coincide.</p>`}
     <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="confirmScanCustom()">Crear ficha con lo escrito</button>`;
 }
+function searchCorrectedLabel() {
+  const typed = readableLabel((($("#scan-read") && $("#scan-read").value) || ($("#scan-q") && $("#scan-q").value) || "")).replace(/\s+/g, " ");
+  if ($("#scan-q")) $("#scan-q").value = typed;
+  lastOcrText = typed;
+  if (typed.length < 3) {
+    setScanStatus("Escribe el nombre del vino para buscarlo.");
+    return;
+  }
+  searchAndShowLabel(typed);
+}
 
 function confirmScanWine(id) {
   const w = wineById(id);
@@ -2248,34 +2378,40 @@ function confirmScanWine(id) {
 }
 
 function confirmScanCustom() {
-  const q = (($("#scan-q") && $("#scan-q").value) || "").trim();
+  const q = (($("#scan-read") && $("#scan-read").value) || ($("#scan-q") && $("#scan-q").value) || "").trim();
   const raw = q || lastOcrText || "";
   const w = inferWineFromText(raw);
   if (!w) return toast("Escribe bodega y añada");
   parkScanInInbox(w, raw, intakeSource || "camara");
 }
 function wineFromInternetHit(hit) {
-  const raw = ((hit && hit.title) || "") + " " + (lastOcrText || "");
+  const raw = ((hit && hit.title) || "") + " " + (hit && hit.producer || "") + " " + (lastOcrText || "");
   const local = rankFromText(raw);
   if (local[0]) return ensureScannedWine(local[0], raw);
-  const id = "web-" + ((hit && hit.pageid) || Date.now());
+  const id = "web-" + normTxt((hit && (hit.url || hit.title)) || "vino").replace(/\s+/g, "-").slice(0, 72);
   const existed = wineById(id);
   if (existed) return existed;
   const year = yearFromText(raw) || YEAR;
   const title = (hit && hit.title) || "Vino buscado";
+  const producer = (hit && hit.producer) || title;
+  const blob = ((hit && hit.extract) || "") + " " + producer;
+  let region = "";
+  if (/ribera del duero/i.test(blob)) region = "Ribera del Duero";
+  else if (/rioja/i.test(blob)) region = "Rioja";
+  else if (/priorat/i.test(blob)) region = "Priorat";
   const w = {
-    id, name: title, producer: title, vintage: year,
-    region: "", country: "", appellation: "", type: "tinto", style: "internet",
+    id, name: title, producer, vintage: year,
+    region, country: region ? "España" : "", appellation: region, type: "tinto", style: "internet",
     grapes: [], abv: 0, color: "#4a1020",
     ratings: {
       vivino: { score: 0, count: 0, scale: 5, note: "" },
       penin: { score: 0, scale: 100, note: "" },
-      parker: { score: 0, scale: 100, reviewer: "", note: "Ficha a partir de la búsqueda en internet." },
+      parker: { score: 0, scale: 100, reviewer: "", note: "Ficha a partir de la bodega o la tienda." },
       spectator: { score: 0, scale: 100, note: "" },
       decanter: { score: 0, scale: 100, note: "" }
     },
-    priceHint: "—",
-    tasting: (hit && hit.extract) || "Ficha creada desde la búsqueda de la foto.",
+    priceHint: (hit && hit.price) || "—",
+    tasting: [hit && hit.extract, hit && hit.url].filter(Boolean).join(" ") || "Ficha creada desde la búsqueda de la foto.",
     pairing: [],
     conservation: { cellarMin: 12, cellarMax: 14, serveMin: 16, serveMax: 18, humidity: "65–75%", position: "horizontal", light: "oscura" },
     aging: { drinkFrom: year + 1, peakStart: year + 3, peakEnd: year + 10, holdTo: year + 15 },
@@ -2288,6 +2424,10 @@ function wineFromInternetHit(hit) {
 function confirmInternetWine(i) {
   const hit = lastInternetHits[i];
   if (!hit) return toast("Ese resultado ya no está");
+  if (hit.kind === "buscar") {
+    if (hit.url) window.open(hit.url, "_blank", "noopener");
+    return;
+  }
   const w = wineFromInternetHit(hit);
   if (!w) return toast("No se pudo crear la ficha");
   parkScanInInbox(w, lastOcrText || hit.title, intakeSource || "fototeca");
@@ -2318,7 +2458,8 @@ async function identifyFromPhoto(dataUrl) {
   } finally {
     ocrBusy = false;
   }
-  lastOcrText = repairOcr(text).text || text;
+  lastOcrText = readableLabel(text).replace(/\s+/g, " ");
+  if ($("#scan-q")) $("#scan-q").value = lastOcrText;
   await searchAndShowLabel(lastOcrText);
 }
 
@@ -2539,6 +2680,7 @@ function identifyFromCatalog(q) {
   });
 }
 function previewScanQuery() {
+  if ($("#scan-read")) return;
   const q = ($("#scan-q") && $("#scan-q").value) || "";
   if (!fold(q)) {
     if ($("#scan-results")) $("#scan-results").innerHTML = "";
