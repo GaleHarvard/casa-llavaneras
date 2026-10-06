@@ -1,5 +1,5 @@
-const CACHE = "casa-llavaneras-ios-v66";
-const VERSION = "v66";
+const CACHE = "casa-llavaneras-ios-v67";
+const VERSION = "v67";
 const ASSETS = ["./", "./index.html", "./styles.css", "./app.js", "./wines.js", "./dossiers.js", "./providers/wineProvider.js", "./pairings.js", "./manifest.json", "./icon.svg", "./apple-touch-icon.png", "./icon-192.png", "./icon-512.png", "./cave-principal.jpg", "./capsula.jpg", "./botella-tinto.jpg", "./botella-blanco.jpg", "./botella-espumoso.jpg"];
 self.addEventListener("install", e => {
   self.skipWaiting();
@@ -14,17 +14,14 @@ self.addEventListener("activate", e => {
     list.forEach(client => {
       try { client.postMessage({ type: "sw-activated", version: VERSION }); } catch (err) {}
     });
-    await Promise.all(list.map(client => {
-      if (typeof client.navigate !== "function") return null;
-      return client.navigate(client.url).catch(() => {});
-    }));
   })());
 });
 self.addEventListener("fetch", e => {
   const url = e.request.url;
   if (new URL(url).origin !== self.location.origin) return;
+  if (/\/sw\.js(\?|$)/.test(url)) return;
   if (/\.(js|css|html)$/.test(url) || e.request.mode === "navigate") {
-    e.respondWith(fetch(e.request).then(r => {
+    e.respondWith(fetch(e.request, { cache: "no-store" }).then(r => {
       const copy = r.clone();
       caches.open(CACHE).then(c => c.put(e.request, copy)).catch(() => {});
       return r;

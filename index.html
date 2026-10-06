@@ -9,14 +9,14 @@
   <meta name="apple-mobile-web-app-title" content="Casa Llavaneras" />
   <meta name="application-name" content="Casa Llavaneras" />
   <meta name="theme-color" content="#000000" />
-  <meta name="app-version" content="v66" />
+  <meta name="app-version" content="v67" />
   <title>Casa Llavaneras</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="apple-touch-icon" href="apple-touch-icon.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
   <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png" />
-  <link rel="stylesheet" href="styles.css?v=51" />
+  <link rel="stylesheet" href="styles.css?v=67" />
 </head>
 <body>
   <div class="device">
@@ -32,6 +32,12 @@
         <h1>Vinotecas</h1>
         <p class="muted">Escanea. Conserva. Sirve en su momento.</p>
       </div>
+      <script>
+        setTimeout(function () {
+          var splash = document.getElementById("splash");
+          if (splash) splash.classList.add("hide");
+        }, 2500);
+      </script>
 
       <section id="home" class="screen active">
         <div class="scroll">
@@ -87,10 +93,10 @@
             <p class="eyebrow">Inventario</p>
             <h1>Botellas</h1>
                       </div>
-          <div class="search">
-            <span>⌕</span>
-            <input id="cellar-q" placeholder="Buscar en cava y catálogo…" oninput="renderCellar()" />
-          </div>
+          <form class="search" role="search" action="#" onsubmit="scheduleCellarSearch(); return false;">
+            <span aria-hidden="true">⌕</span>
+            <input id="cellar-q" type="search" enterkeyhint="search" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Buscar en cava y catálogo…" oninput="scheduleCellarSearch()" onsearch="scheduleCellarSearch()" onchange="scheduleCellarSearch()" onkeyup="scheduleCellarSearch()" oncompositionend="scheduleCellarSearch()" />
+          </form>
           <div class="chip-row">
             <button class="chip on" onclick="setFilter('todos', this)">Todos</button>
             <button class="chip" onclick="setFilter('tinto', this)">Tinto</button>
@@ -280,6 +286,7 @@
       </div>
     </div>
 
+    <input id="wine-label-file" type="file" accept="image/*" hidden />
     <div id="wine-menu-sheet" class="modal-bg" onclick="if(event.target===this)hideSheets()">
       <div class="sheet">
         <div class="handle"></div>
@@ -317,7 +324,7 @@
         <h3 style="margin-top:22px">Precios de mercado</h3>
         <p class="muted" style="margin:6px 0 10px">Vivino no tiene API. Sin clave se usa el dossier. Gemini estima la horquilla (no es una cotización). Wine-Searcher solo si tienes su clave.</p>
         <label class="switch-row"><span>Estimar con Gemini</span><input id="p-gemini" type="checkbox" /></label>
-        <label class="field"><span>Clave Gemini (AI Studio)</span><input id="p-gemini-key" type="password" placeholder="No se guarda en el código" autocomplete="off" /></label>
+        <label class="field"><span>Clave Gemini (AI Studio)</span><input id="p-gemini-key" type="password" placeholder="No se guarda en el código" autocomplete="off" oninput="refreshGeminiKeyState()" /></label>
         <button type="button" class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="probeGeminiKey()">Probar Gemini</button>
         <p id="gemini-key-state" class="tiny" style="margin:8px 0 0"></p>
         <p id="gemini-probe" class="tiny" style="margin:8px 0 0"></p>
@@ -331,11 +338,11 @@
     <div id="toast" style="position:absolute;left:24px;right:24px;bottom:96px;background:#111;border:1px solid #2a2a2a;color:#fff;padding:12px 14px;border-radius:14px;opacity:0;transition:opacity .3s;z-index:60;font-size:13px;text-align:center;pointer-events:none"></div>
   </div>
 
-  <script src="wines.js?v=66"></script>
-  <script src="dossiers.js?v=66"></script>
-  <script src="providers/wineProvider.js?v=66"></script>
-  <script src="pairings.js?v=66"></script>
-  <script src="app.js?v=66"></script>
+  <script src="wines.js?v=67"></script>
+  <script src="dossiers.js?v=67"></script>
+  <script src="providers/wineProvider.js?v=67"></script>
+  <script src="pairings.js?v=67"></script>
+  <script src="app.js?v=67"></script>
   <script>
     document.querySelectorAll(".tab").forEach((t, i) => {
       const icons = [
@@ -348,14 +355,19 @@
       t.querySelector("span").outerHTML = icons[i];
     });
     if ("serviceWorker" in navigator) {
-      let swReload = false;
       const reloadForSw = () => {
-        if (swReload) return;
-        swReload = true;
+        try {
+          if (sessionStorage.getItem("casa-sw-reload") === "1") return;
+          sessionStorage.setItem("casa-sw-reload", "1");
+        } catch (err) {}
         location.reload();
       };
       if (navigator.serviceWorker.controller) {
-        navigator.serviceWorker.addEventListener("controllerchange", reloadForSw);
+        try {
+          if (sessionStorage.getItem("casa-sw-reload") !== "1") {
+            navigator.serviceWorker.addEventListener("controllerchange", reloadForSw);
+          }
+        } catch (err) {}
       }
       navigator.serviceWorker.addEventListener("message", (event) => {
         const data = event.data || {};
@@ -363,9 +375,7 @@
         const current = (document.querySelector('meta[name="app-version"]') || {}).content || "";
         if (data.version && current && data.version !== current) reloadForSw();
       });
-      navigator.serviceWorker.register("sw.js?v=66").then((reg) => {
-        if (reg && reg.update) reg.update().catch(() => {});
-      }).catch(() => {});
+      navigator.serviceWorker.register("sw.js?v=67").catch(() => {});
     }
   </script>
 </body>

@@ -621,5 +621,36 @@ window.WINE_CATALOG = [
     evolutionNotes: [
       { year: 2025, phase: "Frescura", text: "Beber en 18 meses para no perder la flor." }
     ]
+  },
+  {
+    id: "carm-tinto-2017",
+    name: "Tinto",
+    producer: "CARM",
+    vintage: 2017,
+    region: "Douro",
+    country: "Portugal",
+    appellation: "DOC Douro",
+    type: "tinto",
+    style: "tinto",
+    grapes: ["Touriga Nacional", "Tinta Roriz", "Touriga Franca"],
+    aliases: ["carm", "carm tinto", "carm red", "casa agricola roboredo madeira", "roboredo madeira", "douro tinto"],
+    abv: 13.9,
+    color: "#5c1420",
+    ratings: {
+      vivino: { score: 0, count: 0, scale: 5, note: "" },
+      penin: { score: 0, scale: 100, note: "" },
+      parker: { score: 0, scale: 100, reviewer: "", note: "" },
+      spectator: { score: 0, scale: 100, note: "" },
+      decanter: { score: 0, scale: 100, note: "" }
+    },
+    priceHint: "",
+    tasting: "Frutos del bosque y cereza negra, regaliz y un punto de madera. Boca intensa, tanino firme y final suave y persistente. Ficha de bodega del CARM Red 2017.",
+    pairing: ["Carnes", "Quesos", "Cocina mediterránea"],
+    conservation: { cellarMin: 12, cellarMax: 14, serveMin: 15, serveMax: 16, humidity: "60–70%", position: "horizontal", light: "oscura" },
+    aging: { drinkFrom: 2019, peakStart: 2020, peakEnd: 2027, holdTo: 2030, structure: 78 },
+    evolutionNotes: [
+      { year: 2017, phase: "Cosecha", text: "Añada seca y muy cálida en el Douro Superior. Lote 40% Touriga Nacional, 30% Tinta Roriz y 30% Touriga Franca." },
+      { year: 2019, phase: "Embotellado", text: "Ocho meses de crianza, mitad en acero y mitad en barrica americana y francesa. Embotellado en mayo de 2019. Servir a 15–16 °C." }
+    ]
   }
 ];

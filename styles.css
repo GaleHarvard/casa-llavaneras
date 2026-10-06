@@ -286,14 +286,26 @@ label.field span {
   background: #0a0a0a;
   border: 1px solid #222;
   border-radius: 14px;
-  padding: 11px 12px;
+  padding: 4px 12px;
   display: flex;
   gap: 8px;
   align-items: center;
-  margin-bottom: 14px;
+  margin: 0 0 14px;
   color: var(--muted);
 }
-.search input { border: 0; background: transparent; padding: 0; }
+.search input {
+  border: 0;
+  background: transparent;
+  padding: 10px 0;
+  flex: 1;
+  min-width: 0;
+  width: 1%;
+  font-size: 16px;
+  line-height: 1.25;
+  color: var(--white);
+  -webkit-appearance: none;
+  appearance: none;
+}
 
 .timeline { position: relative; padding-left: 16px; margin-top: 8px; }
 .timeline::before {
@@ -448,7 +460,7 @@ label.field span {
   padding: 24px;
   transition: opacity .55s ease;
 }
-.splash.hide { opacity: 0; pointer-events: none; }
+.splash.hide { opacity: 0; pointer-events: none; visibility: hidden; }
 .mark {
   width: 96px; height: 96px;
   border-radius: 24px;
@@ -929,6 +941,15 @@ a.btn{text-decoration:none}
 
 .map-art{width:100%;height:auto;max-height:340px;object-fit:contain;object-position:center;border-radius:16px;margin:10px 0 8px;border:1px solid #222;background:#000;display:block}
 
+.label-thumb{width:72px;height:72px;border-radius:14px;object-fit:cover;flex-shrink:0;background:#14110c;border:1px solid rgba(198,163,90,.55);box-shadow:0 0 0 1px rgba(0,0,0,.55)}
+.label-thumb-lg{width:96px;height:96px;border-radius:16px}
+.label-thumb-hero{width:132px;height:132px;border-radius:18px;margin:0 0 6px}
+.foil-wrap .label-thumb-hero{align-self:flex-end}
+.label-fallback{object-fit:contain;padding:6px;background:#0c0c0c}
+.label-change{display:block;margin:0 auto 8px}
+.label-row{display:flex;gap:12px;align-items:center}
+.label-copy{flex:1;min-width:0}
+.wine-tile .label-thumb{width:72px;height:72px;margin:0 auto}
 .inv-card{display:flex;gap:12px;align-items:center;padding:14px;margin:0 0 10px;border:1px solid #1f1f1f;border-radius:16px;background:#0e0e0e}
 .inv-sil{width:28px;height:72px;border-radius:10px 10px 6px 6px;background:linear-gradient(180deg,#1a1a1a,#0a0a0a);position:relative;flex-shrink:0;border:1px solid #2a2a2a}
 .inv-sil:before{content:"";position:absolute;left:8px;right:8px;top:6px;height:14px;border-radius:4px;background:var(--c,#7a1d2a)}
