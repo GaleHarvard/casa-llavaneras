@@ -93,10 +93,10 @@
             <p class="eyebrow">Inventario</p>
             <h1>Botellas</h1>
                       </div>
-          <div class="search">
-            <span>⌕</span>
-            <input id="cellar-q" placeholder="Buscar en cava y catálogo…" oninput="renderCellar()" />
-          </div>
+          <form class="search" role="search" action="#" onsubmit="scheduleCellarSearch(); return false;">
+            <span aria-hidden="true">⌕</span>
+            <input id="cellar-q" type="search" enterkeyhint="search" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Buscar en cava y catálogo…" oninput="scheduleCellarSearch()" onsearch="scheduleCellarSearch()" onchange="scheduleCellarSearch()" onkeyup="scheduleCellarSearch()" oncompositionend="scheduleCellarSearch()" />
+          </form>
           <div class="chip-row">
             <button class="chip on" onclick="setFilter('todos', this)">Todos</button>
             <button class="chip" onclick="setFilter('tinto', this)">Tinto</button>

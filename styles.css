@@ -286,14 +286,26 @@ label.field span {
   background: #0a0a0a;
   border: 1px solid #222;
   border-radius: 14px;
-  padding: 11px 12px;
+  padding: 4px 12px;
   display: flex;
   gap: 8px;
   align-items: center;
-  margin-bottom: 14px;
+  margin: 0 0 14px;
   color: var(--muted);
 }
-.search input { border: 0; background: transparent; padding: 0; }
+.search input {
+  border: 0;
+  background: transparent;
+  padding: 10px 0;
+  flex: 1;
+  min-width: 0;
+  width: 1%;
+  font-size: 16px;
+  line-height: 1.25;
+  color: var(--white);
+  -webkit-appearance: none;
+  appearance: none;
+}
 
 .timeline { position: relative; padding-left: 16px; margin-top: 8px; }
 .timeline::before {

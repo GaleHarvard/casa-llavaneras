@@ -1138,23 +1138,60 @@ function setCellarView(v) {
   renderCellar();
 }
 function fold(s) {
-  return String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  return String(s || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[·•]/g, "");
+}
+function cellarQuery() {
+  const el = document.getElementById("cellar-q");
+  return fold(el ? el.value : "").replace(/\s+/g, " ").trim();
+}
+function queryHits(hay, q) {
+  if (!q) return true;
+  return q.split(" ").filter(Boolean).every(t => hay.includes(t));
+}
+function producerShort(w) {
+  const p = String((w && w.producer) || "").trim() || "Sin bodega";
+  return p.split(/\s+/).slice(0, 3).join(" ");
+}
+function parkerMark(w) {
+  const s = w && w.ratings && w.ratings.parker && Number(w.ratings.parker.score);
+  return s ? ("★ " + s) : "★ —";
 }
 function wineHay(w, extra) {
   if (!w) return "";
-  return fold([w.producer, w.name, w.vintage, w.region, w.appellation, w.type, (w.aliases || []).join(" "), w.priceHint, extra || ""].join(" "));
+  const p = w.provenance || {};
+  return fold([
+    w.producer, w.name, w.vintage, w.region, w.appellation, w.country, w.type, w.style,
+    (w.grapes || []).join(" "),
+    (w.aliases || []).join(" "),
+    p.rawTitle, p.pageExcerpt,
+    w.priceHint,
+    extra || ""
+  ].join(" "));
+}
+let cellarSearchTick = 0;
+function scheduleCellarSearch() {
+  const tick = ++cellarSearchTick;
+  try { renderCellar(); } catch (e) { console.warn("búsqueda", e); }
+  setTimeout(() => {
+    if (tick !== cellarSearchTick) return;
+    try { renderCellar(); } catch (e) {}
+  }, 50);
 }
 function catalogWines() {
   return WINE_CATALOG.concat(state.customWines || []);
 }
 function renderCellar() {
-  const q = fold($("#cellar-q")?.value || "");
+  const q = cellarQuery();
   const typeOk = (w) => filterType === "todos" || w.type === filterType || (filterType === "rosado" && w.type === "rose");
   let list = state.bottles.filter(b => {
     const w = wineById(b.wineId);
     if (!w) return false;
     const hay = wineHay(w, cellarName(b.cellarId) + " " + (b.bin || ""));
-    return typeOk(w) && (!q || hay.includes(q));
+    return typeOk(w) && queryHits(hay, q);
   });
   const tabs = [["botellas","Botellas"],["productores","Productores"],["lotes","Lotes"],["ubicaciones","Ubicaciones"]];
   const tabHtml = `<div class="chip-row" style="margin:0 0 10px">${tabs.map(([k,l]) => `<button class="chip ${cellarView===k?"on":""}" onclick="setCellarView('${k}')">${l}</button>`).join("")}</div>`;
@@ -1168,7 +1205,7 @@ function renderCellar() {
     body = Object.keys(by).sort().map(p => {
       const qty = by[p].reduce((n, x) => n + x.qty, 0);
       const w = wineById(by[p][0].wineId);
-      return `<div class="card" role="button" onclick="openWine('${w.id}')"><div class="label-row">${labelThumbHtml(w)}<div class="label-copy"><div class="row"><h3>${p}</h3><span class="tiny">${qty} ud</span></div><p class="muted">${by[p].length} lote${by[p].length>1?"s":""}</p></div></div><button class="btn btn-ghost" style="margin-top:8px" onclick="event.stopPropagation();removeWineLots('${w.id}')">Quitar</button></div>`;
+      return `<div class="card" role="button" onclick="openWine('${w.id}')"><div class="label-row">${labelThumbHtml(w)}<div class="label-copy"><div class="row"><h3>${escHtml(p)}</h3><span class="tiny">${qty} ud</span></div><p class="muted">${by[p].length} lote${by[p].length>1?"s":""}</p></div></div><button class="btn btn-ghost" style="margin-top:8px" onclick="event.stopPropagation();removeWineLots('${w.id}')">Quitar</button></div>`;
     }).join("");
   } else if (cellarView === "lotes") {
     body = list.map(b => {
@@ -1190,12 +1227,21 @@ function renderCellar() {
   } else {
     const byWine = {};
     list.forEach(b => { (byWine[b.wineId] || (byWine[b.wineId] = [])).push(b); });
-    body = Object.keys(byWine).map(id => wineStockCard(byWine[id])).join("");
+    body = Object.keys(byWine).map(id => {
+      try { return wineStockCard(byWine[id]); } catch (e) { return ""; }
+    }).join("");
   }
   const stockIds = new Set(state.bottles.map(b => b.wineId));
-  const catalog = q ? catalogWines().filter(w => typeOk(w) && !stockIds.has(w.id) && wineHay(w).includes(q)).slice(0, 12) : [];
-  const catalogHtml = catalog.length ? `<p class="tiny" style="margin:14px 0 8px">En catálogo, no en cava</p>` + catalog.map(catalogHit).join("") : "";
-  const empty = !body && !catalogHtml ? `<p class="empty">${q ? "Sin coincidencias para «" + ($("#cellar-q").value || "") + "»." : "La cava está vacía. Escanea o añade a mano."}</p>` : "";
+  const catalog = q ? catalogWines().filter(w => typeOk(w) && !stockIds.has(w.id) && queryHits(wineHay(w), q)).slice(0, 12) : [];
+  const catalogHtml = catalog.length ? `<p class="tiny" style="margin:14px 0 8px">En catálogo, no en cava</p>` + catalog.map(w => {
+    try { return catalogHit(w); } catch (e) { return ""; }
+  }).join("") : "";
+  const typeNames = { todos: "Todos", tinto: "Tinto", blanco: "Blanco", espumoso: "Espumoso", rosado: "Rosado" };
+  const typed = ($("#cellar-q") && $("#cellar-q").value || "").trim();
+  const emptyText = q
+    ? "Sin coincidencias para «" + typed + "»" + (filterType !== "todos" ? " en " + (typeNames[filterType] || "") : "") + "."
+    : "La cava está vacía. Escanea o añade a mano.";
+  const empty = !body && !catalogHtml ? `<p class="empty">${escHtml(emptyText)}</p>` : "";
   $("#cellar-list").innerHTML = tabHtml + body + catalogHtml + empty;
   mountLabelThumbs($("#cellar-list"));
 }
@@ -1203,7 +1249,7 @@ function catalogHit(w) {
   return `<div class="inv-card" role="button" onclick="openWine('${w.id}')">
     ${labelThumbHtml(w)}
     <div class="inv-meta">
-      <div class="row"><h3>${w.producer.split(" ").slice(0,3).join(" ")}</h3><span class="badge">Catálogo</span></div>
+      <div class="row"><h3>${escHtml(producerShort(w))}</h3><span class="badge">Catálogo</span></div>
       <p class="inv-title">${w.name} ${w.vintage}</p>
       <p class="muted">${w.appellation || w.region} · ${w.priceHint || "sin horquilla"}</p>
     </div>
@@ -1239,13 +1285,13 @@ function wineStockCard(lots) {
   return `<div class="inv-card" role="button" onclick="openWine('${w.id}')">
     ${labelThumbHtml(w)}
     <div class="inv-meta">
-      <div class="row"><h3>${w.producer.split(" ").slice(0,3).join(" ")}</h3><span class="badge ${p.key}">${p.label}</span></div>
-      <p class="inv-title">${w.name} ${w.vintage}</p>
+      <div class="row"><h3>${escHtml(producerShort(w))}</h3><span class="badge ${p.key}">${p.label}</span></div>
+      <p class="inv-title">${escHtml(w.name)} ${escHtml(w.vintage)}</p>
       <p class="muted">${qty} botella${qty>1?"s":""} · ${lots.length} lote${lots.length>1?"s":""}</p>
       <p class="tiny">${locs}</p>
       <button class="btn btn-ghost" style="margin-top:8px" onclick="event.stopPropagation();removeWineLots('${w.id}')">Quitar del listado</button>
     </div>
-    <div class="inv-score">★ ${w.ratings.parker.score}</div>
+    <div class="inv-score">${parkerMark(w)}</div>
   </div>`;
 }
 
@@ -4915,6 +4961,7 @@ function clock() {
 }
 
 window.renderCellar = renderCellar;
+window.scheduleCellarSearch = scheduleCellarSearch;
 window.renderPairings = renderPairings;
 window.openDish = openDish;
 window.setPairMode = (m, btn) => {
@@ -5524,7 +5571,8 @@ window.deleteInbox = deleteInbox;
 window.previewScanQuery = previewScanQuery;
 window.setFilter = (t, btn) => {
   filterType = t;
-  $$(".chip").forEach(c => c.classList.toggle("on", c === btn));
+  const row = btn && btn.parentElement;
+  if (row) $$(".chip", row).forEach(c => c.classList.toggle("on", c === btn));
   renderCellar();
 };
 
