@@ -2854,7 +2854,8 @@ function wineFromInternetHit(hit) {
   const existed = wineById(id);
   if (existed) return existed;
   const year = yearFromText(raw) || YEAR;
-  const title = (hit && hit.title) || "Vino buscado";
+  const titleRaw = (hit && hit.title) || "Vino buscado";
+  const title = titleRaw.replace(new RegExp("\\b" + year + "\\b"), " ").replace(/\s+/g, " ").trim() || titleRaw;
   const producer = (hit && hit.producer) || title;
   const blob = ((hit && hit.extract) || "") + " " + producer;
   let region = "";
@@ -3107,7 +3108,7 @@ function inferWineFromText(raw) {
     return tokens.some(t => hay.includes(t)) || (normTxt(w.name).length >= 5 && hay.includes(normTxt(w.name)));
   });
   if (catalog) return ensureScannedWine(catalog, raw);
-  const words = hay.split(" ").filter(x => x.length > 2).slice(0, 4);
+  const words = hay.split(" ").filter(x => x.length > 2 && x !== String(year)).slice(0, 4);
   const label = words.map(x => x.charAt(0).toUpperCase() + x.slice(1)).join(" ") || "Vino escaneado";
   const id = "scan-" + Date.now();
   const w = {
