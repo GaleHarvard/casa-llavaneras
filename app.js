@@ -4962,6 +4962,12 @@ function clock() {
 
 window.renderCellar = renderCellar;
 window.scheduleCellarSearch = scheduleCellarSearch;
+const cellarQ = document.getElementById("cellar-q");
+if (cellarQ) {
+  ["input", "search", "change", "keyup", "compositionend"].forEach(type => {
+    cellarQ.addEventListener(type, scheduleCellarSearch);
+  });
+}
 window.renderPairings = renderPairings;
 window.openDish = openDish;
 window.setPairMode = (m, btn) => {
