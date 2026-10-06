@@ -80,7 +80,8 @@ const defaultState = () => ({
   },
   activity: [],
   customWines: [],
-  inbox: []
+  inbox: [],
+  plateCache: {}
 });
 
 let state = load();
@@ -121,6 +122,7 @@ function load() {
     if (!parsed.activity) parsed.activity = [];
     if (!parsed.customWines) parsed.customWines = [];
     if (!parsed.inbox) parsed.inbox = [];
+    if (!parsed.plateCache || typeof parsed.plateCache !== "object") parsed.plateCache = {};
     parsed.vinotecas.forEach(v => { if (!v.houseId) v.houseId = "h1"; });
     const main = parsed.vinotecas.find(v => v.id === "v1");
     if (main) {
@@ -1297,33 +1299,498 @@ function starsRow(score5) {
   return "★★★★★".slice(0, full) + "☆☆☆☆☆".slice(0, 5 - full);
 }
 
-function estateArt(w) {
-  const byProducer = {
-    "Château Margaux": { land: "vinedo-margaux.jpg", cap: "capsula-margaux.jpg", map: "mapa-medoc.jpg" },
-    "Vega Sicilia": { land: "vinedo-ribera.jpg", cap: "capsula.jpg", map: "mapa-ribera.jpg" },
-    "Dominio de Pingus": { land: "vinedo-ribera.jpg", cap: "capsula.jpg", map: "mapa-ribera.jpg" },
-    "R. López de Heredia": { land: "vinedo-rioja.jpg", cap: "capsula.jpg", map: "mapa-rioja.jpg" },
-    "Marqués de Riscal": { land: "vinedo-rioja.jpg", cap: "capsula.jpg", map: "mapa-rioja.jpg" },
-    "CVNE": { land: "vinedo-rioja.jpg", cap: "capsula.jpg", map: "mapa-rioja.jpg" },
-    "Bodegas Muga": { land: "vinedo-rioja.jpg", cap: "capsula.jpg", map: "mapa-rioja.jpg" },
-    "Marqués de Murrieta": { land: "vinedo-rioja.jpg", cap: "capsula.jpg", map: "mapa-rioja.jpg" },
-    "Pazo de Señoráns": { land: "vinedo-rias.jpg", cap: "capsula.jpg", map: "mapa-rias.jpg" },
-    "Álvaro Palacios": { land: "vinedo-priorat.jpg", cap: "capsula.jpg", map: "mapa-priorat.jpg" },
-    "Scala Dei": { land: "vinedo-priorat.jpg", cap: "capsula.jpg", map: "mapa-priorat.jpg" },
-    "Moët & Chandon": { land: "vinedo-champagne.jpg", cap: "capsula.jpg", map: "mapa-champagne.jpg" },
-    "Gramona": { land: "vinedo-champagne.jpg", cap: "capsula.jpg", map: "mapa-penedes.jpg" },
-    "Tenuta San Guido": { land: "vinedo-bolgheri.jpg", cap: "capsula.jpg", map: "mapa-bolgheri.jpg" },
-    "Penfolds": { land: "vinedo-margaux.jpg", cap: "capsula.jpg", map: "mapa-barossa.jpg" },
-    "Enrique Mendoza": { land: "vinedo.jpg", cap: "capsula.jpg", map: "mapa-alicante.jpg" },
-    "Numanthia": { land: "vinedo-ribera.jpg", cap: "capsula.jpg", map: "mapa-toro.jpg" }
-  };
-  const hit = byProducer[w.producer];
-  if (hit) return hit;
+const PRODUCER_ART = {
+  "Château Margaux": { land: "vinedo-margaux.jpg", cap: "capsula-margaux.jpg", map: "mapa-medoc.jpg" },
+  "Vega Sicilia": { land: "vinedo-ribera.jpg", cap: "capsula.jpg", map: "mapa-ribera.jpg" },
+  "Dominio de Pingus": { land: "vinedo-ribera.jpg", cap: "capsula.jpg", map: "mapa-ribera.jpg" },
+  "R. López de Heredia": { land: "vinedo-rioja.jpg", cap: "capsula.jpg", map: "mapa-rioja.jpg" },
+  "Marqués de Riscal": { land: "vinedo-rioja.jpg", cap: "capsula.jpg", map: "mapa-rioja.jpg" },
+  "CVNE": { land: "vinedo-rioja.jpg", cap: "capsula.jpg", map: "mapa-rioja.jpg" },
+  "Bodegas Muga": { land: "vinedo-rioja.jpg", cap: "capsula.jpg", map: "mapa-rioja.jpg" },
+  "Marqués de Murrieta": { land: "vinedo-rioja.jpg", cap: "capsula.jpg", map: "mapa-rioja.jpg" },
+  "Pazo de Señoráns": { land: "vinedo-rias.jpg", cap: "capsula.jpg", map: "mapa-rias.jpg" },
+  "Álvaro Palacios": { land: "vinedo-priorat.jpg", cap: "capsula.jpg", map: "mapa-priorat.jpg" },
+  "Scala Dei": { land: "vinedo-priorat.jpg", cap: "capsula.jpg", map: "mapa-priorat.jpg" },
+  "Moët & Chandon": { land: "vinedo-champagne.jpg", cap: "capsula.jpg", map: "mapa-champagne.jpg" },
+  "Gramona": { land: "vinedo-champagne.jpg", cap: "capsula.jpg", map: "mapa-penedes.jpg" },
+  "Tenuta San Guido": { land: "vinedo-bolgheri.jpg", cap: "capsula.jpg", map: "mapa-bolgheri.jpg" },
+  "Penfolds": { land: "vinedo-margaux.jpg", cap: "capsula.jpg", map: "mapa-barossa.jpg" },
+  "Enrique Mendoza": { land: "vinedo.jpg", cap: "capsula.jpg", map: "mapa-alicante.jpg" },
+  "Numanthia": { land: "vinedo-ribera.jpg", cap: "capsula.jpg", map: "mapa-toro.jpg" }
+};
+const GEO_COUNTRY = {
+  espana: "España", portugal: "Portugal", francia: "France", italia: "Italy",
+  alemania: "Germany", argentina: "Argentina", chile: "Chile", australia: "Australia",
+  sudafrica: "South Africa", austria: "Austria", grecia: "Greece",
+  "nueva zelanda": "New Zealand", "estados unidos": "United States"
+};
+const platePending = new Set();
+const plateMiss = new Set();
+const outlineMemo = new Map();
+let nominatimWait = Promise.resolve();
+
+function plateCache() {
+  if (!state.plateCache || typeof state.plateCache !== "object") state.plateCache = {};
+  return state.plateCache;
+}
+function plateTitle(s) {
+  return String(s || "").trim().replace(/\s+/g, " ").toLocaleUpperCase("es");
+}
+function xmlEsc(s) {
+  return String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+function svgDataUrl(svg) {
+  return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+}
+function geoCountryName(country) {
+  const folded = foldZone(country);
+  return GEO_COUNTRY[folded] || country || "";
+}
+function fixedZoneOf(w) {
+  if (!w) return null;
   const place = [w.region, w.appellation, w.country].filter(Boolean).join(" ");
-  let hitZone = detectZone(place);
-  if (!hitZone) hitZone = detectZone([w.name, w.producer].filter(Boolean).join(" "));
-  if (hitZone && hitZone.map) return { land: hitZone.map, cap: "capsula.jpg", map: hitZone.map };
-  return { land: "", cap: "capsula.jpg", map: "" };
+  return detectZone(place) || detectZone([w.name, w.producer].filter(Boolean).join(" "));
+}
+function zonePlateKey(w) {
+  return "z:" + foldZone(w.region || w.appellation || w.country || "");
+}
+function wineryPlateKey(w) {
+  return "b:" + foldZone(w.producer || "") + "|" + foldZone(w.region || w.country || "");
+}
+function nominatimSlot() {
+  const next = nominatimWait.then(() => new Promise(resolve => setTimeout(resolve, 1100)));
+  nominatimWait = next.then(() => {}, () => {});
+  return next;
+}
+function parseJsonSlice(text, openCh, closeCh) {
+  const s = String(text || "");
+  const start = s.indexOf(openCh);
+  const end = s.lastIndexOf(closeCh);
+  if (start < 0 || end <= start) return null;
+  try { return JSON.parse(s.slice(start, end + 1)); }
+  catch (e) { return null; }
+}
+async function nominatimSearch(params) {
+  await nominatimSlot();
+  const q = new URLSearchParams();
+  Object.keys(params || {}).forEach(k => {
+    if (params[k] != null && params[k] !== "") q.set(k, String(params[k]));
+  });
+  if (!q.get("format")) q.set("format", "jsonv2");
+  const url = "https://nominatim.openstreetmap.org/search?" + q.toString();
+  try {
+    const res = await fetch(url, { headers: { Accept: "application/json" } });
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data)) return data;
+    }
+  } catch (e) {}
+  try {
+    const text = await readPublicPage(url);
+    const data = parseJsonSlice(text, "[", "]");
+    return Array.isArray(data) ? data : [];
+  } catch (e) {}
+  return [];
+}
+async function nominatimReverse(lat, lon) {
+  await nominatimSlot();
+  const url = "https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=12&lat=" + encodeURIComponent(lat) + "&lon=" + encodeURIComponent(lon);
+  try {
+    const res = await fetch(url, { headers: { Accept: "application/json" } });
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.lat) return data;
+    }
+  } catch (e) {}
+  try {
+    const text = await readPublicPage(url);
+    const data = parseJsonSlice(text, "{", "}");
+    return data && data.lat ? data : null;
+  } catch (e) {}
+  return null;
+}
+function ringArea(ring) {
+  let area = 0;
+  for (let i = 0; i < ring.length; i++) {
+    const p = ring[i];
+    const q = ring[(i + 1) % ring.length];
+    area += p[0] * q[1] - q[0] * p[1];
+  }
+  return Math.abs(area / 2);
+}
+function geoOuterRings(geo) {
+  if (!geo) return [];
+  if (geo.type === "Polygon") return (geo.coordinates || []).slice(0, 1).filter(r => r && r.length > 3);
+  if (geo.type === "MultiPolygon") {
+    const rings = (geo.coordinates || []).map(poly => poly && poly[0]).filter(r => r && r.length > 3);
+    rings.sort((a, b) => ringArea(b) - ringArea(a));
+    return rings.slice(0, 6);
+  }
+  return [];
+}
+function bboxOf(rings) {
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  rings.forEach(ring => ring.forEach(p => {
+    if (p[0] < minX) minX = p[0];
+    if (p[1] < minY) minY = p[1];
+    if (p[0] > maxX) maxX = p[0];
+    if (p[1] > maxY) maxY = p[1];
+  }));
+  return { minX, minY, maxX, maxY };
+}
+function distPointSeg(p, a, b) {
+  const dx = b[0] - a[0];
+  const dy = b[1] - a[1];
+  const len2 = dx * dx + dy * dy || 1e-12;
+  let t = ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / len2;
+  t = Math.max(0, Math.min(1, t));
+  return Math.hypot(p[0] - (a[0] + t * dx), p[1] - (a[1] + t * dy));
+}
+function simplifyRing(points, tol) {
+  if (points.length <= 8) return points.slice();
+  const keep = new Uint8Array(points.length);
+  keep[0] = 1;
+  keep[points.length - 1] = 1;
+  const stack = [[0, points.length - 1]];
+  while (stack.length) {
+    const pair = stack.pop();
+    const a = pair[0];
+    const b = pair[1];
+    let maxD = 0;
+    let idx = -1;
+    for (let i = a + 1; i < b; i++) {
+      const d = distPointSeg(points[i], points[a], points[b]);
+      if (d > maxD) { maxD = d; idx = i; }
+    }
+    if (idx >= 0 && maxD > tol) {
+      keep[idx] = 1;
+      stack.push([a, idx], [idx, b]);
+    }
+  }
+  const out = [];
+  for (let i = 0; i < points.length; i++) if (keep[i]) out.push(points[i]);
+  return out.length >= 4 ? out : points.slice();
+}
+function prepRings(rings) {
+  if (!rings.length) return [];
+  const span = Math.max(bboxOf(rings).maxX - bboxOf(rings).minX, bboxOf(rings).maxY - bboxOf(rings).minY, 1e-6);
+  const tol = span * 0.012;
+  return rings.map(ring => simplifyRing(ring, tol)).filter(ring => ring.length >= 4);
+}
+function polygonScore(item, query) {
+  const geo = item && item.geojson;
+  if (!geo || (geo.type !== "Polygon" && geo.type !== "MultiPolygon")) return -1;
+  const cat = String(item.category || item.class || "");
+  const typ = String(item.type || "");
+  if (/highway|building|shop|amenity|tourism|waterway|natural|railway|aeroway|man_made/.test(cat + " " + typ)) return -1;
+  let score = 0;
+  if (cat === "boundary") score += 5;
+  if (cat === "place") score += 2;
+  if (/administrative|region|county|state|province|island|protected/.test(typ)) score += 3;
+  const token = foldZone(String(query || "").split(",")[0]);
+  const name = foldZone((item.name || "") + " " + (item.display_name || ""));
+  if (token && token.length >= 3 && name.includes(token)) score += 4;
+  const rings = geoOuterRings(geo);
+  if (!rings.length) return -1;
+  const box = bboxOf(rings);
+  const area = Math.max(0, box.maxX - box.minX) * Math.max(0, box.maxY - box.minY);
+  if (area < 1e-7) return -1;
+  score += Math.min(3, Math.log10(area + 1e-6) + 3);
+  return score;
+}
+function pickOutline(rows, query) {
+  let best = null;
+  let score = -1;
+  (rows || []).forEach(row => {
+    const next = polygonScore(row, query);
+    if (next > score) { score = next; best = row; }
+  });
+  return score >= 2 ? best : null;
+}
+function outlineFromHit(hit, fallback) {
+  const rings = prepRings(geoOuterRings(hit.geojson));
+  if (!rings.length) return null;
+  const addr = hit.address || {};
+  return {
+    rings,
+    bbox: bboxOf(rings),
+    lat: Number(hit.lat),
+    lon: Number(hit.lon),
+    fallback: fallback || "region",
+    country: addr.country || "",
+    localName: hit.name || addr.city || addr.town || addr.village || addr.state || ""
+  };
+}
+function zoneQueries(w) {
+  const region = String((w && (w.region || w.appellation)) || "").trim();
+  const country = geoCountryName((w && w.country) || "");
+  const local = String((w && w.country) || "").trim();
+  const list = [];
+  if (region && country) list.push(region + ", " + country);
+  if (region && local && foldZone(local) !== foldZone(country)) list.push(region + ", " + local);
+  if (region) list.push(region);
+  if (country) list.push(country);
+  return list.filter((q, i) => q && list.indexOf(q) === i);
+}
+async function nominatimPolygons(q, threshold) {
+  let rows = await nominatimSearch({ q, polygon_geojson: "1", polygon_threshold: String(threshold), limit: "6" });
+  const heavy = rows.some(row => JSON.stringify(row.geojson || "").length > 90000);
+  if (heavy) rows = await nominatimSearch({ q, polygon_geojson: "1", polygon_threshold: "0.03", limit: "4" });
+  return rows;
+}
+async function resolveOutline(w) {
+  const queries = zoneQueries(w);
+  const memoKey = queries.join("|");
+  if (outlineMemo.has(memoKey)) return outlineMemo.get(memoKey);
+  let hint = null;
+  let found = null;
+  for (let i = 0; i < queries.length; i++) {
+    const rows = await nominatimPolygons(queries[i], i === queries.length - 1 ? 0.02 : 0.0025);
+    if (!hint && rows[0] && rows[0].address) hint = rows[0].address;
+    const best = pickOutline(rows, queries[i]);
+    if (best) {
+      const kind = foldZone(queries[i]) === foldZone(geoCountryName(w.country || "")) ? "country" : "region";
+      found = outlineFromHit(best, kind);
+      break;
+    }
+  }
+  if (!found && hint) {
+    const prov = hint.state || hint.province || hint.county || "";
+    const country = hint.country || geoCountryName(w.country || "");
+    const extra = [];
+    if (prov && country) extra.push({ q: prov + ", " + country, kind: "province" });
+    if (country) extra.push({ q: country, kind: "country" });
+    for (let i = 0; i < extra.length; i++) {
+      const rows = await nominatimPolygons(extra[i].q, extra[i].kind === "country" ? 0.03 : 0.012);
+      const best = pickOutline(rows, extra[i].q);
+      if (best) { found = outlineFromHit(best, extra[i].kind); break; }
+    }
+  }
+  if (found) outlineMemo.set(memoKey, found);
+  return found;
+}
+function placeLabel(hit) {
+  const addr = (hit && hit.address) || {};
+  return addr.city || addr.town || addr.village || addr.municipality || addr.hamlet || hit.name || "";
+}
+async function geocodePin(w, outline) {
+  const memoKey = foldZone(w.producer || "") + "|" + outline.lat + "," + outline.lon;
+  if (outline.pin && outline.pinKey === memoKey) return outline.pin;
+  const q = [w.producer, w.region || w.appellation, geoCountryName(w.country || "")].filter(Boolean).join(", ");
+  const lat0 = Number(outline.lat);
+  const lon0 = Number(outline.lon);
+  const fallback = { lat: lat0, lon: lon0, label: outline.localName || w.region || w.country || "" };
+  let pin = fallback;
+  if (w.producer) {
+    const rows = await nominatimSearch({ q, limit: "1" });
+    const hit = rows[0];
+    if (hit) {
+      const lat = Number(hit.lat);
+      const lon = Number(hit.lon);
+      const box = outline.bbox;
+      const span = Math.max(box.maxX - box.minX, box.maxY - box.minY, 0.25);
+      if (Number.isFinite(lat) && Number.isFinite(lon) && Math.abs(lat - lat0) <= span * 2.2 && Math.abs(lon - lon0) <= span * 2.2) {
+        pin = { lat, lon, label: placeLabel(hit) || fallback.label };
+      }
+    }
+  }
+  outline.pin = pin;
+  outline.pinKey = memoKey;
+  return pin;
+}
+async function nearbyTowns(pin, outline) {
+  if (outline.towns && outline.townPin === pin.label) return outline.towns;
+  const box = outline.bbox;
+  const dlat = Math.max(0.05, Math.min(0.55, (box.maxY - box.minY) * 0.32));
+  const dlon = Math.max(0.05, Math.min(0.7, (box.maxX - box.minX) * 0.32));
+  const spots = [
+    [pin.lat + dlat, pin.lon],
+    [pin.lat - dlat, pin.lon],
+    [pin.lat, pin.lon + dlon],
+    [pin.lat, pin.lon - dlon],
+    [pin.lat + dlat * 0.55, pin.lon + dlon * 0.55]
+  ];
+  const seen = new Set();
+  const pinName = foldZone(pin.label);
+  if (pinName) seen.add(pinName);
+  const towns = [];
+  for (let i = 0; i < spots.length && towns.length < 5; i++) {
+    const hit = await nominatimReverse(spots[i][0], spots[i][1]);
+    const label = placeLabel(hit);
+    const key = foldZone(label);
+    if (!label || !key || seen.has(key) || key === pinName) continue;
+    const lat = Number(hit.lat);
+    const lon = Number(hit.lon);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue;
+    seen.add(key);
+    towns.push({ lat, lon, label });
+  }
+  outline.towns = towns;
+  outline.townPin = pin.label;
+  return towns;
+}
+function projectPoint(lon, lat, proj) {
+  return [
+    proj.ox + (lon - proj.minX) * proj.s,
+    proj.oy + (proj.maxY - lat) * proj.s
+  ];
+}
+function makeProject(rings, box) {
+  const b = bboxOf(rings);
+  const bw = Math.max(1e-6, b.maxX - b.minX);
+  const bh = Math.max(1e-6, b.maxY - b.minY);
+  const pad = 28;
+  const s = Math.min((box.w - pad * 2) / bw, (box.h - pad * 2) / bh);
+  return {
+    minX: b.minX,
+    maxY: b.maxY,
+    s,
+    ox: box.x + (box.w - bw * s) / 2,
+    oy: box.y + (box.h - bh * s) / 2
+  };
+}
+function ringPath(ring, proj) {
+  return ring.map((p, i) => {
+    const xy = projectPoint(p[0], p[1], proj);
+    return (i ? "L" : "M") + xy[0].toFixed(1) + " " + xy[1].toFixed(1);
+  }).join("") + "Z";
+}
+function renderEngravedPlate(opts) {
+  const title = plateTitle(opts.title).slice(0, 42);
+  const subtitle = plateTitle(opts.subtitle).slice(0, 48);
+  const size = title.length > 26 ? 28 : title.length > 18 ? 34 : title.length > 12 ? 42 : 50;
+  const box = { x: 86, y: 148, w: 996, h: 500 };
+  const proj = makeProject(opts.rings, box);
+  const paths = opts.rings.map(ring => ringPath(ring, proj)).join("");
+  const pinXY = projectPoint(opts.pin.lon, opts.pin.lat, proj);
+  const compass = { x: 1036, y: 642 };
+  const labels = [];
+  opts.towns.forEach(town => {
+    const xy = projectPoint(town.lon, town.lat, proj);
+    if (xy[0] < box.x + 8 || xy[0] > box.x + box.w - 8 || xy[1] < box.y + 8 || xy[1] > box.y + box.h - 8) return;
+    if (Math.hypot(xy[0] - compass.x, xy[1] - compass.y) < 78) return;
+    if (Math.hypot(xy[0] - pinXY[0], xy[1] - pinXY[1]) < 36) return;
+    const anchor = xy[0] > box.x + box.w - 120 ? "end" : "start";
+    const dx = anchor === "end" ? -8 : 8;
+    labels.push({ x: xy[0], y: xy[1], text: plateTitle(town.label).slice(0, 22), anchor, dx });
+  });
+  const pinName = plateTitle(opts.pin.label).slice(0, 22);
+  const pinAnchor = pinXY[0] > box.x + box.w - 140 ? "end" : "start";
+  const pinDx = pinAnchor === "end" ? -14 : 14;
+  const corner = (x, y, sx, sy) =>
+    `<path d="M${x} ${y + sy * 28} V${y} H${x + sx * 28}" fill="none" stroke="#e8c97a" stroke-width="1.4"/>` +
+    `<path d="M${x + sx * 10} ${y + sy * 10} l${sx * 6} ${sy * 6} l${-sx * 6} ${sy * 6} l${-sx * 6} ${-sy * 6} Z" fill="#c6a35a"/>`;
+  return `<?xml version="1.0" encoding="UTF-8"?>` +
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1168 784" width="1168" height="784">` +
+    `<rect width="1168" height="784" fill="#090b0a"/>` +
+    `<rect x="26" y="26" width="1116" height="732" fill="none" stroke="#c6a35a" stroke-width="3"/>` +
+    `<rect x="38" y="38" width="1092" height="708" fill="none" stroke="#e8c97a" stroke-width="1.15"/>` +
+    `<rect x="50" y="50" width="1068" height="684" fill="none" stroke="#8d7340" stroke-width="1"/>` +
+    corner(58, 58, 1, 1) + corner(1110, 58, -1, 1) + corner(58, 726, 1, -1) + corner(1110, 726, -1, -1) +
+    `<text x="584" y="108" text-anchor="middle" fill="#f0d48a" font-family="Palatino, 'Palatino Linotype', 'Iowan Old Style', 'Times New Roman', Times, serif" font-size="${size}" letter-spacing="6">${xmlEsc(title)}</text>` +
+    (subtitle ? `<text x="584" y="134" text-anchor="middle" fill="#b89a5e" font-family="Palatino, 'Times New Roman', Times, serif" font-size="15" letter-spacing="4">${xmlEsc(subtitle)}</text>` : "") +
+    `<path d="${paths}" fill="rgba(198,163,90,0.07)" stroke="#e4c98a" stroke-width="2.3" stroke-linejoin="round" stroke-linecap="round"/>` +
+    labels.map(lab => `<g><circle cx="${lab.x.toFixed(1)}" cy="${lab.y.toFixed(1)}" r="2.2" fill="#e8c97a"/><text x="${(lab.x + lab.dx).toFixed(1)}" y="${(lab.y + 4).toFixed(1)}" text-anchor="${lab.anchor}" fill="#cbb074" font-family="Palatino, 'Times New Roman', Times, serif" font-size="15" letter-spacing="1.4">${xmlEsc(lab.text)}</text></g>`).join("") +
+    `<g transform="translate(${pinXY[0].toFixed(1)} ${pinXY[1].toFixed(1)})"><path d="M0 -18 C7 -18 11 -12 11 -7 C11 1 0 14 0 14 C0 14 -11 1 -11 -7 C-11 -12 -7 -18 0 -18 Z" fill="#e8c97a"/><circle cy="-7" r="3.1" fill="#1a1408"/></g>` +
+    (pinName ? `<text x="${(pinXY[0] + pinDx).toFixed(1)}" y="${(pinXY[1] - 6).toFixed(1)}" text-anchor="${pinAnchor}" fill="#f0d48a" font-family="Palatino, 'Times New Roman', Times, serif" font-size="16" letter-spacing="1.6">${xmlEsc(pinName)}</text>` : "") +
+    `<g transform="translate(${compass.x} ${compass.y})" fill="none" stroke="#e8c97a" stroke-width="1.3">` +
+    `<circle r="34"/><circle r="4" fill="#e8c97a" stroke="none"/>` +
+    `<path d="M0 -30 L6 -6 L0 -12 L-6 -6 Z" fill="#e8c97a"/>` +
+    `<path d="M0 30 L6 6 L0 12 L-6 6 Z"/><path d="M30 0 L6 6 L12 0 L6 -6 Z"/><path d="M-30 0 L-6 6 L-12 0 L-6 -6 Z"/>` +
+    `<path d="M0 -16 V16 M-16 0 H16" stroke="#8d7340"/>` +
+    `</g>` +
+    `<text x="${compass.x}" y="${compass.y - 40}" text-anchor="middle" fill="#e8c97a" font-family="Palatino, 'Times New Roman', Times, serif" font-size="13" letter-spacing="1">N</text>` +
+    `<text x="584" y="748" text-anchor="middle" fill="#6e5a32" font-family="Palatino, 'Times New Roman', Times, serif" font-size="11" letter-spacing="1.5">DATOS GEOGRÁFICOS © OPENSTREETMAP</text>` +
+    `</svg>`;
+}
+async function buildZonePlate(w) {
+  const outline = await resolveOutline(w);
+  if (!outline) return "";
+  const pin = await geocodePin(w, outline);
+  const towns = await nearbyTowns(pin, outline);
+  const title = w.region || w.appellation || outline.localName || w.country || "Zona";
+  const subtitle = outline.fallback === "country"
+    ? ("Contorno de " + (outline.country || w.country || ""))
+    : outline.fallback === "province"
+      ? ("Contorno de " + (outline.localName || outline.country || ""))
+      : (w.country || outline.country || "");
+  return renderEngravedPlate({ title, subtitle, rings: outline.rings, pin, towns });
+}
+async function buildWineryPlate(w) {
+  const outline = await resolveOutline(w);
+  if (!outline) return "";
+  const pin = await geocodePin(w, outline);
+  const towns = await nearbyTowns(pin, outline);
+  const subtitle = [pin.label, w.region || w.appellation || outline.country || ""].filter(Boolean).join(" · ");
+  return renderEngravedPlate({ title: w.producer || w.region || "Bodega", subtitle, rings: outline.rings, pin, towns });
+}
+function platesOutstanding(w) {
+  if (!w || isCatalogWineId(w.id)) return false;
+  const fixed = fixedZoneOf(w);
+  const cache = plateCache();
+  const keys = w.plateKeys || {};
+  const zoneKey = zonePlateKey(w);
+  const bodegaKey = wineryPlateKey(w);
+  if (!(fixed && fixed.map) && !(keys.zone && cache[keys.zone]) && !plateMiss.has(zoneKey)) return true;
+  if (!PRODUCER_ART[w.producer] && w.producer && !(keys.winery && cache[keys.winery]) && !plateMiss.has(bodegaKey)) return true;
+  return false;
+}
+async function ensureGeneratedPlates(wine) {
+  if (!wine || isCatalogWineId(wine.id)) return false;
+  wine.plateKeys = wine.plateKeys || {};
+  const fixed = fixedZoneOf(wine);
+  let changed = false;
+  if (!(fixed && fixed.map)) {
+    const key = zonePlateKey(wine);
+    plateMiss.delete(key);
+    if (key !== "z:" && !plateCache()[key]) {
+      setFichaProgress("Trazando el mapa de la zona…");
+      const svg = await buildZonePlate(wine);
+      if (svg) { plateCache()[key] = svg; changed = true; }
+      else plateMiss.add(key);
+    }
+    if (key !== "z:" && plateCache()[key]) wine.plateKeys.zone = key;
+  }
+  if (!PRODUCER_ART[wine.producer] && wine.producer) {
+    const key = wineryPlateKey(wine);
+    plateMiss.delete(key);
+    if (!plateCache()[key]) {
+      setFichaProgress("Trazando el mapa de la bodega…");
+      const svg = await buildWineryPlate(wine);
+      if (svg) { plateCache()[key] = svg; changed = true; }
+      else plateMiss.add(key);
+    }
+    if (plateCache()[key]) wine.plateKeys.winery = key;
+  }
+  if (changed) save();
+  return changed;
+}
+function schedulePlate(w) {
+  if (!platesOutstanding(w)) return;
+  const id = w.id;
+  platePending.add(id);
+  ensureGeneratedPlates(w).then(() => {
+    platePending.delete(id);
+    if (!currentWine || currentWine.id !== id) return;
+    if (screenId === "wine-sub" && currentSub) openWineSub(currentSub);
+    else if (screenId === "wine") openWine(id, currentBottle);
+  }).catch(() => { platePending.delete(id); });
+}
+function estateArt(w) {
+  const hit = PRODUCER_ART[w.producer];
+  if (hit) return hit;
+  const hitZone = fixedZoneOf(w);
+  const fixed = hitZone && hitZone.map ? hitZone.map : "";
+  if (!w || isCatalogWineId(w.id)) {
+    return fixed ? { land: fixed, cap: "capsula.jpg", map: fixed } : { land: "", cap: "capsula.jpg", map: "" };
+  }
+  const cache = plateCache();
+  const keys = w.plateKeys || {};
+  const zoneSvg = !fixed && keys.zone && cache[keys.zone];
+  const winerySvg = keys.winery && cache[keys.winery];
+  const zoneSrc = fixed || (zoneSvg ? svgDataUrl(zoneSvg) : "");
+  const landSrc = winerySvg ? svgDataUrl(winerySvg) : zoneSrc;
+  return { land: landSrc, cap: "capsula.jpg", map: zoneSrc };
 }
 
 function capsuleLines(w) {
@@ -1409,7 +1876,8 @@ function bottleMarkup(w) {
 }
 function estateSVG(w) {
   const art = estateArt(w);
-  const land = art.land ? `<img class="estate-photo" src="${art.land}" alt="" onerror="this.style.display='none'">` : "";
+  const landKind = art.land ? (String(art.land).indexOf("data:") === 0 ? "generado" : art.land) : "";
+  const land = art.land ? `<img class="estate-photo" data-land="${landKind}" src="${art.land}" alt="" onerror="this.style.display='none'">` : "";
   return `
     ${land}
     <div class="foil-wrap">
@@ -1669,7 +2137,9 @@ function openWine(wineId, bottle) {
     </div>
     ${cataPersonalCard(w)}
   `;
+  if (platesOutstanding(w)) platePending.add(w.id);
   show("wine");
+  schedulePlate(w);
 }
 
 function getTaste(id) {
@@ -3910,6 +4380,7 @@ async function completeWineRecord(wine, pageUrl) {
     wine.provenance.geminiNote = "";
   }
   sealWineProvenance(wine);
+  try { await ensureGeneratedPlates(wine); } catch (e) {}
   save();
   return wine;
 }
@@ -4787,10 +5258,10 @@ function mapaBlock(w) {
   const art = estateArt(w);
   const g = bodegaGeo(w);
   const file = (p) => "./" + String(p || "").replace(/^\.\//, "");
-  const mapSrc = art.map ? file(art.map) : "";
+  const mapSrc = art.map ? (String(art.map).indexOf("data:") === 0 ? art.map : file(art.map)) : "";
   const mapImg = mapSrc
-    ? `<img class="map-art" data-map="${mapSrc}" src="${mapSrc}" alt="" onerror="this.style.display='none'">`
-    : `<p class="muted" data-map="" style="text-align:center;margin:8px 0">Sin mapa de esta zona</p>`;
+    ? `<img class="map-art" data-map="${mapSrc.indexOf("data:") === 0 ? "generado" : mapSrc}" src="${mapSrc}" alt="" onerror="this.style.display='none'">`
+    : `<p class="muted" data-map="" style="text-align:center;margin:8px 0">${platePending.has(w.id) ? "Trazando el mapa de la zona…" : "Sin mapa de esta zona"}</p>`;
   const hasPin = g.lat != null && g.lng != null && Number.isFinite(Number(g.lat)) && Number.isFinite(Number(g.lng));
   const osm = hasPin ? `https://www.openstreetmap.org/?mlat=${g.lat}&mlon=${g.lng}#map=16/${g.lat}/${g.lng}` : "";
   const pin = hasPin ? `${g.lat},${g.lng}` : "";
@@ -5068,7 +5539,9 @@ function exportBackup() {
     tasting: state.tasting,
     favorites: state.favorites,
     prefs: state.prefs,
-    notify: state.notify
+    notify: state.notify,
+    customWines: state.customWines || [],
+    plateCache: state.plateCache || {}
   };
   downloadFile("MiVinoteca_Backup_" + new Date().toISOString().slice(0,10) + ".json", JSON.stringify(payload, null, 2), "application/json");
   prefs().lastBackup = Date.now();
@@ -5125,6 +5598,8 @@ function reviewRestore(file) {
       state.favorites = data.favorites || [];
       if (data.prefs) state.prefs = Object.assign(prefs(), data.prefs);
       if (data.notify) state.notify = data.notify;
+      if (Array.isArray(data.customWines)) state.customWines = data.customWines;
+      if (data.plateCache && typeof data.plateCache === "object") state.plateCache = data.plateCache;
       prefs().lastBackup = Date.now();
       save();
       toast("Colección restaurada");
