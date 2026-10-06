@@ -1405,14 +1405,19 @@ function openWineSub(kind) {
   } else if (kind === "tecnica") {
     const d = dossierOf(w);
     body = `
+      ${provenanceCard(w)}
       <div class="fact"><span>Uvas</span><b>${(w.grapes || []).join(", ") || "—"}</b></div>
-      <div class="fact"><span>Alcohol</span><b>${w.abv}% vol.</b></div>
+      <div class="fact"><span>Alcohol</span><b>${w.abv ? w.abv + "% vol." : "—"}</b></div>
       <div class="fact"><span>Estilo</span><b>${w.style} · ${w.type}</b></div>
+      ${w.provenance ? `<div class="fact"><span>Zona</span><b>${escHtml([w.appellation || w.region, w.country].filter(Boolean).join(" · ") || "—")}</b></div>
+      <div class="fact"><span>Beber</span><b>${w.aging.drinkFrom}–${w.aging.peakEnd}</b></div>
+      <div class="fact"><span>Límite</span><b>${w.aging.holdTo}</b></div>
+      <div class="fact"><span>Maridaje</span><b>${escHtml((w.pairing || []).join(", ") || "—")}</b></div>` : ""}
       <div class="fact"><span>Altitud</span><b>${d.elevation}</b></div>
       <div class="card" style="margin-top:12px"><p class="tiny">Suelos</p><p class="muted" style="margin-top:6px">${d.soils}</p></div>
       <div class="card"><p class="tiny">Viñedo</p><p class="muted" style="margin-top:6px">${d.vineyard}</p></div>
       <div class="card"><p class="tiny">Vinificación</p><p class="muted" style="margin-top:6px">${d.vinification}</p></div>
-      <div class="card"><p class="tiny">Crianza</p><p class="muted" style="margin-top:6px">${d.elevage}</p></div>`;
+      <div class="card"><p class="tiny">Crianza</p><p class="muted" style="margin-top:6px">${escHtml(w.crianza || d.elevage)}</p></div>`;
   } else if (kind === "historia") {
     const d = dossierOf(w);
     const paras = String(d.history || (w.producer + " se elabora en " + w.region + ".")).split("\n").filter(Boolean);
@@ -2398,12 +2403,448 @@ function confirmScanWine(id) {
   parkScanInInbox(ensureScannedWine(w, q), q, intakeSource || "camara");
 }
 
+function isCatalogWineId(id) {
+  return (WINE_CATALOG || []).some(w => w.id === id);
+}
+function needsWineCompletion(w) {
+  if (!w || isCatalogWineId(w.id)) return false;
+  if (w.provenance && w.provenance.done) return false;
+  return w.style === "internet" || w.style === "escaneo";
+}
+function showCompletingStatus() {
+  setScanStatus("Completando la ficha…");
+  if ($("#scan-results")) {
+    $("#scan-results").innerHTML = `<div class="card"><p>Completando la ficha…</p><p class="tiny">Primero la página de la tienda o la bodega. Lo que no aparezca, si hay clave guardada, lo estima Gemini.</p></div>`;
+  }
+}
+function colorForWineType(type) {
+  if (type === "blanco") return "#e8d9a0";
+  if (type === "rosado") return "#e7b7c6";
+  if (type === "espumoso") return "#efe3b8";
+  if (type === "generoso") return "#c4a35a";
+  return "#4a1020";
+}
+function wineTypeFromText(text) {
+  const t = normTxt(text);
+  if (/espumoso|cava|champagne|brut/.test(t)) return "espumoso";
+  if (/blanco|white/.test(t)) return "blanco";
+  if (/rosado|rose/.test(t)) return "rosado";
+  if (/generoso|jerez|fino|oloroso/.test(t)) return "generoso";
+  if (/tinto|red/.test(t)) return "tinto";
+  return "";
+}
+function countryNameFrom(raw) {
+  const n = normTxt(raw);
+  if (/espana|spain/.test(n)) return "España";
+  if (/francia|france/.test(n)) return "Francia";
+  if (/italia|italy/.test(n)) return "Italia";
+  if (/portugal/.test(n)) return "Portugal";
+  if (/alemania|germany/.test(n)) return "Alemania";
+  if (/argentina/.test(n)) return "Argentina";
+  if (/chile/.test(n)) return "Chile";
+  return String(raw || "").replace(/\s+/g, " ").trim();
+}
+function grapeListFrom(raw) {
+  return String(raw || "")
+    .replace(/\[[^\]]*\]\([^)]*\)/g, m => (m.match(/\[([^\]]+)\]/) || [])[1] || "")
+    .replace(/\d+\s*%/g, " ")
+    .split(/,|\/|\+|\sy\s/i)
+    .map(s => s.replace(/\s+/g, " ").trim())
+    .filter(s => {
+      if (s.length < 3 || s.length > 40) return false;
+      if (/sulfito|contiene/i.test(s)) return false;
+      return !/^(vino|tinto|blanco|rosado|red|white)( (tinto|blanco|rosado|red|white))?$/i.test(s);
+    });
+}
+function lineField(text, label) {
+  const re = new RegExp("(?:^|\\n)\\s*(?:[-*]\\s*)?(?:\\*\\*)?" + label + "(?:\\*\\*)?\\s*[:：]\\s*([^\\n]+)", "i");
+  const m = String(text || "").match(re);
+  if (!m) return "";
+  return m[1].replace(/\[([^\]]+)\]\([^)]*\)/g, "$1").replace(/\*\*/g, "").replace(/\s+/g, " ").trim();
+}
+function productSlice(md) {
+  const text = String(md || "");
+  const ficha = text.search(/ficha t[eé]cnica/i);
+  if (ficha >= 0) return text.slice(Math.max(0, ficha - 500), ficha + 4500);
+  const head = text.search(/^#\s+\S/m);
+  if (head >= 0) return text.slice(head, head + 4500);
+  return text.slice(0, 5000);
+}
+function mdField(text, label) {
+  const re = new RegExp("\\|\\s*" + label + "[^\\n|]*\\|\\s*([^\\n|]+)", "i");
+  const m = String(text || "").match(re);
+  if (!m) return "";
+  return m[1].replace(/\[([^\]]+)\]\([^)]*\)/g, "$1").replace(/\*\*/g, "").replace(/\s+/g, " ").trim();
+}
+function parseWinePage(md) {
+  const slice = productSlice(md);
+  const facts = {};
+  const tipo = mdField(slice, "Tipo") || mdField(slice, "Type") || lineField(slice, "Tipo(?: de vino)?") || lineField(slice, "Type");
+  const type = wineTypeFromText(tipo);
+  if (type) facts.type = type;
+  const regionRaw = mdField(slice, "Regi[oó]n") || mdField(slice, "Denominaci[oó]n") || mdField(slice, "Appellation")
+    || lineField(slice, "Regi[oó]n") || lineField(slice, "Denominaci[oó]n(?: de origen)?") || lineField(slice, "D\\.?O\\.?");
+  if (regionRaw) {
+    const place = regionRaw.match(/^(.+?)\s*\(([^)]+)\)\s*$/);
+    facts.region = (place ? place[1] : regionRaw).replace(/\s+/g, " ").trim();
+    if (place) facts.country = countryNameFrom(place[2]);
+    facts.appellation = facts.region;
+  }
+  if (!facts.country) {
+    const countryCell = slice.match(/\(([A-Za-zÁÉÍÓÚÜÑáéíóúüñ .'-]{3,24})\)/);
+    if (countryCell) facts.country = countryNameFrom(countryCell[1]);
+  }
+  const grapes = grapeListFrom(mdField(slice, "Uvas?") || mdField(slice, "Variedad(?:es)?") || lineField(slice, "Uvas?") || lineField(slice, "Variedad(?:es)?"));
+  if (grapes.length) facts.grapes = grapes;
+  const abvRaw = mdField(slice, "Graduaci[oó]n") || mdField(slice, "Alcohol") || mdField(slice, "Grado")
+    || lineField(slice, "Graduaci[oó]n(?: alcoh[oó]lica)?") || lineField(slice, "Alcohol") || lineField(slice, "Grado(?: alcoh[oó]lico)?");
+  const abvMatch = (abvRaw || slice).match(/(\d{1,2}(?:[,.]\d{1,2})?)\s*%/);
+  if (abvMatch) {
+    const abv = Number(abvMatch[1].replace(",", "."));
+    if (abv >= 4 && abv <= 22) facts.abv = abv;
+  }
+  const producer = mdField(slice, "Productor") || mdField(slice, "Bodega") || lineField(slice, "Productor") || lineField(slice, "Bodega");
+  if (producer && producer.length > 2 && producer.length < 80) facts.producer = producer;
+  const crianza = mdField(slice, "Crianza") || mdField(slice, "Envejecimiento") || mdField(slice, "Barrica")
+    || lineField(slice, "Crianza") || lineField(slice, "Envejecimiento");
+  const crianzaProse = slice.match(/(\d+\s*meses en barrica[^\n.]{0,60}|crianza de \d+[^\n.]{0,60})/i);
+  if (crianza || crianzaProse) facts.crianza = (crianza || crianzaProse[1]).replace(/\s+/g, " ").trim();
+  const vista = mdField(slice, "Vista") || lineField(slice, "Vista");
+  const nariz = mdField(slice, "Nariz") || lineField(slice, "Nariz");
+  const boca = mdField(slice, "Boca") || lineField(slice, "Boca");
+  const tasteBits = [vista && ("Vista: " + vista), nariz && ("Nariz: " + nariz), boca && ("Boca: " + boca)].filter(Boolean);
+  if (tasteBits.length) facts.tasting = tasteBits.join(". ");
+  const serveRange = slice.match(/(?:serv(?:ir|icio)|temperatura de servicio)[^\d]{0,40}(\d{1,2})\s*[–\-a]\s*(\d{1,2})\s*(?:º|°)?\s*C/i);
+  const serveOne = slice.match(/(?:serv(?:ir|icio)|temperatura de servicio|consumo)[^\d]{0,24}(\d{1,2})\s*(?:º|°)\s*C/i);
+  if (serveRange) {
+    facts.serveMin = Number(serveRange[1]);
+    facts.serveMax = Number(serveRange[2]);
+  } else if (serveOne) {
+    const n = Number(serveOne[1]);
+    if (n >= 4 && n <= 22) { facts.serveMin = n; facts.serveMax = n; }
+  }
+  return facts;
+}
+function markWineSource(wine, field, source) {
+  wine.provenance = wine.provenance || {};
+  wine.provenance[field] = source;
+}
+function applyPageFacts(wine, facts) {
+  if (!facts) return;
+  if (facts.type) {
+    wine.type = facts.type;
+    wine.color = colorForWineType(facts.type);
+    markWineSource(wine, "type", "página");
+  }
+  if (facts.grapes && facts.grapes.length) {
+    wine.grapes = facts.grapes;
+    markWineSource(wine, "grapes", "página");
+  }
+  if (facts.region) {
+    wine.region = facts.region;
+    wine.appellation = facts.appellation || facts.region;
+    markWineSource(wine, "region", "página");
+  }
+  if (facts.country) {
+    wine.country = facts.country;
+    markWineSource(wine, "country", "página");
+  }
+  if (facts.abv) {
+    wine.abv = facts.abv;
+    markWineSource(wine, "abv", "página");
+  }
+  if (facts.producer) {
+    wine.producer = facts.producer;
+    markWineSource(wine, "producer", "página");
+  }
+  if (facts.tasting) {
+    wine.tasting = facts.tasting;
+    markWineSource(wine, "tasting", "página");
+  }
+  if (facts.crianza) {
+    wine.crianza = facts.crianza;
+    markWineSource(wine, "crianza", "página");
+  }
+  if (facts.serveMin) {
+    wine.conservation = wine.conservation || {};
+    wine.conservation.serveMin = facts.serveMin;
+    wine.conservation.serveMax = facts.serveMax || facts.serveMin;
+    markWineSource(wine, "service", "página");
+  }
+}
+function geminiGaps(wine) {
+  const p = (wine && wine.provenance) || {};
+  const gaps = [];
+  if (p.type !== "página") gaps.push("type");
+  if (p.grapes !== "página") gaps.push("grapes");
+  if (p.region !== "página") gaps.push("region");
+  if (p.country !== "página") gaps.push("country");
+  if (p.abv !== "página") gaps.push("abv");
+  if (p.tasting !== "página") gaps.push("tasting");
+  if (p.crianza !== "página") gaps.push("crianza");
+  if (p.service !== "página") gaps.push("service");
+  if (p.cellar !== "página") gaps.push("cellar");
+  if (p.pairing !== "página") gaps.push("pairings");
+  if (p.aging !== "página") gaps.push("aging");
+  return gaps;
+}
+function storedGeminiKey() {
+  try {
+    if (window.WineDataProvider && typeof WineDataProvider.loadCfg === "function") {
+      return String((WineDataProvider.loadCfg().geminiKey) || "").trim();
+    }
+  } catch (e) {}
+  return "";
+}
+function saneVintageYear(n, vintage) {
+  const y = Math.round(Number(n));
+  if (!Number.isFinite(y) || y < vintage || y > vintage + 80) return 0;
+  return y;
+}
+function applyGeminiFacts(wine, raw) {
+  if (!raw || typeof raw !== "object") return;
+  const gaps = new Set(geminiGaps(wine));
+  const vintage = Number(wine.vintage) || YEAR;
+  if (gaps.has("type")) {
+    const type = wineTypeFromText(raw.type || "");
+    if (type) {
+      wine.type = type;
+      wine.color = colorForWineType(type);
+      markWineSource(wine, "type", "estimación Gemini");
+    }
+  }
+  if (gaps.has("grapes") && Array.isArray(raw.grapes)) {
+    const grapes = raw.grapes.map(g => String(g || "").trim()).filter(g => g.length >= 3 && g.length <= 40).slice(0, 6);
+    if (grapes.length) {
+      wine.grapes = grapes;
+      markWineSource(wine, "grapes", "estimación Gemini");
+    }
+  }
+  if (gaps.has("region") && raw.region) {
+    wine.region = String(raw.region).replace(/\s+/g, " ").trim().slice(0, 80);
+    wine.appellation = String(raw.appellation || raw.region).replace(/\s+/g, " ").trim().slice(0, 80);
+    markWineSource(wine, "region", "estimación Gemini");
+  }
+  if (gaps.has("country") && raw.country) {
+    wine.country = countryNameFrom(raw.country);
+    markWineSource(wine, "country", "estimación Gemini");
+  }
+  if (gaps.has("abv")) {
+    const abv = Number(String(raw.abv == null ? "" : raw.abv).replace(",", "."));
+    if (abv >= 4 && abv <= 22) {
+      wine.abv = abv;
+      markWineSource(wine, "abv", "estimación Gemini");
+    }
+  }
+  if (gaps.has("tasting") && raw.tasting) {
+    const tasting = String(raw.tasting).replace(/\s+/g, " ").trim();
+    if (tasting.length > 12) {
+      wine.tasting = tasting.slice(0, 420);
+      markWineSource(wine, "tasting", "estimación Gemini");
+    }
+  }
+  if (gaps.has("crianza") && raw.crianza) {
+    wine.crianza = String(raw.crianza).replace(/\s+/g, " ").trim().slice(0, 180);
+    markWineSource(wine, "crianza", "estimación Gemini");
+  }
+  if (gaps.has("service")) {
+    const a = Number(raw.serveMin);
+    const b = Number(raw.serveMax);
+    if (a >= 4 && a <= 22 && b >= a && b <= 22) {
+      wine.conservation.serveMin = a;
+      wine.conservation.serveMax = b;
+      markWineSource(wine, "service", "estimación Gemini");
+    }
+  }
+  if (gaps.has("cellar")) {
+    const a = Number(raw.cellarMin);
+    const b = Number(raw.cellarMax);
+    if (a >= 5 && a <= 18 && b >= a && b <= 20) {
+      wine.conservation.cellarMin = a;
+      wine.conservation.cellarMax = b;
+      if (raw.humidity) wine.conservation.humidity = String(raw.humidity).slice(0, 24);
+      if (raw.position) wine.conservation.position = String(raw.position).slice(0, 40);
+      markWineSource(wine, "cellar", "estimación Gemini");
+    }
+  }
+  if (gaps.has("pairings") && Array.isArray(raw.pairings)) {
+    const pairing = raw.pairings.map(x => String(x || "").replace(/\s+/g, " ").trim()).filter(x => x.length > 2 && x.length < 48).slice(0, 6);
+    if (pairing.length) {
+      wine.pairing = pairing;
+      markWineSource(wine, "pairing", "estimación Gemini");
+    }
+  }
+  if (gaps.has("aging")) {
+    const drinkFrom = saneVintageYear(raw.drinkFrom, vintage);
+    const peakStart = saneVintageYear(raw.peakStart, vintage);
+    const peakEnd = saneVintageYear(raw.peakEnd, vintage);
+    const holdTo = saneVintageYear(raw.holdTo, vintage);
+    if (drinkFrom && peakStart >= drinkFrom && peakEnd >= peakStart && holdTo >= peakEnd) {
+      wine.aging = { drinkFrom, peakStart, peakEnd, holdTo };
+      markWineSource(wine, "aging", "estimación Gemini");
+    }
+  }
+}
+function sealWineProvenance(wine) {
+  const keys = ["type", "grapes", "region", "country", "abv", "tasting", "crianza", "service", "cellar", "pairing", "aging", "producer"];
+  wine.provenance = wine.provenance || {};
+  keys.forEach(k => { if (!wine.provenance[k]) wine.provenance[k] = "valor por defecto"; });
+  wine.provenance.done = true;
+}
+function provenanceCard(w) {
+  if (!w || !w.provenance) return "";
+  const labels = {
+    type: "tipo", grapes: "uvas", region: "zona", country: "país", abv: "alcohol",
+    tasting: "cata", crianza: "crianza", service: "servicio", cellar: "guarda",
+    pairing: "maridajes", aging: "fechas de consumo", producer: "bodega"
+  };
+  const buckets = {};
+  Object.keys(labels).forEach(k => {
+    const src = w.provenance[k] || "valor por defecto";
+    buckets[src] = buckets[src] || [];
+    buckets[src].push(labels[k]);
+  });
+  const lines = ["página", "estimación Gemini", "valor por defecto"].filter(src => buckets[src] && buckets[src].length).map(src =>
+    `<p style="margin-top:8px"><b>${escHtml(src)}</b><span class="muted"> · ${escHtml(buckets[src].join(", "))}</span></p>`
+  ).join("");
+  const host = w.provenance.pageHost ? `<p class="tiny" style="margin-top:6px">Página leída: ${escHtml(w.provenance.pageHost)}</p>` : "";
+  return `<div class="card"><p class="tiny">De dónde sale cada dato</p>${host}${lines}</div>`;
+}
+async function readGeminiWineFacts(wine, gaps) {
+  const key = storedGeminiKey();
+  if (!key || !gaps.length) return null;
+  const user = [
+    "Completa solo los huecos de esta ficha de vinoteca. No inventes puntuaciones.",
+    "Vino: " + [wine.producer, wine.name].filter(Boolean).join(" "),
+    "Añada: " + (wine.vintage || "desconocida"),
+    "Ya conocido: " + [wine.region, wine.country, (wine.grapes || []).join(", "), wine.type].filter(Boolean).join(" · "),
+    "Huecos: " + gaps.join(", "),
+    "type: tinto, blanco, rosado, espumoso o generoso.",
+    "aging: drinkFrom, peakStart, peakEnd y holdTo como años, con peakEnd = último año recomendado para beber.",
+    "pairings: platos concretos en español. Temperaturas en grados enteros.",
+    "Si no estás seguro de un hueco, devuelve cadena vacía, lista vacía o 0."
+  ].join("\n");
+  const body = {
+    contents: [{ role: "user", parts: [{ text: user }] }],
+    generationConfig: {
+      temperature: 0.2,
+      maxOutputTokens: 700,
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: "OBJECT",
+        properties: {
+          type: { type: "STRING" },
+          grapes: { type: "ARRAY", items: { type: "STRING" } },
+          region: { type: "STRING" },
+          appellation: { type: "STRING" },
+          country: { type: "STRING" },
+          abv: { type: "NUMBER" },
+          crianza: { type: "STRING" },
+          tasting: { type: "STRING" },
+          serveMin: { type: "NUMBER" },
+          serveMax: { type: "NUMBER" },
+          cellarMin: { type: "NUMBER" },
+          cellarMax: { type: "NUMBER" },
+          humidity: { type: "STRING" },
+          position: { type: "STRING" },
+          pairings: { type: "ARRAY", items: { type: "STRING" } },
+          drinkFrom: { type: "NUMBER" },
+          peakStart: { type: "NUMBER" },
+          peakEnd: { type: "NUMBER" },
+          holdTo: { type: "NUMBER" }
+        },
+        required: ["type", "grapes", "region", "country", "abv", "pairings", "drinkFrom", "peakStart", "peakEnd", "holdTo", "serveMin", "serveMax", "cellarMin", "cellarMax"]
+      }
+    }
+  };
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 12000);
+  const models = ["gemini-2.5-flash", "gemini-2.5-flash-lite"];
+  try {
+    for (const model of models) {
+      const url = "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent";
+      let res;
+      try {
+        res = await fetch(url, {
+          method: "POST",
+          signal: ctrl.signal,
+          headers: { "Content-Type": "application/json", "x-goog-api-key": key },
+          body: JSON.stringify(body)
+        });
+      } catch (err) {
+        return null;
+      }
+      if (res.status === 404) continue;
+      if (!res.ok) return null;
+      let json;
+      try { json = await res.json(); } catch (e) { return null; }
+      const text = ((((json.candidates || [])[0] || {}).content || {}).parts || []).map(p => p.text || "").join("");
+      const start = text.indexOf("{");
+      const end = text.lastIndexOf("}");
+      if (start < 0 || end <= start) continue;
+      try { return JSON.parse(text.slice(start, end + 1)); } catch (e) { continue; }
+    }
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+async function completeWineRecord(wine, pageUrl) {
+  wine.provenance = wine.provenance || {};
+  const target = String(pageUrl || "").trim();
+  if (target && !/google\.[^/]+\/search|\/search-result\/|duckduckgo\.com/i.test(target)) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 14000);
+    try {
+      const page = await readPublicPage(target, ctrl.signal);
+      applyPageFacts(wine, parseWinePage(page));
+      wine.provenance.pageHost = hostOf(target) || target;
+    } catch (e) {
+      wine.provenance.pageHost = "";
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+  const gaps = geminiGaps(wine);
+  if (gaps.length && storedGeminiKey()) {
+    try {
+      const raw = await readGeminiWineFacts(wine, gaps);
+      if (raw) applyGeminiFacts(wine, raw);
+    } catch (e) {}
+  }
+  sealWineProvenance(wine);
+  save();
+  return wine;
+}
+let intakeBusy = false;
+async function settleNewWine(wine, raw, source, pageUrl) {
+  if (!wine) return;
+  if (intakeBusy) return toast("Sigue completando la ficha anterior");
+  intakeBusy = true;
+  try {
+    if (needsWineCompletion(wine)) {
+      showCompletingStatus();
+      let url = String(pageUrl || "");
+      if (!url) {
+        try {
+          const remote = await lookupWineOnline([wine.producer, wine.name, wine.vintage].filter(Boolean).join(" "));
+          const hit = (remote.hits || []).find(h => h && h.url && h.kind !== "buscar");
+          if (hit) url = hit.url;
+        } catch (e) {}
+      }
+      try { await completeWineRecord(wine, url); } catch (e) {}
+    }
+    parkScanInInbox(wine, raw, source);
+  } finally {
+    intakeBusy = false;
+  }
+}
 function confirmScanCustom() {
   const q = (($("#scan-read") && $("#scan-read").value) || ($("#scan-q") && $("#scan-q").value) || "").trim();
   const raw = q || lastOcrText || "";
   const w = inferWineFromText(raw);
   if (!w) return toast("Escribe bodega y añada");
-  parkScanInInbox(w, raw, intakeSource || "camara");
+  settleNewWine(w, raw, intakeSource || "camara", "");
 }
 function wineFromInternetHit(hit) {
   const raw = ((hit && hit.title) || "") + " " + (hit && hit.producer || "") + " " + (lastOcrText || "");
@@ -2451,7 +2892,7 @@ function confirmInternetWine(i) {
   }
   const w = wineFromInternetHit(hit);
   if (!w) return toast("No se pudo crear la ficha");
-  parkScanInInbox(w, lastOcrText || hit.title, intakeSource || "fototeca");
+  settleNewWine(w, lastOcrText || hit.title, intakeSource || "fototeca", hit.url || "");
 }
 async function searchAndShowLabel(text) {
   const gen = ++photoSearchGen;
@@ -2741,7 +3182,7 @@ function manualIntake() {
   }
   const w = inferWineFromText(q);
   if (!w) return toast("Escribe bodega y añada");
-  parkScanInInbox(w, q, "manual");
+  settleNewWine(w, q, "manual", "");
 }
 function runIdentify() {
   manualIntake();
