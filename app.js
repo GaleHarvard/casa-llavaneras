@@ -570,6 +570,249 @@ function zonePhrases(z) {
   const raw = foldZone(z.keys || z.name);
   return raw.split(",").map(p => p.trim()).filter(p => p.length >= 4);
 }
+
+function escapeReg(s) {
+  return String(s || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+const NO_GEMINI_NOTE = "Sin clave de Gemini en esta app. Si la guardaste en Safari, pégala también aquí: Inicio › Avisos › Precios de mercado.";
+const ZONE_SKIP = new Set(["touriga", "riesling", "pinot", "garnacha", "tempranillo", "mencia", "monastrell", "bobal", "godello", "verdejo", "albarino", "alvarinho", "malvasia", "vintage", "tawny", "moscatel", "baga", "arinto", "ramisco", "semillon", "cabernet", "chardonnay", "syrah", "gewurztraminer", "prieto", "picudo", "torrontes", "malmsey", "sercial"]);
+function zoneNeedles(z) {
+  const needles = [];
+  const name = foldZone(z.name);
+  if (name.length >= 3) needles.push(name);
+  foldZone(z.keys || "").split(",").forEach(chunk => {
+    const phrase = chunk.trim();
+    if (phrase.length >= 4) needles.push(phrase);
+    phrase.split(/\s+/).forEach(word => {
+      if (word.length >= 6 && !ZONE_SKIP.has(word)) needles.push(word);
+    });
+  });
+  return needles;
+}
+function detectZone(text) {
+  const hay = foldZone(text);
+  if (!hay) return null;
+  let best = null;
+  let bestLen = 0;
+  let bestAt = 1e9;
+  ZONES.forEach(z => {
+    zoneNeedles(z).forEach(needle => {
+      if (needle.length < 3 || needle.length < bestLen) return;
+      const re = new RegExp("(^|[^a-z0-9])" + escapeReg(needle) + "([^a-z0-9]|$)");
+      const at = hay.search(re);
+      if (at < 0) return;
+      if (needle.length > bestLen || (needle.length === bestLen && at < bestAt)) {
+        best = z;
+        bestLen = needle.length;
+        bestAt = at;
+      }
+    });
+  });
+  return best;
+}
+function countryFromBlob(text) {
+  const n = foldZone(text);
+  if (/\bportugal\b/.test(n)) return "Portugal";
+  if (/\bespana\b|\bspain\b/.test(n)) return "España";
+  if (/\bfrancia\b|\bfrance\b/.test(n)) return "Francia";
+  if (/\bitalia\b|\bitaly\b/.test(n)) return "Italia";
+  if (/\balemania\b|\bgermany\b/.test(n)) return "Alemania";
+  if (/\bargentina\b/.test(n)) return "Argentina";
+  if (/\bchile\b/.test(n)) return "Chile";
+  if (/\baustralia\b/.test(n)) return "Australia";
+  return "";
+}
+function isOpinionPage(url, title) {
+  if (isProductPageUrl(url)) return false;
+  const blob = normTxt((url || "") + " " + (title || ""));
+  return /\b(opiniones|opinion|consejos|consejo|foro|forum|blog|review|reviews|resena|resenas|wikipedia|reddit)\b/.test(blob);
+}
+function titleLooksDirty(s) {
+  const t = String(s || "");
+  if (/[…]|\.{2,}/.test(t)) return true;
+  if (/\s-\s-\s/.test(t)) return true;
+  if (/\b(opiniones|consejos|vinissimus|dec[aá]ntalo|comprar|precio)\b/i.test(t)) return true;
+  if (/^\s*vino\s+/i.test(t) && /\s-\s/.test(t)) return true;
+  if (t.length > 72) return true;
+  return false;
+}
+function isTitleJunk(part) {
+  const n = normTxt(part);
+  if (!n) return true;
+  return /opiniones|consejos|vinissimus|decantalo|wine searcher|wikipedia|comprar|precio|valoraciones|reviews|resena/.test(n);
+}
+function peelTypePrefix(s) {
+  const raw = String(s || "").trim();
+  const peeled = raw.replace(/^(tinto|blanco|rosado|espumoso|generoso|red|white)\s+/i, "").trim();
+  return peeled.length >= 3 ? peeled : raw;
+}
+function polishTitle(raw) {
+  let s = String(raw || "").replace(/[…]/g, " ").replace(/\.{2,}/g, " ");
+  s = s.replace(/\s+/g, " ").trim();
+  s = s.replace(/\s*[|]\s*.*$/, "");
+  s = s.replace(/\s+[·]\s*(comprar|precio|opiniones|consejos)\b[\s\S]*$/i, "");
+  s = s.replace(/\s+-\s*(opiniones|consejos|valoraciones|reviews?|comprar|precio)\b[\s\S]*$/i, "");
+  s = s.replace(/\b(opiniones|consejos)\b[\s\S]*$/i, "");
+  s = s.replace(/\b(vinissimus|dec[aá]ntalo|vivino|wine-searcher|wikipedia)\b[\s\S]*$/i, "");
+  s = s.replace(/^\s*(comprar|vino|wine)\s+/i, "");
+  s = s.replace(/(?:\s*-\s*){2,}/g, " - ");
+  s = s.replace(/\s+-\s*$/g, "").replace(/^\s*-\s+/g, "");
+  return s.replace(/\s+/g, " ").trim();
+}
+function producerFromHead(head, zone) {
+  let s = String(head || "").replace(/^\s*(vino|wine|comprar)\s+/i, "").trim();
+  if (zone) {
+    const name = escapeReg(zone.name);
+    s = s.replace(new RegExp("^" + name + "\\s+", "i"), "").trim();
+    s = s.replace(new RegExp("\\s+" + name + "$", "i"), "").trim();
+  }
+  s = peelTypePrefix(s);
+  if (!s || isTitleJunk(s)) return "";
+  if (zone && foldZone(s) === foldZone(zone.name)) return "";
+  return s;
+}
+function splitCapsProducer(segment, zone) {
+  const words = String(segment || "").split(/\s+/).filter(Boolean);
+  const prod = [];
+  const nameWords = [];
+  words.forEach(word => {
+    const caps = /^[A-ZÁÉÍÓÚÜÑ0-9]{2,}$/.test(word);
+    const isZone = zone && foldZone(word) === foldZone(zone.name);
+    if (caps && !isZone) prod.push(word);
+    else nameWords.push(word);
+  });
+  return { producer: prod.join(" "), name: nameWords.join(" ").trim() };
+}
+function identityFromTitle(raw) {
+  const vintage = yearFromText(raw) || 0;
+  const zone = detectZone(raw);
+  const type = wineTypeFromText(raw);
+  const country = (zone && zone.country) || countryFromBlob(raw);
+  let s = polishTitle(raw);
+  if (vintage) s = s.replace(new RegExp("\\b" + vintage + "\\b"), " ").replace(/\s+/g, " ").trim();
+  const parts = s.split(/\s*(?:·|\||–|—)\s*|\s+-\s+/).map(p => p.trim()).filter(p => p && !isTitleJunk(p));
+  let producer = "";
+  let name = "";
+  if (parts.length >= 2) {
+    producer = producerFromHead(parts[0], zone);
+    name = peelTypePrefix(parts.slice(1).join(" ").trim());
+  } else if (parts.length === 1) {
+    const split = splitCapsProducer(parts[0], zone);
+    producer = split.producer;
+    name = peelTypePrefix(split.name || parts[0]);
+  }
+  if (!name) name = peelTypePrefix(parts[0] || s);
+  if (producer && normTxt(producer) === normTxt(name)) producer = "";
+  if (zone && producer && foldZone(producer) === foldZone(zone.name)) producer = "";
+  return {
+    name: String(name || "").replace(/\s+/g, " ").trim(),
+    producer: String(producer || "").replace(/\s+/g, " ").trim(),
+    vintage: vintage,
+    region: zone ? zone.name : "",
+    appellation: zone ? zone.name : "",
+    country: country || "",
+    type: type || ""
+  };
+}
+function applyCleanIdentity(wine, raw) {
+  if (!wine) return null;
+  const source = raw || [wine.name, wine.producer, wine.vintage].filter(Boolean).join(" ");
+  const idn = identityFromTitle(source);
+  wine.provenance = wine.provenance || {};
+  if (!wine.provenance.rawTitle && titleLooksDirty(wine.name)) wine.provenance.rawTitle = wine.name;
+  const dirty = titleLooksDirty(wine.name) || titleLooksDirty(wine.producer);
+  if (idn.name && wine.provenance.name !== "página" && (dirty || !String(wine.name || "").trim())) {
+    wine.name = idn.name;
+    markWineSource(wine, "name", "título");
+  }
+  if (idn.producer && wine.provenance.producer !== "página" && (dirty || !String(wine.producer || "").trim() || titleLooksDirty(wine.producer))) {
+    wine.producer = idn.producer;
+    markWineSource(wine, "producer", "título");
+  }
+  if (idn.region && wine.provenance.region !== "página") {
+    wine.region = idn.region;
+    wine.appellation = idn.appellation || idn.region;
+    markWineSource(wine, "region", "título");
+  }
+  if (idn.country && wine.provenance.country !== "página") {
+    wine.country = idn.country;
+    markWineSource(wine, "country", "título");
+  }
+  if (idn.type && wine.provenance.type !== "página") {
+    wine.type = idn.type;
+    wine.color = colorForWineType(idn.type);
+    markWineSource(wine, "type", "título");
+  }
+  if (idn.vintage) {
+    const current = Number(wine.vintage) || 0;
+    if (!current || current === YEAR || dirty) wine.vintage = idn.vintage;
+  }
+  return idn;
+}
+function identityAgrees(blob, next, current) {
+  const proposed = normTxt(next);
+  if (!proposed) return false;
+  const words = proposed.split(" ").filter(t => t.length >= 4);
+  const known = normTxt(current);
+  if (!words.length) return blob.includes(proposed) || known.includes(proposed);
+  return words.some(t => blob.includes(t) || known.includes(t));
+}
+function acceptableIdentityText(value) {
+  const s = clipText(value, 80);
+  if (s.length < 2 || s.length > 80) return "";
+  if (/https?:|opiniones|consejos|vinissimus|comprar|precio|\.{2,}/i.test(s)) return "";
+  return s;
+}
+function applyGeminiIdentity(wine, raw) {
+  if (!wine || !raw || typeof raw !== "object") return;
+  wine.provenance = wine.provenance || {};
+  const blob = normTxt([wine.provenance.rawTitle, wine.provenance.pageExcerpt, wine.provenance.pageUrl, wine.name, wine.producer].filter(Boolean).join(" "));
+  const producer = acceptableIdentityText(raw.producer);
+  if (producer && wine.provenance.producer !== "página" && identityAgrees(blob, producer, wine.producer)) {
+    wine.producer = producer;
+    markWineSource(wine, "producer", "estimación Gemini");
+  }
+  const name = acceptableIdentityText(raw.name);
+  if (name && wine.provenance.name !== "página" && identityAgrees(blob, name, wine.name)) {
+    wine.name = name;
+    markWineSource(wine, "name", "estimación Gemini");
+  }
+  const year = Math.round(Number(raw.vintage));
+  const mentioned = [wine.provenance.rawTitle, wine.provenance.pageExcerpt, wine.provenance.pageUrl, wine.name, String(wine.vintage || "")].join(" ").includes(String(year));
+  const currentYear = Number(wine.vintage) || 0;
+  if (year >= 1950 && year <= YEAR + 1 && (mentioned || !currentYear || currentYear === YEAR)) wine.vintage = year;
+  const zone = detectZone([raw.region, raw.country, raw.name].filter(Boolean).join(" "));
+  if (wine.provenance.region !== "página") {
+    if (zone) {
+      wine.region = zone.name;
+      wine.appellation = zone.name;
+      markWineSource(wine, "region", "estimación Gemini");
+    } else {
+      const region = acceptableIdentityText(raw.region);
+      if (region) {
+        wine.region = region;
+        wine.appellation = region;
+        markWineSource(wine, "region", "estimación Gemini");
+      }
+    }
+  }
+  if (wine.provenance.country !== "página") {
+    const named = countryNameFrom(raw.country || "");
+    const country = named || (zone && zone.country) || "";
+    if (country && country.length < 40) {
+      wine.country = country;
+      markWineSource(wine, "country", "estimación Gemini");
+    }
+  }
+  if (wine.provenance.type !== "página") {
+    const type = wineTypeFromText(raw.type || "");
+    if (type) {
+      wine.type = type;
+      wine.color = colorForWineType(type);
+      markWineSource(wine, "type", "estimación Gemini");
+    }
+  }
+}
 function winesInZone(z) {
   const phrases = zonePhrases(z);
   const zoneName = foldZone(z.name);
@@ -1076,12 +1319,11 @@ function estateArt(w) {
   };
   const hit = byProducer[w.producer];
   if (hit) return hit;
-  const zone = (w.region + " " + (w.appellation || "") + " " + (w.country || "")).toLowerCase();
-  const hitZone = ZONES.find(z => (z.keys || "").split(/\s+/).some(k => k.length > 2 && zone.includes(k)) || zone.includes(z.name.toLowerCase()));
-  if (hitZone) {
-    return { land: hitZone.map, cap: "capsula.jpg", map: hitZone.map };
-  }
-  return { land: "mapa-rioja.jpg", cap: "capsula.jpg", map: "mapa-rioja.jpg" };
+  const place = [w.region, w.appellation, w.country].filter(Boolean).join(" ");
+  let hitZone = detectZone(place);
+  if (!hitZone) hitZone = detectZone([w.name, w.producer].filter(Boolean).join(" "));
+  if (hitZone && hitZone.map) return { land: hitZone.map, cap: "capsula.jpg", map: hitZone.map };
+  return { land: "", cap: "capsula.jpg", map: "" };
 }
 
 function capsuleLines(w) {
@@ -1107,11 +1349,11 @@ function bottleKind(w) {
   if (/rosado|rose/.test(t)) return "rose";
   return "red";
 }
-function bottleSVG(w) {
-  const kind = bottleKind(w);
+function bottleSVG(w, forceKind) {
+  const kind = forceKind || bottleKind(w);
   const lines = capsuleLines(w);
   const label = lines.map((line, i) => `<text x="60" y="${38 + i * 11}" text-anchor="middle" fill="#2a1c08" font-size="8" font-family="Georgia, serif" font-weight="700">${line.toUpperCase()}</text>`).join("");
-  const glass = { red: "#3a1018", white: "#e6d7a2", slim: "#f0e2ae", rose: "#e7b7c0", spark: "#d8c48a" }[kind];
+  const glass = { red: "#9a2434", white: "#e6d7a2", slim: "#f0e2ae", rose: "#e7b7c0", spark: "#d8c48a", generoso: "#c4a35a", neutral: "#c8c2b6" }[kind] || "#c8c2b6";
   const body = kind === "spark"
     ? `<path d="M46 78h28v18c8 6 14 18 14 40v42c0 10-8 16-28 16s-28-6-28-16v-42c0-22 6-34 14-40V78z" fill="${glass}"/>`
     : kind === "slim"
@@ -1120,7 +1362,7 @@ function bottleSVG(w) {
   const muselet = kind === "spark"
     ? `<path d="M52 70c4 8 12 8 16 0M60 74v10M50 84h20" fill="none" stroke="#d7d7d7" stroke-width="1.4"/>`
     : "";
-  return `<svg class="bottle-svg bottle-${kind}" viewBox="0 0 120 200" aria-label="${lines.join(" ") || "Botella"}">
+  return `<svg class="bottle-svg bottle-${kind}" data-bottle="${kind}" viewBox="0 0 120 200" aria-label="${lines.join(" ") || "Botella"}">
     <rect x="48" y="8" width="24" height="70" rx="6" fill="url(#foil)"/>
     ${label}
     ${muselet}
@@ -1141,12 +1383,37 @@ function bottleAsset(w) {
   if (kind === "white" || kind === "slim" || kind === "rose") return BOTTLE_PHOTOS.blanco;
   return BOTTLE_PHOTOS.tinto;
 }
+function bottleTone(w) {
+  if (!w || !w.provenance || isCatalogWineId(w.id)) {
+    const kind = bottleKind(w);
+    if (kind === "spark") return "photo-espumoso";
+    if (kind === "white" || kind === "slim" || kind === "rose") return "photo-blanco";
+    return "photo-tinto";
+  }
+  if (!fieldIsReal(w, "type")) return "neutral";
+  const type = normTxt(w.type);
+  if (type === "blanco") return "photo-blanco";
+  if (type === "espumoso") return "photo-espumoso";
+  if (type === "rosado") return "rose";
+  if (type === "generoso") return "generoso";
+  if (type === "tinto") return "red";
+  return "neutral";
+}
+function bottleMarkup(w) {
+  const tone = bottleTone(w);
+  if (tone === "photo-tinto" || tone === "photo-blanco" || tone === "photo-espumoso") {
+    const src = tone === "photo-blanco" ? BOTTLE_PHOTOS.blanco : tone === "photo-espumoso" ? BOTTLE_PHOTOS.espumoso : BOTTLE_PHOTOS.tinto;
+    return `<img class="bottle-photo" data-bottle="${tone}" src="${src}" alt="Botella">`;
+  }
+  return bottleSVG(w, tone);
+}
 function estateSVG(w) {
   const art = estateArt(w);
+  const land = art.land ? `<img class="estate-photo" src="${art.land}" alt="" onerror="this.style.display='none'">` : "";
   return `
-    <img class="estate-photo" src="${art.land}" alt="" onerror="this.style.display='none'">
+    ${land}
     <div class="foil-wrap">
-      <img class="bottle-photo" src="${bottleAsset(w)}" alt="Botella">
+      ${bottleMarkup(w)}
     </div>`;
 }
 
@@ -2441,11 +2708,17 @@ function rankWineHits(rows, q) {
     const titleHay = normTxt(title);
     const n = tokens.filter(t => titleHay.includes(t)).length;
     if (tokens.length && !n) return;
-    const cover = phraseTokens.filter(t => titleHay.includes(t)).length;
+    let cover = phraseTokens.filter(t => titleHay.includes(t)).length;
     const host = hostOf(url);
     const bodega = tokens.some(t => t.length >= 5 && host.includes(t));
+    const opinion = isOpinionPage(url, title);
+    const product = isProductPageUrl(url);
+    if (product) cover += 5;
+    if (opinion) cover -= 5;
     if (bodega && !/vinissimus|decantalo|bigshopper|google/.test(host)) row.source = "Bodega · " + host;
-    const pref = bodega ? 0 : /decantalo/.test(host) ? 1 : /vinissimus/.test(host) ? 2 : /bigshopper/.test(host) ? 3 : 4;
+    let pref = bodega ? 0 : /decantalo/.test(host) ? 1 : /vinissimus/.test(host) ? 2 : /bigshopper/.test(host) ? 3 : 4;
+    if (product) pref = Math.min(pref, 1);
+    if (opinion) pref = 8;
     seen.add(key);
     scored.push(Object.assign({}, row, { title, url, _cover: cover, _price: row.price ? 1 : 0, _pref: pref }));
   });
@@ -2806,9 +3079,13 @@ function applyPageFacts(wine, facts) {
     markWineSource(wine, "grapes", "página");
   }
   if (facts.region) {
-    wine.region = facts.region;
-    wine.appellation = facts.appellation || facts.region;
+    const z = detectZone(facts.region + " " + (facts.country || ""));
+    wine.region = z ? z.name : facts.region;
+    wine.appellation = z ? z.name : (facts.appellation || facts.region);
     markWineSource(wine, "region", "página");
+    if (z && !facts.country) {
+      facts.country = z.country;
+    }
   }
   if (facts.country) {
     wine.country = facts.country;
@@ -2847,7 +3124,10 @@ function geminiGaps(wine) {
   const p = (wine && wine.provenance) || {};
   const gaps = [];
   ["type", "grapes", "region", "country", "abv", "tasting", "crianza", "service", "cellar", "pairing", "aging", "style", "ratings", "dossier", "web", "evolution", "vintages", "price"].forEach(k => {
-    if (p[k] !== "página") gaps.push(k);
+    const named = k === "type" || k === "region" || k === "country";
+    if (p[k] === "página") return;
+    if (named && (p[k] === "título" || p[k] === "estimación Gemini")) return;
+    gaps.push(k);
   });
   return gaps;
 }
@@ -3127,7 +3407,7 @@ function provenanceCard(w) {
     buckets[src] = buckets[src] || [];
     buckets[src].push(labels[k]);
   });
-  const lines = ["página", "estimación Gemini", "valor por defecto"].filter(src => buckets[src] && buckets[src].length).map(src =>
+  const lines = ["página", "título", "estimación Gemini", "valor por defecto"].filter(src => buckets[src] && buckets[src].length).map(src =>
     `<p style="margin-top:8px"><b>${escHtml(src)}</b><span class="muted"> · ${escHtml(buckets[src].join(", "))}</span></p>`
   ).join("");
   const host = w.provenance.pageHost ? `<p class="tiny" style="margin-top:6px">Página leída: ${escHtml(w.provenance.pageHost)}</p>` : "";
@@ -3211,6 +3491,7 @@ async function readFactsFromUrl(wine, url) {
   if (!page) return false;
   applyPageFacts(wine, parseWinePage(page));
   wine.provenance = wine.provenance || {};
+  wine.provenance.pageExcerpt = clipText(page, 1600);
   wine.provenance.pageHost = hostOf(product) || product;
   wine.provenance.pageUrl = product;
   wine.provenance.pageNote = "";
@@ -3441,7 +3722,7 @@ async function readGeminiWineFacts(wine, gaps) {
   const key = storedGeminiKey();
   wine.provenance = wine.provenance || {};
   if (!key) {
-    wine.provenance.geminiNote = "Sin clave de Gemini: añádela en Ajustes de precio";
+    wine.provenance.geminiNote = NO_GEMINI_NOTE;
     return null;
   }
   const blocks = geminiBlocksFor(gaps);
@@ -3498,14 +3779,56 @@ async function geminiProbe(key) {
   }
 }
 
+async function geminiNormalizeIdentity(wine) {
+  const key = storedGeminiKey();
+  if (!key || !wine) return;
+  wine.provenance = wine.provenance || {};
+  const schema = {
+    type: "OBJECT",
+    properties: {
+      producer: { type: "STRING" },
+      name: { type: "STRING" },
+      vintage: { type: "NUMBER" },
+      region: { type: "STRING" },
+      country: { type: "STRING" },
+      type: { type: "STRING" }
+    }
+  };
+  const prompt = [
+    "Normaliza la identidad de un vino. Responde solo JSON.",
+    "Título de la página: " + (wine.provenance.rawTitle || wine.name || ""),
+    "Nombre actual: " + (wine.name || ""),
+    "Productor actual: " + (wine.producer || ""),
+    "Añada actual: " + (wine.vintage || ""),
+    "URL: " + (wine.provenance.pageUrl || ""),
+    "Texto: " + clipText(wine.provenance.pageExcerpt || "", 1600),
+    "producer es la bodega, corta. name es el vino, sin bodega, sin añada y sin coletillas de la web (opiniones, consejos, comprar, precio o el nombre del sitio). vintage es el año o 0. region es la denominación. country es el país. type es tinto, blanco, rosado, espumoso o generoso, o vacío.",
+    "Usa solo el título, el texto y la URL. No inventes."
+  ].join("\n");
+  let outcome = null;
+  for (const model of GEMINI_MODELS) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 20000);
+    try {
+      outcome = await geminiGenerate(key, model, prompt, schema, ctrl.signal, 512);
+    } finally {
+      clearTimeout(timer);
+    }
+    if (outcome && (outcome.parsed || outcome.fatal)) break;
+  }
+  if (outcome && outcome.parsed) applyGeminiIdentity(wine, outcome.parsed);
+  else if (outcome && outcome.reason && !wine.provenance.geminiNote) wine.provenance.geminiNote = "Gemini: " + outcome.reason;
+}
 async function completeWineRecord(wine, pageUrl) {
   normalizeWine(wine);
   wine.provenance = wine.provenance || {};
   clearJunkTasting(wine);
+  applyCleanIdentity(wine, [wine.provenance.rawTitle || wine.name, wine.producer, wine.vintage, pageUrl || wine.provenance.pageUrl || ""].join(" \n "));
   const target = String(pageUrl || wine.provenance.pageUrl || "").trim();
+  const opinionFirst = isOpinionPage(target, (wine.provenance.rawTitle || "") + " " + (wine.name || ""));
   setFichaProgress(isSearchListingUrl(target) ? "Abriendo la ficha del vino en la tienda…" : "Completando la ficha…");
   let read = false;
-  if (target) {
+  if (target && !opinionFirst) {
     read = await readFactsFromUrl(wine, target);
     if (!read) wine.provenance.pageNote = "No se pudo leer la página de la tienda o la bodega.";
   }
@@ -3534,7 +3857,7 @@ async function completeWineRecord(wine, pageUrl) {
         if (await readFactsFromUrl(wine, shop.url)) read = true;
       }
     }
-    const bodega = hits.find(h => h && h.url && h.kind !== "tienda" && h.kind !== "buscar" && !isShopHost(h.url) && isReadableWineUrl(h.url));
+    const bodega = hits.find(h => h && h.url && h.kind !== "tienda" && h.kind !== "buscar" && !isShopHost(h.url) && isReadableWineUrl(h.url) && !isOpinionPage(h.url, h.title));
     if (bodega) {
       wine.geo = wine.geo || {};
       if (!wine.geo.web) {
@@ -3547,10 +3870,19 @@ async function completeWineRecord(wine, pageUrl) {
       }
     }
   } catch (e) {}
+  if (!read && target && opinionFirst) {
+    read = await readFactsFromUrl(wine, target);
+  }
   if (read) wine.provenance.pageNote = "";
+  if (storedGeminiKey()) {
+    setFichaProgress("Afinando nombre, bodega y zona…");
+    try { await geminiNormalizeIdentity(wine); } catch (e) {
+      if (!wine.provenance.geminiNote) wine.provenance.geminiNote = "Gemini: red o CORS";
+    }
+  }
   const gaps = geminiGaps(wine);
   if (!storedGeminiKey()) {
-    wine.provenance.geminiNote = "Sin clave de Gemini: añádela en Ajustes de precio";
+    wine.provenance.geminiNote = NO_GEMINI_NOTE;
   } else if (gaps.length) {
     setFichaProgress("Completando con Gemini lo que la página no trae…");
     try {
@@ -3558,7 +3890,7 @@ async function completeWineRecord(wine, pageUrl) {
     } catch (e) {
       if (!wine.provenance.geminiNote) wine.provenance.geminiNote = "Gemini: red o CORS";
     }
-  } else {
+  } else if (!wine.provenance.geminiNote) {
     wine.provenance.geminiNote = "";
   }
   sealWineProvenance(wine);
@@ -3577,7 +3909,8 @@ async function settleNewWine(wine, raw, source, pageUrl) {
       if (!url) {
         try {
           const remote = await lookupWineOnline([wine.producer, wine.name, wine.vintage].filter(Boolean).join(" "));
-          const hit = (remote.hits || []).find(h => h && h.url && h.kind !== "buscar");
+          const hit = (remote.hits || []).find(h => h && h.url && h.kind !== "buscar" && !isOpinionPage(h.url, h.title))
+            || (remote.hits || []).find(h => h && h.url && h.kind !== "buscar");
           if (hit) url = hit.url;
         } catch (e) {}
       }
@@ -3598,9 +3931,12 @@ async function completeExistingWine(id) {
     wine.provenance = wine.provenance || {};
     wine.provenance.done = false;
     wine.provenance.geminiNote = "";
+    const noKey = !storedGeminiKey();
+    if (noKey) openNotify();
     setFichaProgress("Completando la ficha…");
     await completeWineRecord(wine, wine.provenance.pageUrl || "");
     if (currentWine && currentWine.id === wine.id) openWine(wine.id, currentBottle);
+    if (noKey) openNotify();
     toast(wine.provenance.geminiNote ? "Ficha a medias" : "Ficha actualizada");
   } catch (e) {
     toast("No se pudo completar la ficha");
@@ -3616,24 +3952,26 @@ function confirmScanCustom() {
   settleNewWine(w, raw, intakeSource || "camara", "");
 }
 function wineFromInternetHit(hit) {
-  const raw = ((hit && hit.title) || "") + " " + (hit && hit.producer || "") + " " + (lastOcrText || "");
-  const local = rankFromText(raw);
+  const title = (hit && hit.title) || "";
+  const raw = [title, hit && hit.producer, hit && hit.extract, hit && hit.url, lastOcrText].filter(Boolean).join(" ");
+  const local = rankFromText(title || raw);
   if (local[0]) return ensureScannedWine(local[0], raw);
-  const id = "web-" + normTxt((hit && (hit.url || hit.title)) || "vino").replace(/\s+/g, "-").slice(0, 72);
+  const id = "web-" + normTxt((hit && (hit.url || title)) || "vino").replace(/\s+/g, "-").slice(0, 72);
   const existed = wineById(id);
   if (existed) return existed;
-  const year = yearFromText(raw) || YEAR;
-  const titleRaw = (hit && hit.title) || "Vino buscado";
-  const title = titleRaw.replace(new RegExp("\\b" + year + "\\b"), " ").replace(/\s+/g, " ").trim() || titleRaw;
-  const producer = (hit && hit.producer) || title;
-  const blob = ((hit && hit.extract) || "") + " " + producer;
-  let region = "";
-  if (/ribera del duero/i.test(blob)) region = "Ribera del Duero";
-  else if (/rioja/i.test(blob)) region = "Rioja";
-  else if (/priorat/i.test(blob)) region = "Priorat";
+  const idn = identityFromTitle(title);
+  const zone = detectZone(raw);
+  const year = idn.vintage || yearFromText(raw) || YEAR;
+  const givenProducer = String((hit && hit.producer) || "").trim();
+  const producer = (givenProducer && !titleLooksDirty(givenProducer) && givenProducer.length <= 80) ? givenProducer : (idn.producer || "");
+  const name = idn.name || "Vino";
+  const type = idn.type || wineTypeFromText(raw);
   const w = {
-    id, name: title, producer, vintage: year,
-    region, country: region ? "España" : "", appellation: region, type: "tinto", style: "internet",
+    id, name, producer: producer || name, vintage: year,
+    region: (zone && zone.name) || idn.region || "",
+    country: (zone && zone.country) || idn.country || "",
+    appellation: (zone && zone.name) || idn.appellation || "",
+    type: type || "", style: "internet",
     grapes: [], abv: 0, color: "#4a1020",
     ratings: {
       vivino: { score: 0, count: 0, scale: 5, note: "" },
@@ -3647,8 +3985,17 @@ function wineFromInternetHit(hit) {
     pairing: [],
     conservation: { cellarMin: 12, cellarMax: 14, serveMin: 16, serveMax: 18, humidity: "65–75%", position: "horizontal", light: "oscura" },
     aging: { drinkFrom: year + 1, peakStart: year + 3, peakEnd: year + 10, holdTo: year + 15 },
-    evolutionNotes: []
+    evolutionNotes: [],
+    provenance: {
+      rawTitle: (hit && hit.title) || "",
+      pageUrl: (hit && hit.url) || ""
+    }
   };
+  if (w.type) markWineSource(w, "type", "título");
+  if (w.region) markWineSource(w, "region", "título");
+  if (w.country) markWineSource(w, "country", "título");
+  if (producer) markWineSource(w, "producer", "título");
+  if (idn.name) markWineSource(w, "name", "título");
   state.customWines = state.customWines || [];
   state.customWines.push(w);
   return w;
@@ -4343,7 +4690,7 @@ function bodegaGeo(w) {
   return {
     lat: pin ? lat : null,
     lng: pin ? lng : null,
-    zone: g.zone || (w && (w.appellation || w.region)) || "Sin dato",
+    zone: g.zone || (w && (w.appellation || w.region || w.country)) || "Sin dato",
     address: g.address || "",
     web: g.web || ""
   };
@@ -4426,9 +4773,10 @@ function mapaBlock(w) {
   const art = estateArt(w);
   const g = bodegaGeo(w);
   const file = (p) => "./" + String(p || "").replace(/^\.\//, "");
-  const mapSrc = file(art.map || "mapa-ribera.jpg");
-  const same = String(art.land || "") === String(art.map || "");
-  const landSrc = same ? "" : file(art.land || "");
+  const mapSrc = art.map ? file(art.map) : "";
+  const mapImg = mapSrc
+    ? `<img class="map-art" data-map="${mapSrc}" src="${mapSrc}" alt="" onerror="this.style.display='none'">`
+    : `<p class="muted" data-map="" style="text-align:center;margin:8px 0">Sin mapa de esta zona</p>`;
   const hasPin = g.lat != null && g.lng != null && Number.isFinite(Number(g.lat)) && Number.isFinite(Number(g.lng));
   const osm = hasPin ? `https://www.openstreetmap.org/?mlat=${g.lat}&mlon=${g.lng}#map=16/${g.lat}/${g.lng}` : "";
   const pin = hasPin ? `${g.lat},${g.lng}` : "";
@@ -4440,8 +4788,7 @@ function mapaBlock(w) {
     <a class="btn btn-ghost" style="width:100%;margin-top:8px;display:block;text-align:center" href="${osm}" target="_blank" rel="noopener noreferrer" onclick="return openExternal(this.href)">OpenStreetMap</a>` : `<p class="muted" style="margin-top:10px">Sin dato de coordenadas.</p>`;
   const shops = (w.shops || []).map(s => `<a class="btn btn-ghost" style="width:100%;margin-top:8px;display:block;text-align:center" href="${escHtml(s.url)}" target="_blank" rel="noopener noreferrer" onclick="return openExternal(this.href)">${escHtml(s.source || "Tienda")}${s.price ? " · " + escHtml(s.price) : ""}</a>`).join("");
   return `
-    <img class="map-art" src="${mapSrc}" alt="" data-fb="${landSrc}"
-      onerror="if(this.dataset.step!=='1'){this.dataset.step='1';this.src=this.dataset.fb;}else{this.style.display='none';}">
+    ${mapImg}
     <p class="tiny" style="margin:0 0 10px;text-align:center">${g.zone || w.region}</p>
     <p class="eyebrow" style="font-size:10px;letter-spacing:.14em;margin:2px 0 0">${w.appellation || ""}</p>
     <h3 style="font-size:17px;margin:2px 0 2px;line-height:1.2">${w.producer}</h3>
