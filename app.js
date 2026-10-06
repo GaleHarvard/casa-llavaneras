@@ -2168,7 +2168,108 @@ async function ingestLabelImage(dataUrl) {
 }
 
 let lastOcrText = "";
+let lastOcrRaw = "";
+let lastOcrNote = "";
 
+const OCR_WINE_WORDS = new Set("vina vinas vinedo vinedos vieja viejas reserva crianza roble joven gran tinto blanco rosado espumoso generoso brut cosecha seleccion pago finca rioja ribera duero priorat rias baixas rueda bierzo penedes cava champagne".split(" "));
+const OCR_CONNECTORS = new Set("de del la las los y do da di el".split(" "));
+let ocrLexiconCache = null;
+function wineLexicon() {
+  if (ocrLexiconCache) return ocrLexiconCache;
+  const set = new Set();
+  const add = (s) => normTxt(s).split(" ").forEach(w => { if (w.length >= 4) set.add(w); });
+  try {
+    (typeof WINE_CATALOG !== "undefined" ? WINE_CATALOG : []).forEach(w => {
+      add(w.producer); add(w.name); add(w.region); add(w.appellation);
+      (w.aliases || []).forEach(add);
+    });
+    if (typeof BODEGA_GEO !== "undefined") Object.keys(BODEGA_GEO).forEach(add);
+  } catch (e) {}
+  ocrLexiconCache = set;
+  return set;
+}
+function lineLetterDensity(line) {
+  const compact = String(line || "").replace(/\s/g, "");
+  if (!compact) return 0;
+  const letters = (compact.match(/[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]/g) || []).length;
+  return letters / compact.length;
+}
+function classifyOcrToken(tok, lexicon) {
+  if (/^(19|20)\d{2}$/.test(tok)) return "year";
+  const letters = String(tok || "").replace(/[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ]/g, "");
+  if (!letters) return "";
+  if (/[a-záéíóúüñ][A-ZÁÉÍÓÚÜÑ]/.test(letters) || /[A-ZÁÉÍÓÚÜÑ][a-záéíóúüñ]+[A-ZÁÉÍÓÚÜÑ]/.test(letters)) return "";
+  const n = normTxt(letters);
+  if (OCR_CONNECTORS.has(n)) return "conn";
+  if (letters.length < 3) return "";
+  if (OCR_WINE_WORDS.has(n) || (lexicon && lexicon.has(n))) return "known";
+  if (letters.length >= 4 && letters === letters.toUpperCase()) return "caps";
+  if (/^[A-ZÁÉÍÓÚÜÑ][a-záéíóúüñ]{2,}$/.test(letters)) return "title";
+  return "";
+}
+function wordsFromOcrLine(line, lexicon) {
+  const tokens = String(line || "").split(/[^0-9A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+/).filter(Boolean);
+  const marks = tokens.map(tok => ({ tok, kind: classifyOcrToken(tok, lexicon) }));
+  const strong = marks.some(m => m.kind === "known" || m.kind === "caps" || m.kind === "year");
+  const chosen = marks.map(m => m.kind === "year" || m.kind === "known" || m.kind === "caps" || (m.kind === "title" && strong));
+  const out = [];
+  marks.forEach((m, i) => {
+    if (chosen[i]) { out.push(m.tok); return; }
+    if (m.kind !== "conn") return;
+    if (chosen.slice(0, i).some(Boolean) && chosen.slice(i + 1).some(Boolean)) out.push(m.tok);
+  });
+  return out;
+}
+function prettyOcrWord(word) {
+  if (/^(19|20)\d{2}$/.test(word)) return word;
+  const lower = String(word || "").toLocaleLowerCase("es");
+  if (OCR_CONNECTORS.has(normTxt(lower))) return lower;
+  return lower.charAt(0).toLocaleUpperCase("es") + lower.slice(1);
+}
+function cleanOcrQuery(raw) {
+  const text = String(raw || "").replace(/\r/g, "");
+  const lexicon = wineLexicon();
+  const lines = text.split(/\n+| \/ | \/|\/ /).map(s => s.trim()).filter(Boolean);
+  const picked = [];
+  lines.forEach(line => {
+    const letters = (line.match(/[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]/g) || []).length;
+    const uppers = (line.match(/[A-ZÁÉÍÓÚÜÑ]/g) || []).length;
+    const onlyYear = letters < 3 && /\b(?:19|20)\d{2}\b/.test(line);
+    if (!onlyYear && lineLetterDensity(line) < 0.4 && uppers < 8 && letters < 10) return;
+    const words = wordsFromOcrLine(line, lexicon);
+    if (words.length) picked.push({ uppers, words });
+  });
+  if (!picked.length) return "";
+  const bestUpper = Math.max.apply(null, picked.map(p => p.uppers));
+  const use = bestUpper >= 8 ? picked.filter(p => p.uppers >= 8 || p.words.some(w => /^(19|20)\d{2}$/.test(w) || OCR_WINE_WORDS.has(normTxt(w)) || lexicon.has(normTxt(w)))) : picked;
+  const seen = new Set();
+  const words = [];
+  use.forEach(p => p.words.forEach(w => {
+    const key = normTxt(w);
+    if (!key || seen.has(key)) return;
+    seen.add(key);
+    words.push(prettyOcrWord(w));
+  }));
+  while (words.length && OCR_CONNECTORS.has(normTxt(words[0]))) words.shift();
+  while (words.length && OCR_CONNECTORS.has(normTxt(words[words.length - 1]))) words.pop();
+  return words.join(" ").replace(/\s+/g, " ").trim();
+}
+function labelQueryUseful(query) {
+  const words = String(query || "").split(/\s+/).filter(Boolean);
+  const year = words.some(w => /^(19|20)\d{2}$/.test(w));
+  const long = words.filter(w => normTxt(w).length >= 5 && !OCR_CONNECTORS.has(normTxt(w)));
+  return (year && long.length >= 1) || long.length >= 2;
+}
+function queryFromLabelFields(obj) {
+  if (!obj || typeof obj !== "object") return "";
+  const yearNum = Math.round(Number(obj.vintage));
+  const year = yearNum >= 1900 && yearNum <= YEAR + 1 ? String(yearNum) : "";
+  const bits = [obj.producer, obj.name, obj.region].map(s => String(s || "").replace(/https?:\/\/\S+/gi, " ").replace(/\s+/g, " ").trim()).filter(s => s.length >= 2);
+  let phrase = bits.join(" ");
+  if (year) phrase = phrase.replace(new RegExp("\\b" + year + "\\b", "g"), " ");
+  phrase = (phrase + (year ? " " + year : "")).replace(/\s+/g, " ").trim();
+  return cleanOcrQuery(phrase) || phrase;
+}
 function repairOcr(raw) {
   let s = " " + normTxt(raw) + " ";
   const pesq = /pesquera|pesq|squera|squer|souera|esouera|ouera|so era|p e so|te p e so/.test(s)
@@ -2498,7 +2599,9 @@ function showScanConfirm(text, hits, remote) {
   el.innerHTML = `
     <div class="card">
       <p class="tiny">Texto leído de la etiqueta</p>
-      <textarea id="scan-read" rows="3">${escHtml(readable)}</textarea>
+      <textarea id="scan-read" rows="2">${escHtml(readable)}</textarea>
+      ${lastOcrRaw ? `<p class="tiny">Lectura en bruto: ${escHtml(lastOcrRaw)}</p>` : ""}
+      ${lastOcrNote ? `<p class="tiny">${escHtml(lastOcrNote)}</p>` : ""}
       <p class="tiny">Si la lectura falla, corrige el texto y vuelve a buscar.</p>
       <button class="btn btn-gold" style="width:100%;margin-top:8px" onclick="searchCorrectedLabel()">Buscar este texto</button>
     </div>
@@ -3285,7 +3388,7 @@ function summarizeGeminiProblems(items) {
   if (unique.length === 1) return "Gemini: " + unique[0];
   return "Gemini: " + items.map(i => i.label + ": " + i.problem).join(" · ");
 }
-async function geminiGenerate(key, model, prompt, schema, signal, maxOutputTokens) {
+async function geminiGenerate(key, model, prompt, schema, signal, maxOutputTokens, extraParts) {
   const url = "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent";
   const attempts = [
     { schema: schema, think: true },
@@ -3307,7 +3410,7 @@ async function geminiGenerate(key, model, prompt, schema, signal, maxOutputToken
         method: "POST",
         signal,
         headers: { "Content-Type": "application/json", "x-goog-api-key": key },
-        body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: prompt }] }], generationConfig })
+        body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: prompt }].concat(extraParts || []) }], generationConfig })
       });
     } catch (err) {
       return { parsed: null, reason: geminiReasonFrom(0, "", null, err), fatal: true, model };
@@ -3570,6 +3673,49 @@ async function searchAndShowLabel(text) {
   showScanConfirm(text, rankFromText(text), remote);
 }
 
+async function readLabelWithGemini(dataUrl) {
+  const key = storedGeminiKey();
+  if (!key) return { query: "", note: "" };
+  const comma = String(dataUrl || "").indexOf(",");
+  if (comma < 0) return { query: "", note: "Gemini: imagen no válida" };
+  const mime = (String(dataUrl).slice(0, comma).match(/data:(image\/[a-zA-Z0-9.+-]+)/) || [])[1] || "image/jpeg";
+  const data = String(dataUrl).slice(comma + 1);
+  if (data.length < 40) return { query: "", note: "Gemini: imagen no válida" };
+  const schema = {
+    type: "OBJECT",
+    properties: {
+      producer: { type: "STRING" },
+      name: { type: "STRING" },
+      vintage: { type: "NUMBER" },
+      region: { type: "STRING" }
+    }
+  };
+  const prompt = [
+    "Lee la etiqueta de vino de la foto. Responde solo JSON.",
+    "producer es la bodega, name es el vino sin la bodega y sin la añada, vintage es el año (0 si no se ve), region es la zona.",
+    "No inventes. Si un campo no se lee, cadena vacía o 0."
+  ].join("\n");
+  const image = { inlineData: { mimeType: mime, data: data } };
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 20000);
+  try {
+    let last = "JSON inválido";
+    for (const model of GEMINI_MODELS) {
+      const outcome = await geminiGenerate(key, model, prompt, schema, ctrl.signal, 512, [image]);
+      const query = outcome && outcome.parsed ? queryFromLabelFields(outcome.parsed) : "";
+      if (labelQueryUseful(query)) return { query, note: "" };
+      if (outcome && outcome.finish === "MAX_TOKENS") last = "respuesta cortada";
+      else if (outcome && outcome.parsed) last = "JSON inválido";
+      else if (outcome && outcome.reason) last = outcome.reason;
+      if (outcome && outcome.fatal) return { query: "", note: "Gemini: " + outcome.reason };
+    }
+    return { query: "", note: "Gemini: " + last };
+  } catch (e) {
+    return { query: "", note: e && e.name === "AbortError" ? "Gemini: tiempo agotado" : "Gemini: red o CORS" };
+  } finally {
+    clearTimeout(timer);
+  }
+}
 async function identifyFromPhoto(dataUrl) {
   if (ocrBusy) {
     setScanStatus("Sigue la lectura anterior.");
@@ -3580,16 +3726,31 @@ async function identifyFromPhoto(dataUrl) {
   setScanStatus(fromRoll ? "Foto de la fototeca. Leyendo la etiqueta…" : "Leyendo la etiqueta…");
   if ($("#scan-results")) $("#scan-results").innerHTML = `<div class="card muted">${fromRoll ? "Foto elegida. Leyendo la etiqueta para buscar el vino." : "Analizando la foto. Un momento."}</div>`;
   let text = "";
+  let query = "";
+  lastOcrNote = "";
   try {
-    text = await readLabelText(dataUrl);
-  } catch {
-    text = "";
+    try { text = await readLabelText(dataUrl); } catch (e) { text = ""; }
+    lastOcrRaw = readableLabel(text).replace(/\s+/g, " ");
+    query = cleanOcrQuery(text);
+    if (storedGeminiKey()) {
+      setScanStatus(fromRoll ? "Foto de la fototeca. Leyendo la etiqueta con Gemini…" : "Leyendo la etiqueta con Gemini…");
+      const gem = await readLabelWithGemini(dataUrl);
+      if (gem.query) query = gem.query;
+      else if (gem.note) lastOcrNote = gem.note;
+    }
   } finally {
     ocrBusy = false;
   }
-  lastOcrText = readableLabel(text).replace(/\s+/g, " ");
-  if ($("#scan-q")) $("#scan-q").value = lastOcrText;
-  await searchAndShowLabel(lastOcrText);
+  if (!query) {
+    lastOcrText = lastOcrRaw;
+    if ($("#scan-q")) $("#scan-q").value = lastOcrRaw;
+    setScanStatus("No se pudo limpiar la lectura. Corrige el texto y busca.");
+    showScanConfirm(lastOcrRaw, rankFromText(lastOcrRaw), { hits: [], state: "sin-texto", note: "La lectura no dejó un nombre de vino. Corrige el texto.", query: "" });
+    return;
+  }
+  lastOcrText = query;
+  if ($("#scan-q")) $("#scan-q").value = query;
+  await searchAndShowLabel(query);
 }
 
 function rankFromText(raw) {
