@@ -3509,7 +3509,34 @@ function clearJunkTasting(wine) {
 function pageFactsReady(wine) {
   return fieldIsReal(wine, "type") && fieldIsReal(wine, "region") && fieldIsReal(wine, "abv");
 }
-const GEMINI_MODELS = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.0-flash"];
+async function geminiWithModel(key, prompt, schema, signal, maxOutputTokens, extraParts) {
+  const images = !!(extraParts && extraParts.length);
+  const skip = [];
+  let last = { parsed: null, reason: "modelo no disponible (HTTP 404)", model: "" };
+  if (!window.WineDataProvider || !WineDataProvider.pickGeminiModel) {
+    return { parsed: null, reason: "ningún modelo disponible", fatal: true, model: "" };
+  }
+  for (let n = 0; n < 4; n++) {
+    let model = "";
+    try {
+      model = await WineDataProvider.pickGeminiModel(key, { images: images, skip: skip });
+    } catch (err) {
+      const status = err && err.status;
+      const reason = status === 401 || status === 403 ? ("clave rechazada (HTTP " + status + ")") : (status ? ("HTTP " + status) : "red o CORS");
+      return { parsed: null, reason: reason, fatal: true, model: "" };
+    }
+    if (!model) return { parsed: null, reason: "ningún modelo disponible", fatal: true, model: "" };
+    const outcome = await geminiGenerate(key, model, prompt, schema, signal, maxOutputTokens, extraParts);
+    if (outcome && outcome.skipModel) {
+      WineDataProvider.forgetGeminiModel(model);
+      skip.push(model);
+      last = outcome;
+      continue;
+    }
+    return outcome || last;
+  }
+  return last;
+}
 function geminiBlockSpecs() {
   const str = { type: "STRING" };
   const num = { type: "NUMBER" };
@@ -3673,6 +3700,7 @@ async function geminiGenerate(key, model, prompt, schema, signal, maxOutputToken
   const url = "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent";
   const attempts = [
     { schema: schema, think: true },
+    { schema: schema, think: false },
     { schema: null, think: false }
   ];
   let last = { parsed: null, reason: "JSON inválido", model };
@@ -3738,15 +3766,12 @@ async function readGeminiWineFacts(wine, gaps) {
     if (fatal) break;
     const prompt = ["Ficha de vinoteca. Responde solo JSON.", "Vino: " + known, "Bloque: " + block.name, block.ask].join("\n");
     let outcome = null;
-    for (const model of GEMINI_MODELS) {
-      const ctrl = new AbortController();
-      const timer = setTimeout(() => ctrl.abort(), 20000);
-      try {
-        outcome = await geminiGenerate(key, model, prompt, block.schema, ctrl.signal, block.maxTokens);
-      } finally {
-        clearTimeout(timer);
-      }
-      if (outcome && (outcome.parsed || outcome.fatal)) break;
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 20000);
+    try {
+      outcome = await geminiWithModel(key, prompt, block.schema, ctrl.signal, block.maxTokens);
+    } finally {
+      clearTimeout(timer);
     }
     if (outcome && outcome.parsed) {
       applyGeminiFacts(wine, outcome.parsed);
@@ -3762,18 +3787,12 @@ async function readGeminiWineFacts(wine, gaps) {
 }
 async function geminiProbe(key) {
   const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 12000);
+  const timer = setTimeout(() => ctrl.abort(), 20000);
   const schema = { type: "OBJECT", properties: { ok: { type: "BOOLEAN" } } };
   try {
-    let last = "modelo no disponible (HTTP 404)";
-    for (const model of GEMINI_MODELS) {
-      const outcome = await geminiGenerate(key, model, "Responde solo este JSON: {\"ok\":true}", schema, ctrl.signal, 64);
-      if (outcome && outcome.parsed) return "La clave responde.";
-      if (outcome && outcome.reason) last = outcome.reason;
-      if (outcome && outcome.fatal) return outcome.reason;
-      if (outcome && outcome.skipModel) continue;
-    }
-    return last;
+    const outcome = await geminiWithModel(key, "Responde solo este JSON: {\"ok\":true}", schema, ctrl.signal, 64);
+    if (outcome && outcome.parsed) return "Funciona · " + (outcome.model || "");
+    return (outcome && outcome.reason) || "modelo no disponible (HTTP 404)";
   } finally {
     clearTimeout(timer);
   }
@@ -3806,15 +3825,12 @@ async function geminiNormalizeIdentity(wine) {
     "Usa solo el título, el texto y la URL. No inventes."
   ].join("\n");
   let outcome = null;
-  for (const model of GEMINI_MODELS) {
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 20000);
-    try {
-      outcome = await geminiGenerate(key, model, prompt, schema, ctrl.signal, 512);
-    } finally {
-      clearTimeout(timer);
-    }
-    if (outcome && (outcome.parsed || outcome.fatal)) break;
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 20000);
+  try {
+    outcome = await geminiWithModel(key, prompt, schema, ctrl.signal, 512);
+  } finally {
+    clearTimeout(timer);
   }
   if (outcome && outcome.parsed) applyGeminiIdentity(wine, outcome.parsed);
   else if (outcome && outcome.reason && !wine.provenance.geminiNote) wine.provenance.geminiNote = "Gemini: " + outcome.reason;
@@ -4046,16 +4062,14 @@ async function readLabelWithGemini(dataUrl) {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 20000);
   try {
+    const outcome = await geminiWithModel(key, prompt, schema, ctrl.signal, 512, [image]);
+    const query = outcome && outcome.parsed ? queryFromLabelFields(outcome.parsed) : "";
+    if (labelQueryUseful(query)) return { query, note: "" };
     let last = "JSON inválido";
-    for (const model of GEMINI_MODELS) {
-      const outcome = await geminiGenerate(key, model, prompt, schema, ctrl.signal, 512, [image]);
-      const query = outcome && outcome.parsed ? queryFromLabelFields(outcome.parsed) : "";
-      if (labelQueryUseful(query)) return { query, note: "" };
-      if (outcome && outcome.finish === "MAX_TOKENS") last = "respuesta cortada";
-      else if (outcome && outcome.parsed) last = "JSON inválido";
-      else if (outcome && outcome.reason) last = outcome.reason;
-      if (outcome && outcome.fatal) return { query: "", note: "Gemini: " + outcome.reason };
-    }
+    if (outcome && outcome.finish === "MAX_TOKENS") last = "respuesta cortada";
+    else if (outcome && outcome.parsed) last = "JSON inválido";
+    else if (outcome && outcome.reason) last = outcome.reason;
+    if (outcome && outcome.fatal) return { query: "", note: "Gemini: " + outcome.reason };
     return { query: "", note: "Gemini: " + last };
   } catch (e) {
     return { query: "", note: e && e.name === "AbortError" ? "Gemini: tiempo agotado" : "Gemini: red o CORS" };

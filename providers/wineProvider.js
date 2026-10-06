@@ -9,7 +9,123 @@
   const KEY = "vinoteca-jgc-provider";
   const CACHE_KEY = "vinoteca-jgc-gemini-cache";
   const TIMEOUT_MS = 12000;
-  const MODELS = ["gemini-2.5-flash", "gemini-2.5-flash-lite"];
+  const MODEL_KEY = "vinoteca-gemini-model";
+  const MODEL_TTL = 24 * 60 * 60 * 1000;
+
+  function modelId(model) {
+    return String((model && model.name) || model || "").replace(/^models\//, "");
+  }
+  function modelBlocked(id) {
+    return /preview|experimental|(^|[-_.])exp(\d|[-_.]|$)|tts|(^|[-_.])image($|[-_.])|embed|(^|[-_.])live($|[-_.])/i.test(String(id || ""));
+  }
+  function modelFamily(id) {
+    const n = String(id || "").toLowerCase();
+    if (n.indexOf("flash-lite") >= 0) return 1;
+    if (n.indexOf("flash") >= 0) return 0;
+    if (n.indexOf("pro") >= 0) return 2;
+    return 9;
+  }
+  function modelVersion(id) {
+    const m = String(id || "").match(/(\d+(?:\.\d+)?)/);
+    if (!m) return [0];
+    return m[1].split(".").map(function (n) { return parseInt(n, 10) || 0; });
+  }
+  function supportsGenerate(model) {
+    const methods = model && (model.supportedGenerationMethods || model.supportedActions);
+    if (!methods) return true;
+    return methods.some(function (item) { return String(item).toLowerCase().indexOf("generatecontent") >= 0; });
+  }
+  function modalityList(model) {
+    if (!model) return null;
+    if (Array.isArray(model.supportedInputModalities)) return model.supportedInputModalities;
+    if (Array.isArray(model.inputModalities)) return model.inputModalities;
+    if (model.supportedModalities && Array.isArray(model.supportedModalities.input)) return model.supportedModalities.input;
+    return null;
+  }
+  function supportsImage(model) {
+    const mods = modalityList(model);
+    if (!mods) return true;
+    return mods.some(function (item) { return /image/i.test(String(item)); });
+  }
+  function rankGeminiModels(models, opts) {
+    const wantImage = !!(opts && opts.images);
+    return (models || []).map(function (model) {
+      return { raw: model, id: modelId(model) };
+    }).filter(function (model) {
+      if (!model.id || modelBlocked(model.id) || !supportsGenerate(model.raw)) return false;
+      if (modelFamily(model.id) > 2) return false;
+      if (wantImage && !supportsImage(model.raw)) return false;
+      return true;
+    }).sort(function (a, b) {
+      const family = modelFamily(a.id) - modelFamily(b.id);
+      if (family) return family;
+      const av = modelVersion(a.id);
+      const bv = modelVersion(b.id);
+      const n = Math.max(av.length, bv.length);
+      for (let i = 0; i < n; i++) {
+        const d = (bv[i] || 0) - (av[i] || 0);
+        if (d) return d;
+      }
+      return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+    }).map(function (model) { return model.id; });
+  }
+  function keyTag(key) {
+    const s = String(key || "");
+    let h = 2166136261;
+    for (let i = 0; i < s.length; i++) {
+      h ^= s.charCodeAt(i);
+      h = Math.imul(h, 16777619);
+    }
+    return (h >>> 0).toString(16);
+  }
+  function readModelCache() {
+    try { return JSON.parse(localStorage.getItem(MODEL_KEY) || "{}") || {}; }
+    catch (e) { return {}; }
+  }
+  function writeModelCache(cache) {
+    localStorage.setItem(MODEL_KEY, JSON.stringify(cache || {}));
+  }
+  function forgetGeminiModel(name) {
+    const cache = readModelCache();
+    ["text", "image"].forEach(function (slot) {
+      if (cache[slot] && cache[slot].name === name) delete cache[slot];
+    });
+    writeModelCache(cache);
+  }
+  async function listGeminiModels(key) {
+    const all = [];
+    let pageToken = "";
+    for (let n = 0; n < 6; n++) {
+      let url = "https://generativelanguage.googleapis.com/v1beta/models?pageSize=100&key=" + encodeURIComponent(key);
+      if (pageToken) url += "&pageToken=" + encodeURIComponent(pageToken);
+      const res = await fetch(url);
+      if (!res.ok) {
+        const err = new Error("HTTP " + res.status);
+        err.status = res.status;
+        throw err;
+      }
+      const json = await res.json();
+      (json.models || []).forEach(function (model) { all.push(model); });
+      pageToken = json.nextPageToken || "";
+      if (!pageToken) break;
+    }
+    return all;
+  }
+  async function pickGeminiModel(key, opts) {
+    opts = opts || {};
+    const slot = opts.images ? "image" : "text";
+    const skip = {};
+    (opts.skip || []).forEach(function (name) { skip[String(name)] = true; });
+    const tag = keyTag(key);
+    const cache = readModelCache();
+    const hit = cache[slot];
+    if (hit && hit.name && hit.tag === tag && !skip[hit.name] && (Date.now() - hit.at) < MODEL_TTL) return hit.name;
+    const ranked = rankGeminiModels(await listGeminiModels(key), opts).filter(function (id) { return !skip[id]; });
+    if (!ranked.length) return "";
+    cache[slot] = { name: ranked[0], at: Date.now(), tag: tag };
+    writeModelCache(cache);
+    return ranked[0];
+  }
 
   function loadCfg() {
     const injected = (root.VINOTECA_CONFIG && root.VINOTECA_CONFIG.geminiKey) || "";
@@ -199,11 +315,24 @@
     const controller = new AbortController();
     const timer = setTimeout(function () { controller.abort(); }, TIMEOUT_MS);
     let last = "Gemini no disponible";
+    const skip = [];
     try {
-      for (let i = 0; i < MODELS.length; i++) {
-        const model = MODELS[i];
+      for (let i = 0; i < 4; i++) {
+        let model = "";
+        try {
+          model = await pickGeminiModel(key, { skip: skip });
+        } catch (err) {
+          if (err && err.name === "AbortError") {
+            return emptyEstimate("Tiempo agotado (12 s). Sin red o Gemini lento. Se mantiene el dossier.");
+          }
+          const status = err && err.status;
+          if (status === 401 || status === 403) return emptyEstimate("Clave Gemini rechazada (" + status + "). Revísala en Google AI Studio.");
+          return emptyEstimate(status ? ("Gemini HTTP " + status) : ("Sin conexión. " + ((err && err.message) || "fetch falló")));
+        }
+        if (!model) { last = "ningún modelo disponible"; break; }
         const url = "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent";
         let res;
+        let body = geminiBody(nombre, anada, region);
         try {
           res = await fetch(url, {
             method: "POST",
@@ -212,8 +341,20 @@
               "Content-Type": "application/json",
               "x-goog-api-key": key
             },
-            body: JSON.stringify(geminiBody(nombre, anada, region))
+            body: JSON.stringify(body)
           });
+          if (res.status === 400 && body.generationConfig && body.generationConfig.thinkingConfig) {
+            delete body.generationConfig.thinkingConfig;
+            res = await fetch(url, {
+              method: "POST",
+              signal: controller.signal,
+              headers: {
+                "Content-Type": "application/json",
+                "x-goog-api-key": key
+              },
+              body: JSON.stringify(body)
+            });
+          }
         } catch (err) {
           if (err && err.name === "AbortError") {
             return emptyEstimate("Tiempo agotado (12 s). Sin red o Gemini lento. Se mantiene el dossier.");
@@ -222,7 +363,12 @@
         }
         if (res.status === 429) return emptyEstimate("Cuota gratuita de Gemini agotada. Prueba más tarde; la ficha sigue con el dossier.");
         if (res.status === 401 || res.status === 403) return emptyEstimate("Clave Gemini rechazada (" + res.status + "). Revísala en Google AI Studio.");
-        if (res.status === 404) { last = "Modelo " + model + " no disponible en esta clave"; continue; }
+        if (res.status === 404) {
+          forgetGeminiModel(model);
+          skip.push(model);
+          last = "modelo no disponible (HTTP 404)";
+          continue;
+        }
         if (!res.ok) { last = "Gemini HTTP " + res.status; continue; }
         let json;
         try { json = await res.json(); } catch (e) { last = "Respuesta no JSON"; continue; }
@@ -286,5 +432,8 @@
     }
   }
 
-  root.WineDataProvider = { loadCfg, saveCfg, priceOf, demoPrice, estimarValorMercado };
+  root.WineDataProvider = {
+    loadCfg, saveCfg, priceOf, demoPrice, estimarValorMercado,
+    rankGeminiModels, pickGeminiModel, forgetGeminiModel, listGeminiModels
+  };
 })(window);
