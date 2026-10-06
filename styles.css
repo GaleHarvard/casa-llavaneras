@@ -448,7 +448,7 @@ label.field span {
   padding: 24px;
   transition: opacity .55s ease;
 }
-.splash.hide { opacity: 0; pointer-events: none; }
+.splash.hide { opacity: 0; pointer-events: none; visibility: hidden; }
 .mark {
   width: 96px; height: 96px;
   border-radius: 24px;

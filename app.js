@@ -28,7 +28,7 @@ function dossierOf(w) {
 const NOW = new Date(2026, 8, 22);
 const YEAR = NOW.getFullYear();
 const STORE = "vinoteca.pro.max.v3";
-const APP_VERSION = "v66";
+const APP_VERSION = "v67";
 const PRICE_CFG_KEY = "vinoteca-jgc-provider";
 
 const ICONS = {
@@ -167,6 +167,7 @@ function wineById(id) {
 }
 
 function phaseOf(wine) {
+  if (!wine || !wine.aging) return { key: "wait", label: "Sin dato", hint: "" };
   const a = wine.aging;
   const pr = progressOf(wine);
   if (YEAR < a.drinkFrom || pr.pct < 38) return { key: "wait", label: "Aguardar", hint: "Todavía gana en botella" };
@@ -4695,8 +4696,10 @@ if ("serviceWorker" in navigator) {
 }
 
 function clock() {
+  const el = document.getElementById("clock");
+  if (!el) return;
   const d = new Date();
-  $("#clock").textContent = d.toTimeString().slice(0, 5);
+  el.textContent = d.toTimeString().slice(0, 5);
 }
 
 window.renderCellar = renderCellar;
@@ -5285,10 +5288,19 @@ window.setFilter = (t, btn) => {
 };
 
 document.addEventListener("DOMContentLoaded", () => {
-  clock();
-  setInterval(clock, 30000);
-  refreshDirtyInternetWines();
-  renderHome();
-  setTimeout(() => $("#splash").classList.add("hide"), 700);
-  setTimeout(() => runNotifyCheck(false), 1600);
+  const hideSplash = () => {
+    const el = document.getElementById("splash");
+    if (el) el.classList.add("hide");
+  };
+  try {
+    clock();
+    setInterval(() => { try { clock(); } catch (e) {} }, 30000);
+    try { refreshDirtyInternetWines(); } catch (e) { console.warn("limpieza", e); }
+    try { renderHome(); } catch (e) { console.warn("inicio", e); }
+  } catch (e) {
+    console.warn("arranque", e);
+  } finally {
+    setTimeout(hideSplash, 700);
+  }
+  setTimeout(() => { try { runNotifyCheck(false); } catch (e) {} }, 1600);
 });
