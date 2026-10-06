@@ -931,8 +931,9 @@ a.btn{text-decoration:none}
 
 .label-thumb{width:72px;height:72px;border-radius:14px;object-fit:cover;flex-shrink:0;background:#14110c;border:1px solid rgba(198,163,90,.55);box-shadow:0 0 0 1px rgba(0,0,0,.55)}
 .label-thumb-lg{width:96px;height:96px;border-radius:16px}
+.label-thumb-hero{width:132px;height:132px;border-radius:18px;margin:0 0 6px}
+.foil-wrap .label-thumb-hero{align-self:flex-end}
 .label-fallback{object-fit:contain;padding:6px;background:#0c0c0c}
-.label-hero{position:absolute;left:0;bottom:0;z-index:2}
 .label-change{display:block;margin:0 auto 8px}
 .label-row{display:flex;gap:12px;align-items:center}
 .label-copy{flex:1;min-width:0}
