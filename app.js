@@ -1360,6 +1360,9 @@ function zonePlateKey(w) {
 function wineryPlateKey(w) {
   return "b3:" + foldZone(w.producer || "") + "|" + foldZone(w.region || w.country || "");
 }
+function zoneImageKey(w) {
+  return "z5:" + foldZone(w.region || w.appellation || w.country || "");
+}
 function nominatimSlot() {
   const next = nominatimWait.then(() => new Promise(resolve => setTimeout(resolve, 1100)));
   nominatimWait = next.then(() => {}, () => {});
@@ -1971,13 +1974,607 @@ async function buildWineryPlate(w) {
     towns
   });
 }
+const PLATE_DB = "vinoteca-plates";
+const PLATE_STORE = "images";
+const plateJpegs = new Map();
+const plateImageMiss = new Map();
+const plateImagePending = new Set();
+
+function plateDb() {
+  return new Promise((resolve, reject) => {
+    if (!window.indexedDB) { reject(new Error("sin indexedDB")); return; }
+    const req = indexedDB.open(PLATE_DB, 1);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains(PLATE_STORE)) db.createObjectStore(PLATE_STORE);
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+function idbReq(req) {
+  return new Promise((resolve, reject) => {
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function readAllPlateImages() {
+  const db = await plateDb();
+  const rows = await idbReq(db.transaction(PLATE_STORE, "readonly").objectStore(PLATE_STORE).getAll());
+  const keys = await idbReq(db.transaction(PLATE_STORE, "readonly").objectStore(PLATE_STORE).getAllKeys());
+  return (keys || []).map((key, i) => ({ key, value: (rows || [])[i] }));
+}
+async function savePlateJpeg(key, blob, model) {
+  const db = await plateDb();
+  await idbReq(db.transaction(PLATE_STORE, "readwrite").objectStore(PLATE_STORE).put({ blob, model: model || "", at: Date.now() }, key));
+  const prev = plateJpegs.get(key);
+  if (prev) URL.revokeObjectURL(prev);
+  plateJpegs.set(key, URL.createObjectURL(blob));
+}
+async function deletePlateJpeg(key) {
+  const prev = plateJpegs.get(key);
+  if (prev) URL.revokeObjectURL(prev);
+  plateJpegs.delete(key);
+  try {
+    const db = await plateDb();
+    await idbReq(db.transaction(PLATE_STORE, "readwrite").objectStore(PLATE_STORE).delete(key));
+  } catch (e) {}
+}
+async function hydratePlateImages() {
+  try {
+    const rows = await readAllPlateImages();
+    rows.forEach(row => {
+      const blob = row && row.value && row.value.blob;
+      if (!row || !row.key || !blob) return;
+      const prev = plateJpegs.get(row.key);
+      if (prev) URL.revokeObjectURL(prev);
+      plateJpegs.set(row.key, URL.createObjectURL(blob));
+    });
+  } catch (e) {}
+  if (!currentWine) return;
+  if (screenId === "wine-sub" && currentSub) openWineSub(currentSub);
+  else if (screenId === "wine") openWine(currentWine.id, currentBottle);
+}
+function blobToDataUrl(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(blob);
+  });
+}
+async function plateImagesForBackup() {
+  const out = {};
+  try {
+    const rows = await readAllPlateImages();
+    for (let i = 0; i < rows.length; i++) {
+      const blob = rows[i] && rows[i].value && rows[i].value.blob;
+      if (!rows[i] || !rows[i].key || !blob) continue;
+      out[rows[i].key] = await blobToDataUrl(blob);
+    }
+  } catch (e) {}
+  return out;
+}
+async function restorePlateImages(map) {
+  const keys = Object.keys(map || {});
+  for (let i = 0; i < keys.length; i++) {
+    const url = String(map[keys[i]] || "");
+    const comma = url.indexOf(",");
+    if (url.indexOf("data:image/") !== 0 || comma < 0) continue;
+    const mime = url.slice(5, url.indexOf(";")) || "image/jpeg";
+    try {
+      const bin = atob(url.slice(comma + 1));
+      const arr = new Uint8Array(bin.length);
+      for (let n = 0; n < bin.length; n++) arr[n] = bin.charCodeAt(n);
+      await savePlateJpeg(keys[i], new Blob([arr], { type: mime }), "copia");
+    } catch (e) {}
+  }
+}
+function dataUrlPayload(dataUrl) {
+  const comma = String(dataUrl || "").indexOf(",");
+  return comma >= 0 ? String(dataUrl).slice(comma + 1) : "";
+}
+function lonTileX(lon, z) {
+  return (lon + 180) / 360 * Math.pow(2, z);
+}
+function latTileY(lat, z) {
+  const s = Math.sin(lat * Math.PI / 180);
+  const clamped = Math.max(-0.9999, Math.min(0.9999, s));
+  return (0.5 - Math.log((1 + clamped) / (1 - clamped)) / (4 * Math.PI)) * Math.pow(2, z);
+}
+function chooseReliefZoom(bbox) {
+  for (let z = 12; z >= 5; z--) {
+    const spanX = Math.abs(lonTileX(bbox.maxX, z) - lonTileX(bbox.minX, z));
+    const spanY = Math.abs(latTileY(bbox.maxY, z) - latTileY(bbox.minY, z));
+    if (Math.max(spanX, spanY) <= 4.2) return z;
+  }
+  return 5;
+}
+async function loadTerrarium(bbox) {
+  const padX = Math.max(1e-4, (bbox.maxX - bbox.minX) * 0.08);
+  const padY = Math.max(1e-4, (bbox.maxY - bbox.minY) * 0.08);
+  const box = { minX: bbox.minX - padX, maxX: bbox.maxX + padX, minY: bbox.minY - padY, maxY: bbox.maxY + padY };
+  const z = chooseReliefZoom(box);
+  const x0 = Math.floor(lonTileX(box.minX, z));
+  const x1 = Math.floor(lonTileX(box.maxX, z));
+  const y0 = Math.floor(Math.min(latTileY(box.maxY, z), latTileY(box.minY, z)));
+  const y1 = Math.floor(Math.max(latTileY(box.maxY, z), latTileY(box.minY, z)));
+  const jobs = [];
+  for (let x = x0; x <= x1; x++) {
+    for (let y = y0; y <= y1; y++) jobs.push({ x, y });
+  }
+  const limited = jobs.slice(0, 16);
+  const tiles = new Map();
+  await Promise.all(limited.map(async job => {
+    try {
+      const url = "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/" + z + "/" + job.x + "/" + job.y + ".png";
+      const res = await fetch(url);
+      if (!res.ok) return;
+      const bmp = await createImageBitmap(await res.blob());
+      const canvas = document.createElement("canvas");
+      canvas.width = bmp.width;
+      canvas.height = bmp.height;
+      const g = canvas.getContext("2d", { willReadFrequently: true });
+      g.drawImage(bmp, 0, 0);
+      tiles.set(job.x + "," + job.y, { x: job.x, y: job.y, w: canvas.width, h: canvas.height, data: g.getImageData(0, 0, canvas.width, canvas.height).data });
+    } catch (e) {}
+  }));
+  return { z, tiles };
+}
+function sampleElev(pack, lon, lat) {
+  if (!pack || !pack.tiles.size) return null;
+  const fx = lonTileX(lon, pack.z);
+  const fy = latTileY(lat, pack.z);
+  const tx = Math.floor(fx);
+  const ty = Math.floor(fy);
+  const tile = pack.tiles.get(tx + "," + ty);
+  if (!tile) return null;
+  const px = Math.max(0, Math.min(tile.w - 1, Math.floor((fx - tx) * tile.w)));
+  const py = Math.max(0, Math.min(tile.h - 1, Math.floor((fy - ty) * tile.h)));
+  const i = (py * tile.w + px) * 4;
+  return tile.data[i] * 256 + tile.data[i + 1] + tile.data[i + 2] / 256 - 32768;
+}
+async function fetchZoneRivers(bbox, kindsIn) {
+  const south = bbox.minY.toFixed(4);
+  const west = bbox.minX.toFixed(4);
+  const north = bbox.maxY.toFixed(4);
+  const east = bbox.maxX.toFixed(4);
+  const kinds = String(kindsIn || "river|canal");
+  const q = "[out:json][timeout:12];way[\"waterway\"~\"" + kinds + "\"](" + south + "," + west + "," + north + "," + east + ");out geom 8;";
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 16000);
+  try {
+    const res = await fetch("https://overpass-api.de/api/interpreter?data=" + encodeURIComponent(q), { signal: ctrl.signal });
+    if (!res.ok) return [];
+    const json = await res.json();
+    const ways = ((json && json.elements) || []).filter(el => el.type === "way" && el.geometry && el.geometry.length > 3);
+    ways.sort((a, b) => b.geometry.length - a.geometry.length);
+    return ways.slice(0, 6).map(el => {
+      const raw = el.geometry.map(p => [Number(p.lon), Number(p.lat)]).filter(p => Number.isFinite(p[0]) && Number.isFinite(p[1]));
+      const step = raw.length > 80 ? Math.ceil(raw.length / 80) : 1;
+      const line = raw.filter((_, i) => i % step === 0);
+      return { name: (el.tags && el.tags.name) || "", line };
+    }).filter(river => river.line.length > 2);
+  } catch (e) {
+    return [];
+  } finally {
+    clearTimeout(timer);
+  }
+}
+function paintGoldRelief(ctx, rings, proj, pack) {
+  let minx = 1e9;
+  let miny = 1e9;
+  let maxx = -1e9;
+  let maxy = -1e9;
+  rings.forEach(ring => ring.forEach(p => {
+    const xy = projectPoint(p[0], p[1], proj);
+    if (xy[0] < minx) minx = xy[0];
+    if (xy[1] < miny) miny = xy[1];
+    if (xy[0] > maxx) maxx = xy[0];
+    if (xy[1] > maxy) maxy = xy[1];
+  }));
+  const x0 = Math.max(0, Math.floor(minx));
+  const y0 = Math.max(0, Math.floor(miny));
+  const x1 = Math.min(1167, Math.ceil(maxx));
+  const y1 = Math.min(783, Math.ceil(maxy));
+  const step = 2;
+  const w = Math.max(1, Math.ceil((x1 - x0) / step));
+  const h = Math.max(1, Math.ceil((y1 - y0) / step));
+  const off = document.createElement("canvas");
+  off.width = w;
+  off.height = h;
+  const img = off.getContext("2d").createImageData(w, h);
+  const shades = new Float32Array(w * h);
+  const bbox = bboxOf(rings);
+  const delta = Math.max(bbox.maxX - bbox.minX, bbox.maxY - bbox.minY) / 140;
+  const az = 315 * Math.PI / 180;
+  const zen = 42 * Math.PI / 180;
+  let lo = 1;
+  let hi = 0;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const px = x0 + x * step;
+      const py = y0 + y * step;
+      const lon = proj.minX + (px - proj.ox) / proj.s;
+      const lat = proj.maxY - (py - proj.oy) / proj.s;
+      const e = sampleElev(pack, lon, lat);
+      const eR = sampleElev(pack, lon + delta, lat);
+      const eU = sampleElev(pack, lon, lat + delta);
+      let shade = 0.5;
+      if (e != null && eR != null && eU != null) {
+        const dx = (eR - e) / 70;
+        const dy = (e - eU) / 70;
+        const slope = Math.atan(Math.hypot(dx, dy));
+        const aspect = Math.atan2(dy, -dx);
+        shade = Math.cos(zen) * Math.cos(slope) + Math.sin(zen) * Math.sin(slope) * Math.cos(az - aspect);
+        shade = Math.max(0, Math.min(1, shade));
+        if (shade < lo) lo = shade;
+        if (shade > hi) hi = shade;
+      }
+      shades[y * w + x] = shade;
+    }
+  }
+  const span = Math.max(0.05, hi - lo);
+  for (let n = 0; n < shades.length; n++) {
+    const norm = (shades[n] - lo) / span;
+    const t = Math.max(0, Math.min(1, Math.pow(0.25 * shades[n] + 0.75 * norm, 0.85)));
+    const i = n * 4;
+    img.data[i] = Math.round(22 + t * 220);
+    img.data[i + 1] = Math.round(14 + t * 175);
+    img.data[i + 2] = Math.round(6 + t * 86);
+    img.data[i + 3] = 255;
+  }
+  const g = off.getContext("2d");
+  g.putImageData(img, 0, 0);
+  const path = new Path2D(rings.map(ring => ringPath(ring, proj)).join(""));
+  ctx.save();
+  ctx.clip(path);
+  ctx.fillStyle = "#5c4520";
+  ctx.fillRect(x0, y0, Math.max(1, x1 - x0), Math.max(1, y1 - y0));
+  if (pack && pack.tiles.size) ctx.drawImage(off, x0, y0, Math.max(1, x1 - x0), Math.max(1, y1 - y0));
+  ctx.restore();
+  ctx.save();
+  ctx.strokeStyle = "#f3e2b0";
+  ctx.lineWidth = 2.6;
+  ctx.lineJoin = "round";
+  ctx.stroke(path);
+  ctx.restore();
+  return path;
+}
+function drawGuideRivers(ctx, rivers, proj, clip) {
+  if (!rivers || !rivers.length) return;
+  ctx.save();
+  if (clip) ctx.clip(clip);
+  ctx.strokeStyle = "#d5e4ee";
+  ctx.lineWidth = 1.7;
+  ctx.lineJoin = "round";
+  ctx.lineCap = "round";
+  rivers.forEach(river => {
+    ctx.beginPath();
+    river.line.forEach((p, i) => {
+      const xy = projectPoint(p[0], p[1], proj);
+      if (i) ctx.lineTo(xy[0], xy[1]);
+      else ctx.moveTo(xy[0], xy[1]);
+    });
+    ctx.stroke();
+  });
+  ctx.restore();
+}
+function drawGuidePin(ctx, x, y) {
+  ctx.beginPath();
+  ctx.moveTo(x, y + 16);
+  ctx.bezierCurveTo(x - 11, y + 2, x - 11, y - 16, x, y - 18);
+  ctx.bezierCurveTo(x + 11, y - 16, x + 11, y + 2, x, y + 16);
+  ctx.fillStyle = "#f3e2b0";
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(x, y - 8, 3.1, 0, Math.PI * 2);
+  ctx.fillStyle = "#1a1408";
+  ctx.fill();
+}
+function plateFinishPrompt(info) {
+  const towns = (info.towns || []).filter(Boolean).join(", ") || "(ninguno dentro del recuadro)";
+  const rivers = (info.rivers || []).filter(Boolean).join(", ");
+  const riverLine = rivers
+    ? rivers
+    : "(ninguno en la guía: no inventes ríos que no aparezcan en ella)";
+  return [
+    "Redraw the first image, the geographic guide, in the exact style of the reference maps that follow.",
+    "Match the references: black background, gold engraving, three-dimensional relief, vineyards drawn on the slopes, rivers as fine engraved lines, a double gold frame with fleurons in the four corners, a cartouche with the zone in serif capitals and the country in small capitals underneath, a compass rose marked N, S, E and W, town names in small caps, a gold pin on the winery town, and a footer with the appellation.",
+    "Keep the outline shape from the guide. Keep the positions of the relief, the rivers, the towns and the pin. Do not move them and do not replace the border with a different shape.",
+    "Zone (cartouche): " + info.zone,
+    "Country: " + info.country,
+    "Appellation (footer): " + info.footer,
+    "Winery town (gold pin): " + info.pin,
+    "Towns: " + towns,
+    "Rivers in the guide: " + riverLine,
+    "Proportion: 1168 by 784 pixels, landscape, the same as the reference maps. If you cannot use that exact size, keep the same 1168:784 proportion."
+  ].join("\n");
+}
+async function drawPlateGuide(spec) {
+  const box = { x: 108, y: 168, w: 952, h: 500 };
+  const proj = makeProject(spec.rings, box);
+  const pack = spec.relief || await loadTerrarium(bboxOf(spec.rings));
+  const canvas = document.createElement("canvas");
+  canvas.width = 1168;
+  canvas.height = 784;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#090b0a";
+  ctx.fillRect(0, 0, 1168, 784);
+  ctx.strokeStyle = "#c6a35a";
+  ctx.lineWidth = 2;
+  ctx.strokeRect(18, 18, 1132, 748);
+  const clip = paintGoldRelief(ctx, spec.rings, proj, pack);
+  drawGuideRivers(ctx, spec.rivers || [], proj, clip);
+  const projected = spec.rings.map(ring => ring.map(p => projectPoint(p[0], p[1], proj)));
+  const pinXY = projectPoint(spec.pin.lon, spec.pin.lat, proj);
+  const font = "Palatino, 'Palatino Linotype', 'Times New Roman', serif";
+  ctx.textAlign = "center";
+  ctx.fillStyle = "#f3e2b0";
+  ctx.font = "600 40px " + font;
+  ctx.fillText(spec.zone, 584, 86);
+  ctx.fillStyle = "#c6a35a";
+  ctx.font = "16px " + font;
+  ctx.fillText(spec.country, 584, 112);
+  ctx.fillText(spec.footer, 584, 742);
+  const safe = { x: 48, y: 140, w: 1072, h: 560 };
+  const obstacles = [
+    { x: 80, y: 28, w: 1008, h: 100 },
+    { x: 180, y: 700, w: 808, h: 60 },
+    { x: pinXY[0] - 16, y: pinXY[1] - 22, w: 32, h: 42 }
+  ];
+  const nearTowns = (spec.towns || []).filter(town => townNearOutline(town, spec.rings));
+  ctx.font = "13px " + font;
+  ctx.fillStyle = "#e8c97a";
+  nearTowns.forEach(town => {
+    const xy = projectPoint(town.lon, town.lat, proj);
+    if (Math.hypot(xy[0] - pinXY[0], xy[1] - pinXY[1]) < 26) return;
+    const text = shortPlace(town.label);
+    if (!text || foldZone(text) === foldZone(spec.pin.label || "")) return;
+    const placed = placeTownLabel(text, xy[0], xy[1], obstacles, safe, projected);
+    if (!placed) return;
+    obstacles.push(placed.box);
+    ctx.beginPath();
+    ctx.arc(xy[0], xy[1], 2.4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.textAlign = placed.anchor === "start" ? "left" : placed.anchor === "end" ? "right" : "center";
+    ctx.fillText(placed.text, placed.x, placed.y);
+  });
+  drawGuidePin(ctx, pinXY[0], pinXY[1]);
+  const pinName = shortPlace(spec.pin.label || "");
+  if (pinName) {
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#f3e2b0";
+    ctx.font = "14px " + font;
+    ctx.fillText(pinName, pinXY[0], pinXY[1] + 36);
+  }
+  return { canvas, proj };
+}
+async function composePlateGuide(wine) {
+  const outline = await resolveOutline(wine);
+  if (!outline) return null;
+  const pin = await geocodePin(wine, outline);
+  const towns = await nearbyTowns(pin, outline);
+  setFichaProgress("Trazando el relieve…");
+  let rivers = await fetchZoneRivers(outline.bbox, "river|canal");
+  if (!rivers.length) rivers = await fetchZoneRivers(outline.bbox, "stream");
+  const zone = plateTitle(wine.region || wine.appellation || outline.localName || "Zona");
+  const country = plateTitle(wine.country || outline.country || "");
+  const footer = plateTitle(wine.appellation || wine.region || zone);
+  const drawn = await drawPlateGuide({ rings: outline.rings, pin, towns, rivers, zone, country, footer });
+  const near = towns.filter(town => townNearOutline(town, outline.rings));
+  const info = {
+    zone,
+    country,
+    footer,
+    pin: plateTitle(pin.label || ""),
+    towns: near.map(town => plateTitle(town.label)),
+    rivers: rivers.map(river => river.name).filter(Boolean)
+  };
+  return { canvas: drawn.canvas, prompt: plateFinishPrompt(info), info };
+}
+async function referencePlateParts() {
+  const files = ["./mapa-rioja.jpg", "./mapa-douro.jpg"];
+  const parts = [];
+  for (let i = 0; i < files.length; i++) {
+    try {
+      const res = await fetch(files[i]);
+      if (!res.ok) continue;
+      const bmp = await createImageBitmap(await res.blob());
+      const canvas = document.createElement("canvas");
+      canvas.width = 584;
+      canvas.height = 392;
+      canvas.getContext("2d").drawImage(bmp, 0, 0, 584, 392);
+      parts.push({ mime: "image/jpeg", data: dataUrlPayload(canvas.toDataURL("image/jpeg", 0.72)) });
+    } catch (e) {}
+  }
+  return parts;
+}
+function imageBytesFromGemini(json) {
+  const parts = ((((json || {}).candidates || [])[0] || {}).content || {}).parts || [];
+  for (let i = 0; i < parts.length; i++) {
+    const inline = parts[i].inlineData || parts[i].inline_data;
+    if (inline && inline.data) return { mime: inline.mimeType || inline.mime_type || "image/png", data: inline.data };
+  }
+  const preds = (json && json.predictions) || [];
+  for (let i = 0; i < preds.length; i++) {
+    const raw = preds[i].bytesBase64Encoded || (preds[i].image && preds[i].image.bytesBase64Encoded) || "";
+    if (raw) return { mime: preds[i].mimeType || "image/png", data: raw };
+  }
+  return null;
+}
+function bytesToBlob(b64, mime) {
+  const bin = atob(b64);
+  const arr = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+  return new Blob([arr], { type: mime || "image/jpeg" });
+}
+async function postGeminiJson(url, key, body, signal) {
+  return fetch(url, {
+    method: "POST",
+    signal,
+    headers: { "Content-Type": "application/json", "x-goog-api-key": key },
+    body: JSON.stringify(body)
+  });
+}
+async function geminiDrawPlate(key, prompt, images) {
+  if (!window.WineDataProvider || !WineDataProvider.pickGeminiImageModel) {
+    return { blob: null, reason: "No hay un modelo de imagen disponible para esta clave.", model: "" };
+  }
+  const skip = [];
+  let last = "No hay un modelo de imagen disponible para esta clave.";
+  for (let n = 0; n < 3; n++) {
+    let model = "";
+    try {
+      model = await WineDataProvider.pickGeminiImageModel(key, { skip });
+    } catch (err) {
+      const status = err && err.status;
+      const reason = status === 401 || status === 403 ? ("clave rechazada (HTTP " + status + ")") : (status ? ("HTTP " + status) : "red o CORS");
+      return { blob: null, reason, model: "", fatal: true };
+    }
+    if (!model) return { blob: null, reason: last, model: "" };
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 45000);
+    try {
+      const parts = [{ text: prompt }].concat((images || []).map(img => ({ inlineData: { mimeType: img.mime, data: img.data } })));
+      let res = await postGeminiJson(
+        "https://generativelanguage.googleapis.com/v1beta/models/" + encodeURIComponent(model) + ":generateContent",
+        key,
+        { contents: [{ role: "user", parts }], generationConfig: { responseModalities: ["IMAGE"] } },
+        ctrl.signal
+      );
+      if (res.status === 400) {
+        res = await postGeminiJson(
+          "https://generativelanguage.googleapis.com/v1beta/models/" + encodeURIComponent(model) + ":generateContent",
+          key,
+          { contents: [{ role: "user", parts }], generationConfig: { responseModalities: ["TEXT", "IMAGE"] } },
+          ctrl.signal
+        );
+      }
+      if ((res.status === 404 || res.status === 400) && /imagen/i.test(model)) {
+        res = await postGeminiJson(
+          "https://generativelanguage.googleapis.com/v1beta/models/" + encodeURIComponent(model) + ":predict",
+          key,
+          { instances: [{ prompt }], parameters: { sampleCount: 1, aspectRatio: "3:2" } },
+          ctrl.signal
+        );
+      }
+      if (res.status === 404) {
+        WineDataProvider.forgetGeminiModel(model);
+        skip.push(model);
+        last = "modelo no disponible (HTTP 404)";
+        continue;
+      }
+      if (res.status === 401 || res.status === 403 || res.status === 429) {
+        return { blob: null, reason: geminiReasonFrom(res.status, "", null, null), model, fatal: true };
+      }
+      if (!res.ok) {
+        last = geminiReasonFrom(res.status, "", null, null);
+        continue;
+      }
+      const json = await res.json();
+      const pic = imageBytesFromGemini(json);
+      if (!pic || !pic.data) {
+        last = "respuesta sin imagen";
+        continue;
+      }
+      return { blob: bytesToBlob(pic.data, pic.mime), reason: "", model };
+    } catch (err) {
+      return { blob: null, reason: geminiReasonFrom(0, "", null, err), model, fatal: err && err.name !== "AbortError" };
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+  return { blob: null, reason: last, model: "" };
+}
+function rememberMapNote(wine, key, reason) {
+  plateImageMiss.set(key, reason);
+  wine.provenance = wine.provenance || {};
+  wine.provenance.mapNote = reason;
+}
+async function ensureZoneIllustration(wine, force) {
+  if (!wine || isCatalogWineId(wine.id)) return false;
+  const fixed = fixedZoneOf(wine);
+  if (fixed && fixed.map) return false;
+  const key = zoneImageKey(wine);
+  if (!key || key === "z5:") return false;
+  if (plateImagePending.has(key)) return false;
+  if (!force && plateJpegs.has(key)) return false;
+  if (!force && (plateImageMiss.has(key) || (wine.provenance && wine.provenance.mapNote))) {
+    if (wine.provenance && wine.provenance.mapNote) plateImageMiss.set(key, wine.provenance.mapNote);
+    return false;
+  }
+  plateImagePending.add(key);
+  plateImageMiss.delete(key);
+  if (force) {
+    wine.provenance = wine.provenance || {};
+    wine.provenance.mapNote = "";
+  }
+  try {
+    const geminiKey = storedGeminiKey();
+    if (!geminiKey) {
+      rememberMapNote(wine, key, "Sin clave de Gemini en esta app. Se muestra el grabado de reserva. Si la guardaste en Safari, pégala también aquí: Inicio › Avisos › Precios de mercado.");
+      save();
+      return false;
+    }
+    const guide = await composePlateGuide(wine);
+    if (!guide) {
+      rememberMapNote(wine, key, "No hay contorno público de esta zona. Se muestra el grabado de reserva.");
+      save();
+      return false;
+    }
+    setFichaProgress("Gemini dibuja el mapa…");
+    const guideUrl = guide.canvas.toDataURL("image/jpeg", 0.8);
+    const refs = await referencePlateParts();
+    const drawn = await geminiDrawPlate(geminiKey, guide.prompt, [{ mime: "image/jpeg", data: dataUrlPayload(guideUrl) }].concat(refs));
+    if (!drawn.blob) {
+      rememberMapNote(wine, key, "Gemini no dibujó el mapa (" + (drawn.reason || "error") + "). Se muestra el grabado de reserva.");
+      wine.provenance.mapModel = drawn.model || "";
+      save();
+      return false;
+    }
+    await savePlateJpeg(key, drawn.blob, drawn.model);
+    plateImageMiss.delete(key);
+    wine.provenance = wine.provenance || {};
+    wine.provenance.mapNote = "";
+    wine.provenance.mapModel = drawn.model || "";
+    save();
+    return true;
+  } catch (err) {
+    rememberMapNote(wine, key, "Gemini no dibujó el mapa (red o CORS). Se muestra el grabado de reserva.");
+    save();
+    return false;
+  } finally {
+    plateImagePending.delete(key);
+  }
+}
+async function regenerateZoneMap(id) {
+  const wine = wineById(id);
+  if (!wine || isCatalogWineId(wine.id)) return;
+  const fixed = fixedZoneOf(wine);
+  if (fixed && fixed.map) return;
+  const key = zoneImageKey(wine);
+  wine.provenance = wine.provenance || {};
+  wine.provenance.mapNote = "";
+  plateImageMiss.delete(key);
+  await deletePlateJpeg(key);
+  setFichaProgress("Regenerando el mapa…");
+  await ensureGeneratedPlates(wine);
+  if (!currentWine || currentWine.id !== id) return;
+  if (screenId === "wine-sub" && currentSub) openWineSub(currentSub);
+  else if (screenId === "wine") openWine(id, currentBottle);
+}
 function platesOutstanding(w) {
   if (!w || isCatalogWineId(w.id)) return false;
   const fixed = fixedZoneOf(w);
   const cache = plateCache();
   const zoneKey = zonePlateKey(w);
   const bodegaKey = wineryPlateKey(w);
-  if (!(fixed && fixed.map) && !cache[zoneKey] && !plateMiss.has(zoneKey)) return true;
+  const imageKey = zoneImageKey(w);
+  if (!(fixed && fixed.map)) {
+    if (!cache[zoneKey] && !plateMiss.has(zoneKey)) return true;
+    if (!plateJpegs.has(imageKey) && !plateImageMiss.has(imageKey) && !(w.provenance && w.provenance.mapNote)) return true;
+  }
   if (!PRODUCER_ART[w.producer] && w.producer && !cache[bodegaKey] && !plateMiss.has(bodegaKey)) return true;
   return false;
 }
@@ -1996,6 +2593,7 @@ async function ensureGeneratedPlates(wine) {
       else plateMiss.add(key);
     }
     if (key !== "z3:" && plateCache()[key]) wine.plateKeys.zone = key;
+    if (await ensureZoneIllustration(wine, false)) changed = true;
   }
   if (!PRODUCER_ART[wine.producer] && wine.producer) {
     const key = wineryPlateKey(wine);
@@ -2031,11 +2629,19 @@ function estateArt(w) {
     return fixed ? { land: fixed, cap: "capsula.jpg", map: fixed } : { land: "", cap: "capsula.jpg", map: "" };
   }
   const cache = plateCache();
+  const jpeg = !fixed && plateJpegs.get(zoneImageKey(w));
   const zoneSvg = !fixed && cache[zonePlateKey(w)];
   const winerySvg = cache[wineryPlateKey(w)];
-  const zoneSrc = fixed || (zoneSvg ? svgDataUrl(zoneSvg) : "");
-  const landSrc = winerySvg ? svgDataUrl(winerySvg) : zoneSrc;
+  const zoneSrc = fixed || jpeg || (zoneSvg ? svgDataUrl(zoneSvg) : "");
+  const landSrc = jpeg || (winerySvg ? svgDataUrl(winerySvg) : zoneSrc);
   return { land: landSrc, cap: "capsula.jpg", map: zoneSrc };
+}
+function mapArtKind(src) {
+  const s = String(src || "");
+  if (!s) return "";
+  if (s.indexOf("blob:") === 0 || s.indexOf("data:image/jpeg") === 0 || s.indexOf("data:image/png") === 0) return "gemini";
+  if (s.indexOf("data:") === 0) return "generado";
+  return s;
 }
 
 function capsuleLines(w) {
@@ -2121,7 +2727,7 @@ function bottleMarkup(w) {
 }
 function estateSVG(w) {
   const art = estateArt(w);
-  const landKind = art.land ? (String(art.land).indexOf("data:") === 0 ? "generado" : art.land) : "";
+  const landKind = art.land ? mapArtKind(art.land) : "";
   const land = art.land ? `<img class="estate-photo" data-land="${landKind}" src="${art.land}" alt="" onerror="this.style.display='none'">` : "";
   return `
     ${land}
@@ -5503,10 +6109,17 @@ function mapaBlock(w) {
   const art = estateArt(w);
   const g = bodegaGeo(w);
   const file = (p) => "./" + String(p || "").replace(/^\.\//, "");
-  const mapSrc = art.map ? (String(art.map).indexOf("data:") === 0 ? art.map : file(art.map)) : "";
+  const mapSrc = art.map ? (String(art.map).indexOf("data:") === 0 || String(art.map).indexOf("blob:") === 0 ? art.map : file(art.map)) : "";
+  const mapKind = mapArtKind(mapSrc);
   const mapImg = mapSrc
-    ? `<img class="map-art" data-map="${mapSrc.indexOf("data:") === 0 ? "generado" : mapSrc}" src="${mapSrc}" alt="" onerror="this.style.display='none'">`
-    : `<p class="muted" data-map="" style="text-align:center;margin:8px 0">${platePending.has(w.id) ? "Trazando el mapa de la zona…" : "Sin mapa de esta zona"}</p>`;
+    ? `<img class="map-art" data-map="${mapKind}" src="${mapSrc}" alt="" onerror="this.style.display='none'">`
+    : `<p class="muted" data-map="" style="text-align:center;margin:8px 0">${platePending.has(w.id) || plateImagePending.size ? "Trazando el mapa de la zona…" : "Sin mapa de esta zona"}</p>`;
+  const fixedMap = !!(fixedZoneOf(w) && fixedZoneOf(w).map);
+  const mapNote = (!fixedMap && w.provenance && w.provenance.mapNote) || "";
+  const regen = !fixedMap && !isCatalogWineId(w.id)
+    ? `<button type="button" class="btn btn-ghost" data-regen="1" style="width:100%;margin-top:10px" onclick="regenerateZoneMap('${w.id}')">Regenerar mapa</button>`
+    : "";
+  const noteHtml = mapNote ? `<p class="tiny" data-map-note="1" style="margin-top:8px">${escHtml(mapNote)}</p>` : "";
   const hasPin = g.lat != null && g.lng != null && Number.isFinite(Number(g.lat)) && Number.isFinite(Number(g.lng));
   const osm = hasPin ? `https://www.openstreetmap.org/?mlat=${g.lat}&mlon=${g.lng}#map=16/${g.lat}/${g.lng}` : "";
   const pin = hasPin ? `${g.lat},${g.lng}` : "";
@@ -5519,6 +6132,8 @@ function mapaBlock(w) {
   const shops = (w.shops || []).map(s => `<a class="btn btn-ghost" style="width:100%;margin-top:8px;display:block;text-align:center" href="${escHtml(s.url)}" target="_blank" rel="noopener noreferrer" onclick="return openExternal(this.href)">${escHtml(s.source || "Tienda")}${s.price ? " · " + escHtml(s.price) : ""}</a>`).join("");
   return `
     ${mapImg}
+    ${noteHtml}
+    ${regen}
     <p class="tiny" style="margin:0 0 10px;text-align:center">${g.zone || w.region}</p>
     <p class="eyebrow" style="font-size:10px;letter-spacing:.14em;margin:2px 0 0">${w.appellation || ""}</p>
     <h3 style="font-size:17px;margin:2px 0 2px;line-height:1.2">${w.producer}</h3>
@@ -5774,7 +6389,7 @@ function setSource(key, on) {
   prefs().sources[key] = !!on;
   save();
 }
-function exportBackup() {
+async function exportBackup() {
   const payload = {
     version: "1.0.0",
     savedAt: new Date().toISOString(),
@@ -5786,7 +6401,8 @@ function exportBackup() {
     prefs: state.prefs,
     notify: state.notify,
     customWines: state.customWines || [],
-    plateCache: state.plateCache || {}
+    plateCache: state.plateCache || {},
+    plateImages: await plateImagesForBackup()
   };
   downloadFile("MiVinoteca_Backup_" + new Date().toISOString().slice(0,10) + ".json", JSON.stringify(payload, null, 2), "application/json");
   prefs().lastBackup = Date.now();
@@ -5847,8 +6463,14 @@ function reviewRestore(file) {
       if (data.plateCache && typeof data.plateCache === "object") state.plateCache = data.plateCache;
       prefs().lastBackup = Date.now();
       save();
-      toast("Colección restaurada");
-      show("perfil");
+      const images = data.plateImages;
+      const done = () => {
+        toast("Colección restaurada");
+        show("perfil");
+      };
+      if (images && typeof images === "object") restorePlateImages(images).then(done, done);
+      else done();
+      return;
     } catch {
       toast("JSON ilegible");
     }
@@ -5950,6 +6572,7 @@ document.addEventListener("DOMContentLoaded", () => {
   clock();
   setInterval(clock, 30000);
   renderHome();
+  hydratePlateImages();
   setTimeout(() => $("#splash").classList.add("hide"), 700);
   setTimeout(() => runNotifyCheck(false), 1600);
 });
