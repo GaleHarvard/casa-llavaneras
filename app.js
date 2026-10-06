@@ -28,6 +28,8 @@ function dossierOf(w) {
 const NOW = new Date(2026, 8, 22);
 const YEAR = NOW.getFullYear();
 const STORE = "vinoteca.pro.max.v3";
+const APP_VERSION = "v66";
+const PRICE_CFG_KEY = "vinoteca-jgc-provider";
 
 const ICONS = {
   home: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 11.5 12 4l8 7.5V20a1 1 0 0 1-1 1h-5v-6H10v6H5a1 1 0 0 1-1-1z"/></svg>',
@@ -370,7 +372,8 @@ function renderHome() {
     <div class="card" role="button" onclick="show('perfil')" style="margin-top:10px">
       <div class="row"><h2>Perfil</h2><span class="tiny">›</span></div>
       <p class="muted" style="margin-top:6px">Casas, privacidad, copias y fuentes.</p>
-    </div>`;
+    </div>
+    <p class="tiny app-version" style="text-align:center;margin:18px 0 8px">Versión ${APP_VERSION}</p>`;
 }
 
 function pickFeaturedWine() {
@@ -721,24 +724,25 @@ function applyCleanIdentity(wine, raw) {
   wine.provenance = wine.provenance || {};
   if (!wine.provenance.rawTitle && titleLooksDirty(wine.name)) wine.provenance.rawTitle = wine.name;
   const dirty = titleLooksDirty(wine.name) || titleLooksDirty(wine.producer);
-  if (idn.name && wine.provenance.name !== "página" && (dirty || !String(wine.name || "").trim())) {
+  const pageLocks = (field, value) => wine.provenance[field] === "página" && String(value || "").trim() && !titleLooksDirty(value);
+  if (idn.name && !pageLocks("name", wine.name) && (dirty || titleLooksDirty(wine.name) || !String(wine.name || "").trim())) {
     wine.name = idn.name;
     markWineSource(wine, "name", "título");
   }
-  if (idn.producer && wine.provenance.producer !== "página" && (dirty || !String(wine.producer || "").trim() || titleLooksDirty(wine.producer))) {
+  if (idn.producer && !pageLocks("producer", wine.producer) && (dirty || !String(wine.producer || "").trim() || titleLooksDirty(wine.producer))) {
     wine.producer = idn.producer;
     markWineSource(wine, "producer", "título");
   }
-  if (idn.region && wine.provenance.region !== "página") {
+  if (idn.region && !pageLocks("region", wine.region)) {
     wine.region = idn.region;
     wine.appellation = idn.appellation || idn.region;
     markWineSource(wine, "region", "título");
   }
-  if (idn.country && wine.provenance.country !== "página") {
+  if (idn.country && !pageLocks("country", wine.country)) {
     wine.country = idn.country;
     markWineSource(wine, "country", "título");
   }
-  if (idn.type && wine.provenance.type !== "página") {
+  if (idn.type && !pageLocks("type", wine.type)) {
     wine.type = idn.type;
     wine.color = colorForWineType(idn.type);
     markWineSource(wine, "type", "título");
@@ -748,6 +752,41 @@ function applyCleanIdentity(wine, raw) {
     if (!current || current === YEAR || dirty) wine.vintage = idn.vintage;
   }
   return idn;
+}
+function legacyGeminiNote(note) {
+  const n = String(note || "").trim();
+  if (!n || n === NO_GEMINI_NOTE) return false;
+  return /ajustes de precio/i.test(n) || /sin clave de gemini/i.test(n);
+}
+function internetAddedWine(w) {
+  if (!w || isCatalogWineId(w.id)) return false;
+  if (w.style === "internet" || w.style === "escaneo") return true;
+  const p = w.provenance;
+  return !!(p && (p.pageUrl || p.rawTitle));
+}
+function refreshDirtyInternetWine(wine) {
+  if (!internetAddedWine(wine)) return false;
+  wine.provenance = wine.provenance || {};
+  const dirty = titleLooksDirty(wine.name) || titleLooksDirty(wine.producer);
+  const stale = legacyGeminiNote(wine.provenance.geminiNote) || !!wine.enrichError || !!(wine.provenance && wine.provenance.enrichError);
+  if (!dirty && !stale) return false;
+  if (dirty) {
+    const raw = [wine.provenance.rawTitle, wine.name, wine.producer, wine.vintage, wine.provenance.pageUrl].filter(Boolean).join(" \n ");
+    applyCleanIdentity(wine, raw);
+  }
+  if (wine.enrichError) delete wine.enrichError;
+  if (wine.provenance.enrichError) delete wine.provenance.enrichError;
+  if (!storedGeminiKey()) wine.provenance.geminiNote = NO_GEMINI_NOTE;
+  else if (legacyGeminiNote(wine.provenance.geminiNote)) wine.provenance.geminiNote = "";
+  return true;
+}
+function refreshDirtyInternetWines() {
+  let changed = false;
+  (state.customWines || []).forEach(w => {
+    if (refreshDirtyInternetWine(w)) changed = true;
+  });
+  if (changed) save();
+  return changed;
 }
 function identityAgrees(blob, next, current) {
   const proposed = normTxt(next);
@@ -1384,28 +1423,16 @@ function bottleAsset(w) {
   return BOTTLE_PHOTOS.tinto;
 }
 function bottleTone(w) {
-  if (!w || !w.provenance || isCatalogWineId(w.id)) {
-    const kind = bottleKind(w);
-    if (kind === "spark") return "photo-espumoso";
-    if (kind === "white" || kind === "slim" || kind === "rose") return "photo-blanco";
-    return "photo-tinto";
-  }
-  if (!fieldIsReal(w, "type")) return "neutral";
-  const type = normTxt(w.type);
-  if (type === "blanco") return "photo-blanco";
-  if (type === "espumoso") return "photo-espumoso";
-  if (type === "rosado") return "rose";
-  if (type === "generoso") return "generoso";
-  if (type === "tinto") return "red";
-  return "neutral";
+  const type = normTxt((w && w.type) || "");
+  const kind = bottleKind(w || {});
+  if (type === "blanco" || type === "rosado" || kind === "white" || kind === "slim" || kind === "rose") return "photo-blanco";
+  if (type === "espumoso" || kind === "spark") return "photo-espumoso";
+  return "photo-tinto";
 }
 function bottleMarkup(w) {
   const tone = bottleTone(w);
-  if (tone === "photo-tinto" || tone === "photo-blanco" || tone === "photo-espumoso") {
-    const src = tone === "photo-blanco" ? BOTTLE_PHOTOS.blanco : tone === "photo-espumoso" ? BOTTLE_PHOTOS.espumoso : BOTTLE_PHOTOS.tinto;
-    return `<img class="bottle-photo" data-bottle="${tone}" src="${src}" alt="Botella">`;
-  }
-  return bottleSVG(w, tone);
+  const src = tone === "photo-blanco" ? BOTTLE_PHOTOS.blanco : tone === "photo-espumoso" ? BOTTLE_PHOTOS.espumoso : BOTTLE_PHOTOS.tinto;
+  return `<img class="bottle-photo" data-bottle="${tone}" src="${src}" alt="Botella">`;
 }
 function estateSVG(w) {
   const art = estateArt(w);
@@ -1580,6 +1607,7 @@ function openWine(wineId, bottle) {
     return;
   }
   normalizeWine(w);
+  if (refreshDirtyInternetWine(w)) save();
   currentWine = w;
   currentBottle = bottle || state.bottles.find(b => b.wineId === wineId) || null;
   const p = phaseOf(w);
@@ -3095,7 +3123,7 @@ function applyPageFacts(wine, facts) {
     wine.abv = facts.abv;
     markWineSource(wine, "abv", "página");
   }
-  if (facts.producer) {
+  if (facts.producer && !titleLooksDirty(facts.producer)) {
     wine.producer = facts.producer;
     markWineSource(wine, "producer", "página");
   }
@@ -3131,13 +3159,15 @@ function geminiGaps(wine) {
   });
   return gaps;
 }
-function storedGeminiKey() {
+function readPriceCfg() {
   try {
-    if (window.WineDataProvider && typeof WineDataProvider.loadCfg === "function") {
-      return String((WineDataProvider.loadCfg().geminiKey) || "").trim();
-    }
+    if (window.WineDataProvider && typeof WineDataProvider.loadCfg === "function") return WineDataProvider.loadCfg();
   } catch (e) {}
-  return "";
+  try { return JSON.parse(localStorage.getItem(PRICE_CFG_KEY) || "{}"); } catch (e) {}
+  return {};
+}
+function storedGeminiKey() {
+  return String((readPriceCfg().geminiKey) || "").trim();
 }
 function saneVintageYear(n, vintage) {
   const y = Math.round(Number(n));
@@ -3890,6 +3920,10 @@ async function completeWineRecord(wine, pageUrl) {
     read = await readFactsFromUrl(wine, target);
   }
   if (read) wine.provenance.pageNote = "";
+  applyCleanIdentity(wine, [wine.provenance.rawTitle || wine.name, wine.producer, wine.vintage, wine.provenance.pageUrl || ""].join(" \n "));
+  if (wine.enrichError) delete wine.enrichError;
+  if (wine.provenance.enrichError) delete wine.provenance.enrichError;
+  if (legacyGeminiNote(wine.provenance.geminiNote)) wine.provenance.geminiNote = "";
   if (storedGeminiKey()) {
     setFichaProgress("Afinando nombre, bodega y zona…");
     try { await geminiNormalizeIdentity(wine); } catch (e) {
@@ -3946,9 +3980,15 @@ async function completeExistingWine(id) {
     normalizeWine(wine);
     wine.provenance = wine.provenance || {};
     wine.provenance.done = false;
-    wine.provenance.geminiNote = "";
+    if (wine.enrichError) delete wine.enrichError;
+    if (wine.provenance.enrichError) delete wine.provenance.enrichError;
+    applyCleanIdentity(wine, [wine.provenance.rawTitle || wine.name, wine.producer, wine.vintage, wine.provenance.pageUrl || ""].join(" \n "));
     const noKey = !storedGeminiKey();
+    if (noKey) wine.provenance.geminiNote = NO_GEMINI_NOTE;
+    else if (legacyGeminiNote(wine.provenance.geminiNote)) wine.provenance.geminiNote = "";
+    save();
     if (noKey) openNotify();
+    if (currentWine && currentWine.id === wine.id) openWine(wine.id, currentBottle);
     setFichaProgress("Completando la ficha…");
     await completeWineRecord(wine, wine.provenance.pageUrl || "");
     if (currentWine && currentWine.id === wine.id) openWine(wine.id, currentBottle);
@@ -4896,30 +4936,46 @@ async function probeGeminiKey() {
   }
 }
 function savePriceCfg() {
-  if (!window.WineDataProvider) return;
+  const prev = readPriceCfg();
   const url = ($("#p-url") && $("#p-url").value.trim()) || "";
   const key = ($("#p-key") && $("#p-key").value.trim()) || "";
   const live = $("#p-live") && $("#p-live").checked;
   const geminiOn = $("#p-gemini") && $("#p-gemini").checked;
-  const geminiKey = ($("#p-gemini-key") && $("#p-gemini-key").value.trim()) || "";
-  WineDataProvider.saveCfg({
+  const typed = ($("#p-gemini-key") && $("#p-gemini-key").value.trim()) || "";
+  const geminiKey = typed || String(prev.geminiKey || "").trim();
+  const next = {
     mode: live && key ? "live" : "demo",
-    apiUrl: url || "https://www.wine-searcher.com/ws_api.php",
-    apiKey: key,
+    apiUrl: url || prev.apiUrl || "https://www.wine-searcher.com/ws_api.php",
+    apiKey: key || prev.apiKey || "",
     geminiOn: !!(geminiOn && geminiKey),
-    geminiKey: geminiKey
-  });
+    geminiKey: geminiKey,
+    currency: prev.currency || "EUR"
+  };
+  try {
+    if (window.WineDataProvider && typeof WineDataProvider.saveCfg === "function") WineDataProvider.saveCfg(next);
+    else localStorage.setItem(PRICE_CFG_KEY, JSON.stringify(Object.assign({}, prev, next)));
+  } catch (e) {
+    toast("No se pudo guardar la clave");
+    return;
+  }
+  const saved = String((readPriceCfg().geminiKey) || "").trim();
+  if (geminiKey && saved !== geminiKey) {
+    toast("No se pudo guardar la clave");
+    return;
+  }
   hideSheets();
-  toast(geminiOn && geminiKey ? "Precios: estimación Gemini" : live && key ? "Precios: Wine-Searcher" : "Precios: dossier");
+  toast(saved ? "Clave de Gemini guardada en esta app" : (live && key ? "Precios: Wine-Searcher" : "Precios: dossier"));
 }
 function hydratePriceFields() {
-  if (!window.WineDataProvider) return;
-  const cfg = WineDataProvider.loadCfg();
+  const cfg = readPriceCfg();
   if ($("#p-live")) $("#p-live").checked = cfg.mode === "live" && !!cfg.apiKey;
   if ($("#p-url")) $("#p-url").value = cfg.apiUrl || "";
   if ($("#p-key")) $("#p-key").value = cfg.apiKey || "";
   if ($("#p-gemini")) $("#p-gemini").checked = !!cfg.geminiOn && !!cfg.geminiKey;
-  if ($("#p-gemini-key")) $("#p-gemini-key").value = cfg.geminiKey || "";
+  const keyEl = $("#p-gemini-key");
+  if (keyEl && document.activeElement !== keyEl) keyEl.value = cfg.geminiKey || "";
+  const stateEl = document.getElementById("gemini-key-state");
+  if (stateEl) stateEl.textContent = cfg.geminiKey ? "Clave guardada en esta app." : "No hay clave en esta app. Pégala aquí: Safari y el icono de inicio no comparten la clave.";
 }
 
 function prefs() { return state.prefs || (state.prefs = {}); }
@@ -4966,6 +5022,7 @@ function renderPerfil() {
       </div>
       <p class="tiny" style="margin-top:12px">Última copia de seguridad</p>
       <p>${fmtBackup(p.lastBackup)}</p>
+      <p class="tiny app-version" style="margin-top:8px">Versión ${APP_VERSION}</p>
     </div>
     ${p.demo ? `<div class="card"><div class="row"><strong>Modo demostración</strong><button class="btn btn-ghost" onclick="exitDemo()">Salir</button></div><p class="tiny" style="margin-top:6px">Los vinos de ejemplo no son tu colección real.</p></div>` : ""}
     <div class="card" role="button" onclick="openPerfilSub('casas')"><div class="row"><h3>Mis casas y vinotecas</h3><span>›</span></div><p class="muted">Gestionar ubicaciones físicas.</p></div>
@@ -5030,7 +5087,7 @@ function openPerfilSub(kind) {
       <button class="btn btn-ghost" style="width:100%" onclick="askWipe()">Eliminar colección</button>`;
   } else {
     body = `
-      <div class="card"><h3>Mi Vinoteca</h3><p class="muted" style="margin-top:6px">Versión 1.0.0</p>
+      <div class="card"><h3>Mi Vinoteca</h3><p class="muted" style="margin-top:6px">Versión ${APP_VERSION}</p>
         <p class="tiny" style="margin-top:10px">Esquema vinoteca.pro.max.v3 · ${totalBottles()} botellas · ${uniqueWines()} vinos · ${state.vinotecas.length} vinotecas</p>
         <p class="tiny">Última copia: ${fmtBackup(p.lastBackup)}</p>
       </div>
@@ -5201,6 +5258,7 @@ window.deleteCave = deleteCave;
 window.goBack = goBack;
 window.refreshAddKeep = refreshAddKeep;
 window.setPriceMode = setPriceMode;
+window.APP_VERSION = APP_VERSION;
 window.savePriceCfg = savePriceCfg;
 window.probeGeminiKey = probeGeminiKey;
 window.setNotify = setNotify;
@@ -5229,6 +5287,7 @@ window.setFilter = (t, btn) => {
 document.addEventListener("DOMContentLoaded", () => {
   clock();
   setInterval(clock, 30000);
+  refreshDirtyInternetWines();
   renderHome();
   setTimeout(() => $("#splash").classList.add("hide"), 700);
   setTimeout(() => runNotifyCheck(false), 1600);
