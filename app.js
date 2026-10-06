@@ -1332,7 +1332,7 @@ let nominatimWait = Promise.resolve();
 function plateCache() {
   if (!state.plateCache || typeof state.plateCache !== "object") state.plateCache = {};
   Object.keys(state.plateCache).forEach(key => {
-    if (/^[zb]:/.test(key)) delete state.plateCache[key];
+    if (!/^z3:/.test(key) && !/^b3:/.test(key)) delete state.plateCache[key];
   });
   return state.plateCache;
 }
@@ -1355,10 +1355,10 @@ function fixedZoneOf(w) {
   return detectZone(place) || detectZone([w.name, w.producer].filter(Boolean).join(" "));
 }
 function zonePlateKey(w) {
-  return "z2:" + foldZone(w.region || w.appellation || w.country || "");
+  return "z3:" + foldZone(w.region || w.appellation || w.country || "");
 }
 function wineryPlateKey(w) {
-  return "b2:" + foldZone(w.producer || "") + "|" + foldZone(w.region || w.country || "");
+  return "b3:" + foldZone(w.producer || "") + "|" + foldZone(w.region || w.country || "");
 }
 function nominatimSlot() {
   const next = nominatimWait.then(() => new Promise(resolve => setTimeout(resolve, 1100)));
@@ -1649,31 +1649,27 @@ function projectPoint(lon, lat, proj) {
     proj.oy + (proj.maxY - lat) * proj.s
   ];
 }
-function makeProject(rings, box, extras) {
+function makeProject(rings, box) {
   const b = bboxOf(rings);
-  const baseW = Math.max(1e-6, b.maxX - b.minX);
-  const baseH = Math.max(1e-6, b.maxY - b.minY);
-  (extras || []).forEach(p => {
-    if (!p || !Number.isFinite(p[0]) || !Number.isFinite(p[1])) return;
-    const reachX = Math.max(baseW * 2.4, 0.32);
-    const reachY = Math.max(baseH * 2.4, 0.26);
-    if (p[0] < b.minX - reachX || p[0] > b.maxX + reachX || p[1] < b.minY - reachY || p[1] > b.maxY + reachY) return;
-    if (p[0] < b.minX) b.minX = p[0];
-    if (p[1] < b.minY) b.minY = p[1];
-    if (p[0] > b.maxX) b.maxX = p[0];
-    if (p[1] > b.maxY) b.maxY = p[1];
-  });
   const bw = Math.max(1e-6, b.maxX - b.minX);
   const bh = Math.max(1e-6, b.maxY - b.minY);
-  const pad = 54;
-  const s = Math.min((box.w - pad * 2) / bw, (box.h - pad * 2) / bh);
+  const fill = 0.76;
+  const s = Math.min(box.w * fill / bw, box.h * fill / bh);
+  const dw = bw * s;
+  const dh = bh * s;
   return {
     minX: b.minX,
     maxY: b.maxY,
     s,
-    ox: box.x + (box.w - bw * s) / 2,
-    oy: box.y + (box.h - bh * s) / 2
+    ox: box.x + (box.w - dw) / 2,
+    oy: box.y + (box.h - dh) / 2
   };
+}
+function townNearOutline(town, rings) {
+  const b = bboxOf(rings);
+  const mx = Math.max(1e-6, b.maxX - b.minX) * 0.12;
+  const my = Math.max(1e-6, b.maxY - b.minY) * 0.12;
+  return town.lon >= b.minX - mx && town.lon <= b.maxX + mx && town.lat >= b.minY - my && town.lat <= b.maxY + my;
 }
 function ringPath(ring, proj) {
   return ring.map((p, i) => {
@@ -1700,39 +1696,107 @@ function labelBox(tx, ty, anchor, width, size) {
   const left = anchor === "start" ? tx : anchor === "end" ? tx - width : tx - width / 2;
   return { x: left, y: top, w: width, h: size * 1.05 };
 }
-function placeTownLabel(text, px, py, obstacles, safe) {
+function segsCross(ax, ay, bx, by, cx, cy, dx, dy) {
+  const d = (bx - ax) * (dy - cy) - (by - ay) * (dx - cx);
+  if (Math.abs(d) < 1e-9) return false;
+  const t = ((cx - ax) * (dy - cy) - (cy - ay) * (dx - cx)) / d;
+  const u = ((cx - ax) * (by - ay) - (cy - ay) * (bx - ax)) / d;
+  return t >= 0 && t <= 1 && u >= 0 && u <= 1;
+}
+function segHitsRect(x1, y1, x2, y2, r) {
+  const minX = Math.min(x1, x2);
+  const maxX = Math.max(x1, x2);
+  const minY = Math.min(y1, y2);
+  const maxY = Math.max(y1, y2);
+  if (maxX < r.x || minX > r.x + r.w || maxY < r.y || minY > r.y + r.h) return false;
+  const inside = (x, y) => x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h;
+  if (inside(x1, y1) || inside(x2, y2)) return true;
+  const x2r = r.x + r.w;
+  const y2r = r.y + r.h;
+  return segsCross(x1, y1, x2, y2, r.x, r.y, x2r, r.y)
+    || segsCross(x1, y1, x2, y2, x2r, r.y, x2r, y2r)
+    || segsCross(x1, y1, x2, y2, x2r, y2r, r.x, y2r)
+    || segsCross(x1, y1, x2, y2, r.x, y2r, r.x, r.y);
+}
+function boxHitsOutline(box, rings) {
+  const pad = 5;
+  const r = { x: box.x - pad, y: box.y - pad, w: box.w + pad * 2, h: box.h + pad * 2 };
+  for (let i = 0; i < rings.length; i++) {
+    const ring = rings[i];
+    for (let k = 0; k < ring.length; k++) {
+      const a = ring[k];
+      const b = ring[(k + 1) % ring.length];
+      if (segHitsRect(a[0], a[1], b[0], b[1], r)) return true;
+    }
+  }
+  return false;
+}
+function placeTownLabel(text, px, py, obstacles, safe, rings) {
   const size = 13;
   const track = 0.8;
   const width = plateTextWidth(text, size, track);
-  const gap = 11;
-  const spots = [
-    { anchor: "start", x: px + gap, y: py + 4 },
-    { anchor: "end", x: px - gap, y: py + 4 },
-    { anchor: "middle", x: px, y: py + gap + size },
-    { anchor: "middle", x: px, y: py - gap },
-    { anchor: "start", x: px + gap, y: py + gap + size * 0.7 },
-    { anchor: "end", x: px - gap, y: py + gap + size * 0.7 },
-    { anchor: "start", x: px + gap, y: py - gap },
-    { anchor: "end", x: px - gap, y: py - gap }
-  ];
+  const spots = [];
+  [12, 28, 46].forEach(gap => {
+    spots.push(
+      { anchor: "start", x: px + gap, y: py + 4 },
+      { anchor: "end", x: px - gap, y: py + 4 },
+      { anchor: "middle", x: px, y: py + gap + size },
+      { anchor: "middle", x: px, y: py - gap },
+      { anchor: "start", x: px + gap, y: py + gap + size * 0.55 },
+      { anchor: "end", x: px - gap, y: py + gap + size * 0.55 },
+      { anchor: "start", x: px + gap, y: py - gap },
+      { anchor: "end", x: px - gap, y: py - gap }
+    );
+  });
   for (let i = 0; i < spots.length; i++) {
     const spot = spots[i];
     const box = labelBox(spot.x, spot.y, spot.anchor, width, size);
     if (box.x < safe.x || box.y < safe.y || box.x + box.w > safe.x + safe.w || box.y + box.h > safe.y + safe.h) continue;
     if (obstacles.some(ob => plateRectsHit(box, ob))) continue;
+    if (rings && boxHitsOutline(box, rings)) continue;
     return { x: spot.x, y: spot.y, anchor: spot.anchor, box, text, size, track };
   }
   return null;
 }
+function titleWidth(text, size, track) {
+  return Math.max(8, String(text || "").length * size * 0.72 + Math.max(0, String(text || "").length - 1) * track);
+}
+function splitPlateTitle(text) {
+  const mid = Math.floor(text.length / 2);
+  let best = -1;
+  let bestDist = 1e9;
+  for (let i = 0; i < text.length; i++) {
+    if (text[i] !== " ") continue;
+    if (i < 6 || text.length - i - 1 < 6) continue;
+    const dist = Math.abs(i - mid);
+    if (dist < bestDist) { bestDist = dist; best = i; }
+  }
+  if (best < 0) {
+    const sp = text.lastIndexOf(" ");
+    if (sp > 0) return [text.slice(0, sp), text.slice(sp + 1)];
+    return [text.slice(0, mid), text.slice(mid)];
+  }
+  return [text.slice(0, best), text.slice(best + 1)];
+}
 function fitPlateTitle(title) {
-  const text = plateTitle(title).slice(0, 52);
+  const text = plateTitle(title).slice(0, 64);
+  const maxW = 760;
   let size = 46;
   let track = 5.5;
-  while (text.length > 1 && plateTextWidth(text, size, track) > 820 && size > 20) {
+  while (text.length > 1 && titleWidth(text, size, track) > maxW && size > 28) {
     size -= 2;
-    track = Math.max(1.2, track - 0.35);
+    track = Math.max(1.6, track - 0.32);
   }
-  return { text, size, track };
+  if (titleWidth(text, size, track) <= maxW) return { lines: [text], size, track };
+  const lines = splitPlateTitle(text);
+  size = 32;
+  track = 2.2;
+  const widest = () => Math.max(titleWidth(lines[0], size, track), titleWidth(lines[1], size, track));
+  while (widest() > maxW && size > 18) {
+    size -= 2;
+    track = Math.max(0.8, track - 0.2);
+  }
+  return { lines, size, track };
 }
 function contourPath(ring, proj, scale) {
   const pts = ring.map(p => projectPoint(p[0], p[1], proj));
@@ -1768,20 +1832,20 @@ function renderEngravedPlate(opts) {
   const fitted = fitPlateTitle(opts.title);
   const country = plateTitle(opts.country || opts.subtitle || "").slice(0, 42);
   const footer = plateTitle(opts.footer || opts.title).slice(0, 42);
-  const box = { x: 108, y: 196, w: 952, h: 430 };
-  const extras = [];
-  if (opts.pin) extras.push([opts.pin.lon, opts.pin.lat]);
-  (opts.towns || []).forEach(town => extras.push([town.lon, town.lat]));
-  const proj = makeProject(opts.rings, box, extras);
+  const twoLines = fitted.lines.length > 1;
+  const box = { x: 108, y: twoLines ? 206 : 196, w: 952, h: twoLines ? 412 : 430 };
+  const proj = makeProject(opts.rings, box);
+  const projected = opts.rings.map(ring => ring.map(p => projectPoint(p[0], p[1], proj)));
   const paths = opts.rings.map(ring => ringPath(ring, proj)).join("");
-  const inner = opts.rings.map(ring => contourPath(ring, proj, 0.78)).join("");
-  const inner2 = opts.rings.map(ring => contourPath(ring, proj, 0.58)).join("");
+  const inner = opts.rings.map(ring => contourPath(ring, proj, 0.86)).join("");
+  const inner2 = opts.rings.map(ring => contourPath(ring, proj, 0.70)).join("");
+  const inner3 = opts.rings.map(ring => contourPath(ring, proj, 0.52)).join("");
   const pinXY = projectPoint(opts.pin.lon, opts.pin.lat, proj);
   const compass = { x: 1034, y: 588 };
-  const safe = { x: 58, y: 168, w: 1052, h: 512 };
+  const safe = { x: 52, y: twoLines ? 178 : 162, w: 1064, h: twoLines ? 516 : 528 };
   const font = "Palatino, 'Palatino Linotype', 'Iowan Old Style', 'Times New Roman', Times, serif";
   const obstacles = [
-    { x: 120, y: 36, w: 928, h: 128 },
+    { x: 80, y: 36, w: 1008, h: twoLines ? 146 : 122 },
     { x: 160, y: 688, w: 848, h: 72 },
     { x: compass.x - 48, y: compass.y - 52, w: 96, h: 104 },
     { x: pinXY[0] - 14, y: pinXY[1] - 24, w: 28, h: 40 }
@@ -1793,38 +1857,48 @@ function renderEngravedPlate(opts) {
     const tx = Math.max(safe.x + width / 2 + 4, Math.min(safe.x + safe.w - width / 2 - 4, pinXY[0]));
     const ty = pinXY[1] + 40;
     const boxPin = labelBox(tx, ty, "middle", width, 14);
-    if (boxPin.y >= safe.y && boxPin.y + boxPin.h <= safe.y + safe.h && !obstacles.some(ob => plateRectsHit(boxPin, ob))) {
+    const pinClear = boxPin.y >= safe.y && boxPin.y + boxPin.h <= safe.y + safe.h
+      && !obstacles.some(ob => plateRectsHit(boxPin, ob))
+      && !boxHitsOutline(boxPin, projected);
+    if (pinClear) {
       pinLabel = { x: tx, y: ty, text: pinName };
       obstacles.push(boxPin);
+    } else {
+      const placedPin = placeTownLabel(pinName, pinXY[0], pinXY[1], obstacles, safe, projected);
+      if (placedPin) {
+        pinLabel = { x: placedPin.x, y: placedPin.y, text: pinName, anchor: placedPin.anchor };
+        obstacles.push(placedPin.box);
+      }
     }
   }
   const labels = [];
   (opts.towns || []).forEach(town => {
+    if (!townNearOutline(town, opts.rings)) return;
     const xy = projectPoint(town.lon, town.lat, proj);
     if (xy[0] < safe.x + 8 || xy[0] > safe.x + safe.w - 8 || xy[1] < safe.y + 8 || xy[1] > safe.y + safe.h - 8) return;
     if (Math.hypot(xy[0] - pinXY[0], xy[1] - pinXY[1]) < 28) return;
     if (Math.hypot(xy[0] - compass.x, xy[1] - compass.y) < 46) return;
     const text = shortPlace(town.label);
     if (!text || foldZone(text) === foldZone(pinName)) return;
-    const placed = placeTownLabel(text, xy[0], xy[1], obstacles, safe);
+    const placed = placeTownLabel(text, xy[0], xy[1], obstacles, safe, projected);
     if (!placed) return;
     obstacles.push(placed.box);
     labels.push({ x: xy[0], y: xy[1], text: placed.text, anchor: placed.anchor, tx: placed.x, ty: placed.y });
   });
-  const titleW = plateTextWidth(fitted.text, fitted.size, fitted.track);
-  const cartouche = Math.min(460, Math.max(150, titleW / 2 + 36));
+  const titleW = Math.max.apply(null, fitted.lines.map(line => titleWidth(line, fitted.size, fitted.track)));
+  const cartouche = Math.min(440, Math.max(150, titleW / 2 + 42));
   return `<?xml version="1.0" encoding="UTF-8"?>` +
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1168 784" width="1168" height="784">` +
     `<defs>` +
-    `<pattern id="hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(32)">` +
-    `<line x1="0" y1="0" x2="0" y2="7" stroke="#c6a35a" stroke-width="0.7" opacity="0.55"/>` +
+    `<pattern id="hatch" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(32)">` +
+    `<line x1="0" y1="0" x2="0" y2="5" stroke="#e8c97a" stroke-width="0.9" opacity="0.9"/>` +
     `</pattern>` +
-    `<pattern id="hatch2" width="11" height="11" patternUnits="userSpaceOnUse" patternTransform="rotate(-58)">` +
-    `<line x1="0" y1="0" x2="0" y2="11" stroke="#e8c97a" stroke-width="0.4" opacity="0.35"/>` +
+    `<pattern id="hatch2" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(-58)">` +
+    `<line x1="0" y1="0" x2="0" y2="8" stroke="#c6a35a" stroke-width="0.6" opacity="0.72"/>` +
     `</pattern>` +
     `<radialGradient id="inglow" cx="50%" cy="46%" r="62%">` +
-    `<stop offset="0%" stop-color="#f0d48a" stop-opacity="0.22"/>` +
-    `<stop offset="62%" stop-color="#c6a35a" stop-opacity="0.08"/>` +
+    `<stop offset="0%" stop-color="#f0d48a" stop-opacity="0.34"/>` +
+    `<stop offset="58%" stop-color="#c6a35a" stop-opacity="0.12"/>` +
     `<stop offset="100%" stop-color="#c6a35a" stop-opacity="0"/>` +
     `</radialGradient>` +
     `<filter id="goldglow" x="-30%" y="-30%" width="160%" height="160%">` +
@@ -1838,20 +1912,21 @@ function renderEngravedPlate(opts) {
     cornerFleuron(34, 34, 1, 1) + cornerFleuron(1134, 34, -1, 1) + cornerFleuron(34, 750, 1, -1) + cornerFleuron(1134, 750, -1, -1) +
     `<path d="M${(584 - cartouche).toFixed(0)} 78 H${(584 - cartouche + 28).toFixed(0)} M${(584 + cartouche - 28).toFixed(0)} 78 H${(584 + cartouche).toFixed(0)}" fill="none" stroke="#c6a35a" stroke-width="1.2"/>` +
     `<path d="M${(584 - cartouche + 36).toFixed(0)} 78 l5 -4.5 5 4.5 -5 4.5 z M${(584 + cartouche - 46).toFixed(0)} 78 l5 -4.5 5 4.5 -5 4.5 z" fill="#e8c97a"/>` +
-    `<path d="M${(584 - cartouche + 54).toFixed(0)} 118 H${(584 + cartouche - 54).toFixed(0)}" fill="none" stroke="#8d7340" stroke-width="0.8"/>` +
-    `<text x="584" y="108" text-anchor="middle" fill="#f3e2b0" font-family="${font}" font-size="${fitted.size}" letter-spacing="${fitted.track.toFixed(1)}">${xmlEsc(fitted.text)}</text>` +
-    (country ? `<text x="584" y="136" text-anchor="middle" fill="#c6a35a" font-family="${font}" font-size="14" letter-spacing="3.2">${xmlEsc(country)}</text>` : "") +
+    `<path d="M${(584 - cartouche + 54).toFixed(0)} ${twoLines ? 148 : 118} H${(584 + cartouche - 54).toFixed(0)}" fill="none" stroke="#8d7340" stroke-width="0.8"/>` +
+    fitted.lines.map((line, i) => `<text x="584" y="${twoLines ? 104 + i * 30 : 108}" text-anchor="middle" fill="#f3e2b0" font-family="${font}" font-size="${fitted.size}" letter-spacing="${fitted.track.toFixed(1)}">${xmlEsc(line)}</text>`).join("") +
+    (country ? `<text x="584" y="${twoLines ? 168 : 136}" text-anchor="middle" fill="#c6a35a" font-family="${font}" font-size="14" letter-spacing="3.2">${xmlEsc(country)}</text>` : "") +
     `<g clip-path="url(#region)">` +
     `<path d="${paths}" fill="url(#inglow)"/>` +
     `<rect width="1168" height="784" fill="url(#hatch)"/>` +
     `<rect width="1168" height="784" fill="url(#hatch2)"/>` +
     `</g>` +
-    `<path d="${inner}" fill="none" stroke="#c6a35a" stroke-width="0.9" opacity="0.55"/>` +
-    `<path d="${inner2}" fill="none" stroke="#e8c97a" stroke-width="0.7" opacity="0.4"/>` +
+    `<path d="${inner}" fill="none" stroke="#f0d48a" stroke-width="1.2" opacity="0.88"/>` +
+    `<path d="${inner2}" fill="none" stroke="#e8c97a" stroke-width="1" opacity="0.72"/>` +
+    `<path d="${inner3}" fill="none" stroke="#c6a35a" stroke-width="0.8" opacity="0.58"/>` +
     `<path d="${paths}" fill="none" stroke="#f0d48a" stroke-width="3.3" stroke-linejoin="round" stroke-linecap="round" filter="url(#goldglow)"/>` +
     labels.map(lab => `<g><circle cx="${lab.x.toFixed(1)}" cy="${lab.y.toFixed(1)}" r="2.3" fill="#e8c97a"/><text x="${lab.tx.toFixed(1)}" y="${lab.ty.toFixed(1)}" text-anchor="${lab.anchor}" fill="#e4c98a" font-family="${font}" font-size="13" letter-spacing="0.8">${xmlEsc(lab.text)}</text></g>`).join("") +
     `<g transform="translate(${pinXY[0].toFixed(1)} ${pinXY[1].toFixed(1)})"><path d="M0 -20 C8 -20 12 -13 12 -8 C12 2 0 16 0 16 C0 16 -12 2 -12 -8 C-12 -13 -8 -20 0 -20 Z" fill="#e8c97a" stroke="#f4e4b4" stroke-width="0.6"/><circle cy="-8" r="3.2" fill="#1a1408"/></g>` +
-    (pinLabel ? `<text x="${pinLabel.x.toFixed(1)}" y="${pinLabel.y.toFixed(1)}" text-anchor="middle" fill="#f3e2b0" font-family="${font}" font-size="14" letter-spacing="1.1">${xmlEsc(pinLabel.text)}</text>` : "") +
+    (pinLabel ? `<text x="${pinLabel.x.toFixed(1)}" y="${pinLabel.y.toFixed(1)}" text-anchor="${pinLabel.anchor || "middle"}" fill="#f3e2b0" font-family="${font}" font-size="14" letter-spacing="1.1">${xmlEsc(pinLabel.text)}</text>` : "") +
     `<g transform="translate(${compass.x} ${compass.y})" fill="none" stroke="#e8c97a">` +
     `<circle r="26" stroke="#c6a35a" stroke-width="1.3"/>` +
     `<circle r="16" stroke-width="0.7"/>` +
@@ -1914,13 +1989,13 @@ async function ensureGeneratedPlates(wine) {
   if (!(fixed && fixed.map)) {
     const key = zonePlateKey(wine);
     plateMiss.delete(key);
-    if (key !== "z2:" && !plateCache()[key]) {
+    if (key !== "z3:" && !plateCache()[key]) {
       setFichaProgress("Trazando el mapa de la zona…");
       const svg = await buildZonePlate(wine);
       if (svg) { plateCache()[key] = svg; changed = true; }
       else plateMiss.add(key);
     }
-    if (key !== "z2:" && plateCache()[key]) wine.plateKeys.zone = key;
+    if (key !== "z3:" && plateCache()[key]) wine.plateKeys.zone = key;
   }
   if (!PRODUCER_ART[wine.producer] && wine.producer) {
     const key = wineryPlateKey(wine);
