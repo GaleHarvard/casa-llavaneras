@@ -1486,10 +1486,12 @@ function polygonScore(item, query) {
   let score = 0;
   if (cat === "boundary") score += 5;
   if (cat === "place") score += 2;
-  if (/administrative|region|county|state|province|island|protected/.test(typ)) score += 3;
+  if (/administrative|region|county|state|province|island|protected|statistical/.test(typ)) score += 3;
   const token = foldZone(String(query || "").split(",")[0]);
-  const name = foldZone((item.name || "") + " " + (item.display_name || ""));
-  if (token && token.length >= 3 && name.includes(token)) score += 4;
+  const itemName = foldZone(item.name || "");
+  if (token && itemName === token) score += 8;
+  else if (token && token.length >= 3 && itemName.includes(token)) score += 2;
+  else if (token && token.length >= 3 && foldZone(item.display_name || "").includes(token)) score += 1;
   const rings = geoOuterRings(geo);
   if (!rings.length) return -1;
   const box = bboxOf(rings);
@@ -1569,9 +1571,18 @@ async function resolveOutline(w) {
   if (found) outlineMemo.set(memoKey, found);
   return found;
 }
-function placeLabel(hit) {
+function settlementName(hit) {
   const addr = (hit && hit.address) || {};
-  return addr.city || addr.town || addr.village || addr.municipality || addr.hamlet || hit.name || "";
+  const name = addr.city || addr.town || addr.village || addr.hamlet || "";
+  if (!name) return "";
+  if (/municipality|district|province|region|landscape|county|comunidad|comarca|administrative/i.test(name)) return "";
+  return name;
+}
+function producerMentioned(w, hit) {
+  const tokens = foldZone(w && w.producer).split(/[^a-z0-9]+/).filter(t => t.length >= 4);
+  if (!tokens.length || !hit) return false;
+  const blob = foldZone((hit.name || "") + " " + (hit.display_name || ""));
+  return tokens.some(t => blob.includes(t));
 }
 async function geocodePin(w, outline) {
   const memoKey = foldZone(w.producer || "") + "|" + outline.lat + "," + outline.lon;
@@ -1579,18 +1590,19 @@ async function geocodePin(w, outline) {
   const q = [w.producer, w.region || w.appellation, geoCountryName(w.country || "")].filter(Boolean).join(", ");
   const lat0 = Number(outline.lat);
   const lon0 = Number(outline.lon);
-  const fallback = { lat: lat0, lon: lon0, label: outline.localName || w.region || w.country || "" };
+  const centerHit = await nominatimReverse(lat0, lon0);
+  const fallback = { lat: lat0, lon: lon0, label: settlementName(centerHit) || outline.localName || w.region || w.country || "" };
   let pin = fallback;
   if (w.producer) {
-    const rows = await nominatimSearch({ q, limit: "1" });
-    const hit = rows[0];
+    const rows = await nominatimSearch({ q, limit: "3" });
+    const hit = (rows || []).find(row => producerMentioned(w, row) && settlementName(row));
     if (hit) {
       const lat = Number(hit.lat);
       const lon = Number(hit.lon);
       const box = outline.bbox;
       const span = Math.max(box.maxX - box.minX, box.maxY - box.minY, 0.25);
-      if (Number.isFinite(lat) && Number.isFinite(lon) && Math.abs(lat - lat0) <= span * 2.2 && Math.abs(lon - lon0) <= span * 2.2) {
-        pin = { lat, lon, label: placeLabel(hit) || fallback.label };
+      if (Number.isFinite(lat) && Number.isFinite(lon) && Math.abs(lat - lat0) <= span * 1.4 && Math.abs(lon - lon0) <= span * 1.4) {
+        pin = { lat, lon, label: settlementName(hit) };
       }
     }
   }
@@ -1600,25 +1612,24 @@ async function geocodePin(w, outline) {
 }
 async function nearbyTowns(pin, outline) {
   if (outline.towns && outline.townPin === pin.label) return outline.towns;
-  const box = outline.bbox;
-  const dlat = Math.max(0.05, Math.min(0.55, (box.maxY - box.minY) * 0.32));
-  const dlon = Math.max(0.05, Math.min(0.7, (box.maxX - box.minX) * 0.32));
-  const spots = [
-    [pin.lat + dlat, pin.lon],
-    [pin.lat - dlat, pin.lon],
-    [pin.lat, pin.lon + dlon],
-    [pin.lat, pin.lon - dlon],
-    [pin.lat + dlat * 0.55, pin.lon + dlon * 0.55]
-  ];
+  const dirs = [[1, 0], [0, 1], [-1, 0], [0, -1], [0.7, 0.7], [-0.7, 0.7], [0.7, -0.7], [-0.7, -0.7]];
+  const spots = [];
+  [16, 28].forEach(km => {
+    const dlat = km / 111;
+    const dlon = km / (111 * Math.max(0.25, Math.cos(pin.lat * Math.PI / 180)));
+    dirs.forEach(dir => spots.push([pin.lat + dir[0] * dlat, pin.lon + dir[1] * dlon]));
+  });
   const seen = new Set();
   const pinName = foldZone(pin.label);
+  const zoneName = foldZone(outline.localName || "");
   if (pinName) seen.add(pinName);
+  if (zoneName) seen.add(zoneName);
   const towns = [];
-  for (let i = 0; i < spots.length && towns.length < 5; i++) {
+  for (let i = 0; i < spots.length && towns.length < 4; i++) {
     const hit = await nominatimReverse(spots[i][0], spots[i][1]);
-    const label = placeLabel(hit);
+    const label = settlementName(hit);
     const key = foldZone(label);
-    if (!label || !key || seen.has(key) || key === pinName) continue;
+    if (!label || !key || seen.has(key)) continue;
     const lat = Number(hit.lat);
     const lon = Number(hit.lon);
     if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue;
@@ -1655,6 +1666,13 @@ function ringPath(ring, proj) {
     return (i ? "L" : "M") + xy[0].toFixed(1) + " " + xy[1].toFixed(1);
   }).join("") + "Z";
 }
+function shortPlace(s) {
+  const t = plateTitle(s);
+  if (t.length <= 26) return t;
+  const cut = t.slice(0, 26);
+  const sp = cut.lastIndexOf(" ");
+  return (sp > 8 ? cut.slice(0, sp) : cut).trim();
+}
 function renderEngravedPlate(opts) {
   const title = plateTitle(opts.title).slice(0, 42);
   const subtitle = plateTitle(opts.subtitle).slice(0, 48);
@@ -1665,16 +1683,22 @@ function renderEngravedPlate(opts) {
   const pinXY = projectPoint(opts.pin.lon, opts.pin.lat, proj);
   const compass = { x: 1036, y: 642 };
   const labels = [];
-  opts.towns.forEach(town => {
-    const xy = projectPoint(town.lon, town.lat, proj);
-    if (xy[0] < box.x + 8 || xy[0] > box.x + box.w - 8 || xy[1] < box.y + 8 || xy[1] > box.y + box.h - 8) return;
+  opts.towns.forEach((town, i) => {
+    let xy = projectPoint(town.lon, town.lat, proj);
+    const inside = xy[0] >= box.x + 12 && xy[0] <= box.x + box.w - 12 && xy[1] >= box.y + 12 && xy[1] <= box.y + box.h - 12;
+    if (!inside) {
+      xy = [
+        Math.max(box.x + 36, Math.min(box.x + box.w - 36, xy[0])),
+        Math.max(box.y + 28, Math.min(box.y + box.h - 28, xy[1] + ((i % 3) - 1) * 18))
+      ];
+    }
     if (Math.hypot(xy[0] - compass.x, xy[1] - compass.y) < 78) return;
     if (Math.hypot(xy[0] - pinXY[0], xy[1] - pinXY[1]) < 36) return;
-    const anchor = xy[0] > box.x + box.w - 120 ? "end" : "start";
+    const anchor = xy[0] > box.x + box.w - 150 ? "end" : "start";
     const dx = anchor === "end" ? -8 : 8;
-    labels.push({ x: xy[0], y: xy[1], text: plateTitle(town.label).slice(0, 22), anchor, dx });
+    labels.push({ x: xy[0], y: xy[1], text: shortPlace(town.label), anchor, dx });
   });
-  const pinName = plateTitle(opts.pin.label).slice(0, 22);
+  const pinName = foldZone(opts.pin.label) === foldZone(opts.title) ? "" : shortPlace(opts.pin.label);
   const pinAnchor = pinXY[0] > box.x + box.w - 140 ? "end" : "start";
   const pinDx = pinAnchor === "end" ? -14 : 14;
   const corner = (x, y, sx, sy) =>
@@ -1721,7 +1745,11 @@ async function buildWineryPlate(w) {
   if (!outline) return "";
   const pin = await geocodePin(w, outline);
   const towns = await nearbyTowns(pin, outline);
-  const subtitle = [pin.label, w.region || w.appellation || outline.country || ""].filter(Boolean).join(" · ");
+  const bits = [];
+  if (pin.label && foldZone(pin.label) !== foldZone(w.region || "")) bits.push(pin.label);
+  if (w.region || w.appellation) bits.push(w.region || w.appellation);
+  else if (outline.country) bits.push(outline.country);
+  const subtitle = bits.join(" · ");
   return renderEngravedPlate({ title: w.producer || w.region || "Bodega", subtitle, rings: outline.rings, pin, towns });
 }
 function platesOutstanding(w) {
