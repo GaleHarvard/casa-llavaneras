@@ -176,6 +176,23 @@ function progressOf(wine) {
   return { pct, peakPct0, peakPct1 };
 }
 
+function yearsUntilPeakEnd(peakEnd) {
+  const left = Number(peakEnd) - YEAR;
+  if (!Number.isFinite(left)) return "—";
+  if (left > 1) return "Quedan " + left + " años";
+  if (left === 1) return "Queda 1 año";
+  if (left === 0) return "Último año";
+  return "Pasado de fecha";
+}
+
+function drinkWindowMarks(pr) {
+  const clamp = n => Math.max(0, Math.min(100, n));
+  const left = Number.isFinite(pr.peakPct0) ? clamp(pr.peakPct0) : 0;
+  const right = Number.isFinite(pr.peakPct1) ? clamp(pr.peakPct1) : left;
+  const now = Number.isFinite(pr.pct) ? clamp(pr.pct) : 0;
+  return { left, width: Math.max(right - left, 1.5), now };
+}
+
 function score100(r) {
   if (!r) return "—";
   if (r.scale === 5) return Math.round(r.score * 20);
@@ -949,6 +966,7 @@ function calBlock(title, arr) {
   return `<h2 class="cal-h">${title}</h2>` + arr.map(b => {
     const w = wineById(b.wineId);
     const pr = progressOf(w);
+    const mark = drinkWindowMarks(pr);
     return `<div class="cal-card" role="button" onclick="openBottle('${b.uid}')">
       <div class="cal-top">
         <div class="inv-sil" style="--c:${w.color}"></div>
@@ -960,9 +978,12 @@ function calBlock(title, arr) {
       </div>
       <div class="win-row">
         <span class="tiny">Ventana de consumo</span>
-        <span class="tiny">${Math.round(pr.pct)}%</span>
+        <span class="tiny win-left">${yearsUntilPeakEnd(w.aging.peakEnd)}</span>
       </div>
-      <div class="win-bar"><i style="width:${pr.pct}%"></i></div>
+      <div class="win-bar" role="img" aria-label="Apogeo de ${w.aging.peakStart} a ${w.aging.peakEnd}. Año actual ${YEAR}.">
+        <span class="win-peak" style="left:${mark.left}%;width:${mark.width}%"></span>
+        <span class="win-now" style="left:${mark.now}%" title="Año ${YEAR}"></span>
+      </div>
     </div>`;
   }).join("");
 }

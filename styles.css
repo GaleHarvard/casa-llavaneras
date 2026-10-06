@@ -900,9 +900,10 @@ label.field span {
   object-position: left bottom;
 }
 
-.win-bar{position:relative;height:8px;background:#1a1a1a;border-radius:99px;margin-top:10px;overflow:hidden}
-.win-bar i{display:block;height:100%;background:linear-gradient(90deg,#3a5a28,#c9a24a 55%,#8a3a28);border-radius:99px}
-.win-bar em{position:absolute;top:0;width:2px;height:100%;background:#fff;opacity:.55}
+.win-row .win-left{color:#e6e6e6;white-space:nowrap;margin-left:12px}
+.win-bar{position:relative;height:8px;background:#1a1a1a;border-radius:99px;margin-top:10px}
+.win-peak{position:absolute;top:0;height:100%;background:linear-gradient(90deg,#8a6a32,#c9a24a);border-radius:99px}
+.win-now{position:absolute;top:-5px;width:3px;height:18px;margin-left:-1.5px;background:#fff;border-radius:2px;box-shadow:0 0 0 2px #0e0e0e}
 .rack{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0 16px}
 .rack-slot{background:#0e0e0e;border:1px solid #222;border-radius:12px;padding:10px 6px 8px;color:#fff;text-align:center}
 .rack-dot{display:block;width:18px;height:18px;margin:0 auto 6px;border-radius:50%;background:var(--c,#4a1020)}
