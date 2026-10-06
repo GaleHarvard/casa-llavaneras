@@ -85,9 +85,58 @@
   function writeModelCache(cache) {
     localStorage.setItem(MODEL_KEY, JSON.stringify(cache || {}));
   }
+  function outputModalities(model) {
+    if (!model) return [];
+    if (Array.isArray(model.supportedOutputModalities)) return model.supportedOutputModalities;
+    if (Array.isArray(model.outputModalities)) return model.outputModalities;
+    if (model.supportedModalities && Array.isArray(model.supportedModalities.output)) return model.supportedModalities.output;
+    return [];
+  }
+  function methodNames(model) {
+    const methods = (model && (model.supportedGenerationMethods || model.supportedActions)) || [];
+    return methods.map(function (item) { return String(item).toLowerCase(); });
+  }
+  function imageModelTier(model) {
+    const id = modelId(model);
+    if (!id || /tts|embed|(^|[-_.])live($|[-_.])/i.test(id)) return 0;
+    const methods = methodNames(model);
+    const gen = methods.some(function (item) { return item.indexOf("generatecontent") >= 0; });
+    const predict = methods.some(function (item) { return item.indexOf("predict") >= 0; });
+    const outImage = outputModalities(model).some(function (item) { return /image/i.test(String(item)); });
+    const namedImage = /image/i.test(id) && !/imagen/i.test(id);
+    const imagen = /imagen/i.test(id);
+    if (namedImage && gen) return 1;
+    if (outImage && gen) return 2;
+    if (imagen && gen) return 3;
+    if (imagen && predict) return 4;
+    if (namedImage && predict) return 5;
+    return 0;
+  }
+  function previewBias(id) {
+    return /preview|experimental|(^|[-_.])exp(\d|[-_.]|$)/i.test(id) ? 1 : 0;
+  }
+  function rankGeminiImageModels(models) {
+    return (models || []).map(function (model) {
+      return { raw: model, id: modelId(model), tier: imageModelTier(model) };
+    }).filter(function (model) {
+      return model.tier > 0;
+    }).sort(function (a, b) {
+      if (a.tier !== b.tier) return a.tier - b.tier;
+      const preview = previewBias(a.id) - previewBias(b.id);
+      if (preview) return preview;
+      const av = modelVersion(a.id);
+      const bv = modelVersion(b.id);
+      const n = Math.max(av.length, bv.length);
+      for (let i = 0; i < n; i++) {
+        const d = (bv[i] || 0) - (av[i] || 0);
+        if (d) return d;
+      }
+      return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+    }).map(function (model) { return model.id; });
+  }
   function forgetGeminiModel(name) {
     const cache = readModelCache();
-    ["text", "image"].forEach(function (slot) {
+    ["text", "image", "plate"].forEach(function (slot) {
       if (cache[slot] && cache[slot].name === name) delete cache[slot];
     });
     writeModelCache(cache);
@@ -123,6 +172,20 @@
     const ranked = rankGeminiModels(await listGeminiModels(key), opts).filter(function (id) { return !skip[id]; });
     if (!ranked.length) return "";
     cache[slot] = { name: ranked[0], at: Date.now(), tag: tag };
+    writeModelCache(cache);
+    return ranked[0];
+  }
+  async function pickGeminiImageModel(key, opts) {
+    opts = opts || {};
+    const skip = {};
+    (opts.skip || []).forEach(function (name) { skip[String(name)] = true; });
+    const tag = keyTag(key);
+    const cache = readModelCache();
+    const hit = cache.plate;
+    if (hit && hit.name && hit.tag === tag && !skip[hit.name] && (Date.now() - hit.at) < MODEL_TTL) return hit.name;
+    const ranked = rankGeminiImageModels(await listGeminiModels(key)).filter(function (id) { return !skip[id]; });
+    if (!ranked.length) return "";
+    cache.plate = { name: ranked[0], at: Date.now(), tag: tag };
     writeModelCache(cache);
     return ranked[0];
   }
@@ -434,6 +497,6 @@
 
   root.WineDataProvider = {
     loadCfg, saveCfg, priceOf, demoPrice, estimarValorMercado,
-    rankGeminiModels, pickGeminiModel, forgetGeminiModel, listGeminiModels
+    rankGeminiModels, pickGeminiModel, rankGeminiImageModels, pickGeminiImageModel, forgetGeminiModel, listGeminiModels
   };
 })(window);

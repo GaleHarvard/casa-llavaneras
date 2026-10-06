@@ -80,7 +80,8 @@ const defaultState = () => ({
   },
   activity: [],
   customWines: [],
-  inbox: []
+  inbox: [],
+  plateCache: {}
 });
 
 let state = load();
@@ -121,6 +122,7 @@ function load() {
     if (!parsed.activity) parsed.activity = [];
     if (!parsed.customWines) parsed.customWines = [];
     if (!parsed.inbox) parsed.inbox = [];
+    if (!parsed.plateCache || typeof parsed.plateCache !== "object") parsed.plateCache = {};
     parsed.vinotecas.forEach(v => { if (!v.houseId) v.houseId = "h1"; });
     const main = parsed.vinotecas.find(v => v.id === "v1");
     if (main) {
@@ -1297,33 +1299,1349 @@ function starsRow(score5) {
   return "★★★★★".slice(0, full) + "☆☆☆☆☆".slice(0, 5 - full);
 }
 
-function estateArt(w) {
-  const byProducer = {
-    "Château Margaux": { land: "vinedo-margaux.jpg", cap: "capsula-margaux.jpg", map: "mapa-medoc.jpg" },
-    "Vega Sicilia": { land: "vinedo-ribera.jpg", cap: "capsula.jpg", map: "mapa-ribera.jpg" },
-    "Dominio de Pingus": { land: "vinedo-ribera.jpg", cap: "capsula.jpg", map: "mapa-ribera.jpg" },
-    "R. López de Heredia": { land: "vinedo-rioja.jpg", cap: "capsula.jpg", map: "mapa-rioja.jpg" },
-    "Marqués de Riscal": { land: "vinedo-rioja.jpg", cap: "capsula.jpg", map: "mapa-rioja.jpg" },
-    "CVNE": { land: "vinedo-rioja.jpg", cap: "capsula.jpg", map: "mapa-rioja.jpg" },
-    "Bodegas Muga": { land: "vinedo-rioja.jpg", cap: "capsula.jpg", map: "mapa-rioja.jpg" },
-    "Marqués de Murrieta": { land: "vinedo-rioja.jpg", cap: "capsula.jpg", map: "mapa-rioja.jpg" },
-    "Pazo de Señoráns": { land: "vinedo-rias.jpg", cap: "capsula.jpg", map: "mapa-rias.jpg" },
-    "Álvaro Palacios": { land: "vinedo-priorat.jpg", cap: "capsula.jpg", map: "mapa-priorat.jpg" },
-    "Scala Dei": { land: "vinedo-priorat.jpg", cap: "capsula.jpg", map: "mapa-priorat.jpg" },
-    "Moët & Chandon": { land: "vinedo-champagne.jpg", cap: "capsula.jpg", map: "mapa-champagne.jpg" },
-    "Gramona": { land: "vinedo-champagne.jpg", cap: "capsula.jpg", map: "mapa-penedes.jpg" },
-    "Tenuta San Guido": { land: "vinedo-bolgheri.jpg", cap: "capsula.jpg", map: "mapa-bolgheri.jpg" },
-    "Penfolds": { land: "vinedo-margaux.jpg", cap: "capsula.jpg", map: "mapa-barossa.jpg" },
-    "Enrique Mendoza": { land: "vinedo.jpg", cap: "capsula.jpg", map: "mapa-alicante.jpg" },
-    "Numanthia": { land: "vinedo-ribera.jpg", cap: "capsula.jpg", map: "mapa-toro.jpg" }
-  };
-  const hit = byProducer[w.producer];
-  if (hit) return hit;
+const PRODUCER_ART = {
+  "Château Margaux": { land: "vinedo-margaux.jpg", cap: "capsula-margaux.jpg", map: "mapa-medoc.jpg" },
+  "Vega Sicilia": { land: "vinedo-ribera.jpg", cap: "capsula.jpg", map: "mapa-ribera.jpg" },
+  "Dominio de Pingus": { land: "vinedo-ribera.jpg", cap: "capsula.jpg", map: "mapa-ribera.jpg" },
+  "R. López de Heredia": { land: "vinedo-rioja.jpg", cap: "capsula.jpg", map: "mapa-rioja.jpg" },
+  "Marqués de Riscal": { land: "vinedo-rioja.jpg", cap: "capsula.jpg", map: "mapa-rioja.jpg" },
+  "CVNE": { land: "vinedo-rioja.jpg", cap: "capsula.jpg", map: "mapa-rioja.jpg" },
+  "Bodegas Muga": { land: "vinedo-rioja.jpg", cap: "capsula.jpg", map: "mapa-rioja.jpg" },
+  "Marqués de Murrieta": { land: "vinedo-rioja.jpg", cap: "capsula.jpg", map: "mapa-rioja.jpg" },
+  "Pazo de Señoráns": { land: "vinedo-rias.jpg", cap: "capsula.jpg", map: "mapa-rias.jpg" },
+  "Álvaro Palacios": { land: "vinedo-priorat.jpg", cap: "capsula.jpg", map: "mapa-priorat.jpg" },
+  "Scala Dei": { land: "vinedo-priorat.jpg", cap: "capsula.jpg", map: "mapa-priorat.jpg" },
+  "Moët & Chandon": { land: "vinedo-champagne.jpg", cap: "capsula.jpg", map: "mapa-champagne.jpg" },
+  "Gramona": { land: "vinedo-champagne.jpg", cap: "capsula.jpg", map: "mapa-penedes.jpg" },
+  "Tenuta San Guido": { land: "vinedo-bolgheri.jpg", cap: "capsula.jpg", map: "mapa-bolgheri.jpg" },
+  "Penfolds": { land: "vinedo-margaux.jpg", cap: "capsula.jpg", map: "mapa-barossa.jpg" },
+  "Enrique Mendoza": { land: "vinedo.jpg", cap: "capsula.jpg", map: "mapa-alicante.jpg" },
+  "Numanthia": { land: "vinedo-ribera.jpg", cap: "capsula.jpg", map: "mapa-toro.jpg" }
+};
+const GEO_COUNTRY = {
+  espana: "España", portugal: "Portugal", francia: "France", italia: "Italy",
+  alemania: "Germany", argentina: "Argentina", chile: "Chile", australia: "Australia",
+  sudafrica: "South Africa", austria: "Austria", grecia: "Greece",
+  "nueva zelanda": "New Zealand", "estados unidos": "United States"
+};
+const platePending = new Set();
+const plateMiss = new Set();
+const outlineMemo = new Map();
+let nominatimWait = Promise.resolve();
+
+function plateCache() {
+  if (!state.plateCache || typeof state.plateCache !== "object") state.plateCache = {};
+  Object.keys(state.plateCache).forEach(key => {
+    if (!/^z3:/.test(key) && !/^b3:/.test(key)) delete state.plateCache[key];
+  });
+  return state.plateCache;
+}
+function plateTitle(s) {
+  return String(s || "").trim().replace(/\s+/g, " ").toLocaleUpperCase("es");
+}
+function xmlEsc(s) {
+  return String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+function svgDataUrl(svg) {
+  return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+}
+function geoCountryName(country) {
+  const folded = foldZone(country);
+  return GEO_COUNTRY[folded] || country || "";
+}
+function fixedZoneOf(w) {
+  if (!w) return null;
   const place = [w.region, w.appellation, w.country].filter(Boolean).join(" ");
-  let hitZone = detectZone(place);
-  if (!hitZone) hitZone = detectZone([w.name, w.producer].filter(Boolean).join(" "));
-  if (hitZone && hitZone.map) return { land: hitZone.map, cap: "capsula.jpg", map: hitZone.map };
-  return { land: "", cap: "capsula.jpg", map: "" };
+  return detectZone(place) || detectZone([w.name, w.producer].filter(Boolean).join(" "));
+}
+function zonePlateKey(w) {
+  return "z3:" + foldZone(w.region || w.appellation || w.country || "");
+}
+function wineryPlateKey(w) {
+  return "b3:" + foldZone(w.producer || "") + "|" + foldZone(w.region || w.country || "");
+}
+function zoneImageKey(w) {
+  return "z5:" + foldZone(w.region || w.appellation || w.country || "");
+}
+function nominatimSlot() {
+  const next = nominatimWait.then(() => new Promise(resolve => setTimeout(resolve, 1100)));
+  nominatimWait = next.then(() => {}, () => {});
+  return next;
+}
+function parseJsonSlice(text, openCh, closeCh) {
+  const s = String(text || "");
+  const start = s.indexOf(openCh);
+  const end = s.lastIndexOf(closeCh);
+  if (start < 0 || end <= start) return null;
+  try { return JSON.parse(s.slice(start, end + 1)); }
+  catch (e) { return null; }
+}
+async function nominatimSearch(params) {
+  await nominatimSlot();
+  const q = new URLSearchParams();
+  Object.keys(params || {}).forEach(k => {
+    if (params[k] != null && params[k] !== "") q.set(k, String(params[k]));
+  });
+  if (!q.get("format")) q.set("format", "jsonv2");
+  const url = "https://nominatim.openstreetmap.org/search?" + q.toString();
+  try {
+    const res = await fetch(url, { headers: { Accept: "application/json" } });
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data)) return data;
+    }
+  } catch (e) {}
+  try {
+    const text = await readPublicPage(url);
+    const data = parseJsonSlice(text, "[", "]");
+    return Array.isArray(data) ? data : [];
+  } catch (e) {}
+  return [];
+}
+async function nominatimReverse(lat, lon) {
+  await nominatimSlot();
+  const url = "https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=12&lat=" + encodeURIComponent(lat) + "&lon=" + encodeURIComponent(lon);
+  try {
+    const res = await fetch(url, { headers: { Accept: "application/json" } });
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.lat) return data;
+    }
+  } catch (e) {}
+  try {
+    const text = await readPublicPage(url);
+    const data = parseJsonSlice(text, "{", "}");
+    return data && data.lat ? data : null;
+  } catch (e) {}
+  return null;
+}
+function ringArea(ring) {
+  let area = 0;
+  for (let i = 0; i < ring.length; i++) {
+    const p = ring[i];
+    const q = ring[(i + 1) % ring.length];
+    area += p[0] * q[1] - q[0] * p[1];
+  }
+  return Math.abs(area / 2);
+}
+function geoOuterRings(geo) {
+  if (!geo) return [];
+  if (geo.type === "Polygon") return (geo.coordinates || []).slice(0, 1).filter(r => r && r.length > 3);
+  if (geo.type === "MultiPolygon") {
+    const rings = (geo.coordinates || []).map(poly => poly && poly[0]).filter(r => r && r.length > 3);
+    rings.sort((a, b) => ringArea(b) - ringArea(a));
+    return rings.slice(0, 6);
+  }
+  return [];
+}
+function bboxOf(rings) {
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  rings.forEach(ring => ring.forEach(p => {
+    if (p[0] < minX) minX = p[0];
+    if (p[1] < minY) minY = p[1];
+    if (p[0] > maxX) maxX = p[0];
+    if (p[1] > maxY) maxY = p[1];
+  }));
+  return { minX, minY, maxX, maxY };
+}
+function distPointSeg(p, a, b) {
+  const dx = b[0] - a[0];
+  const dy = b[1] - a[1];
+  const len2 = dx * dx + dy * dy || 1e-12;
+  let t = ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / len2;
+  t = Math.max(0, Math.min(1, t));
+  return Math.hypot(p[0] - (a[0] + t * dx), p[1] - (a[1] + t * dy));
+}
+function simplifyRing(points, tol) {
+  if (points.length <= 8) return points.slice();
+  const keep = new Uint8Array(points.length);
+  keep[0] = 1;
+  keep[points.length - 1] = 1;
+  const stack = [[0, points.length - 1]];
+  while (stack.length) {
+    const pair = stack.pop();
+    const a = pair[0];
+    const b = pair[1];
+    let maxD = 0;
+    let idx = -1;
+    for (let i = a + 1; i < b; i++) {
+      const d = distPointSeg(points[i], points[a], points[b]);
+      if (d > maxD) { maxD = d; idx = i; }
+    }
+    if (idx >= 0 && maxD > tol) {
+      keep[idx] = 1;
+      stack.push([a, idx], [idx, b]);
+    }
+  }
+  const out = [];
+  for (let i = 0; i < points.length; i++) if (keep[i]) out.push(points[i]);
+  return out.length >= 4 ? out : points.slice();
+}
+function prepRings(rings) {
+  if (!rings.length) return [];
+  const span = Math.max(bboxOf(rings).maxX - bboxOf(rings).minX, bboxOf(rings).maxY - bboxOf(rings).minY, 1e-6);
+  const tol = span * 0.012;
+  return rings.map(ring => simplifyRing(ring, tol)).filter(ring => ring.length >= 4);
+}
+function polygonScore(item, query) {
+  const geo = item && item.geojson;
+  if (!geo || (geo.type !== "Polygon" && geo.type !== "MultiPolygon")) return -1;
+  const cat = String(item.category || item.class || "");
+  const typ = String(item.type || "");
+  if (/highway|building|shop|amenity|tourism|waterway|natural|railway|aeroway|man_made/.test(cat + " " + typ)) return -1;
+  let score = 0;
+  if (cat === "boundary") score += 5;
+  if (cat === "place") score += 2;
+  if (/administrative|region|county|state|province|island|protected|statistical/.test(typ)) score += 3;
+  const token = foldZone(String(query || "").split(",")[0]);
+  const itemName = foldZone(item.name || "");
+  if (token && itemName === token) score += 8;
+  else if (token && token.length >= 3 && itemName.includes(token)) score += 2;
+  else if (token && token.length >= 3 && foldZone(item.display_name || "").includes(token)) score += 1;
+  const rings = geoOuterRings(geo);
+  if (!rings.length) return -1;
+  const box = bboxOf(rings);
+  const area = Math.max(0, box.maxX - box.minX) * Math.max(0, box.maxY - box.minY);
+  if (area < 1e-7) return -1;
+  score += Math.min(3, Math.log10(area + 1e-6) + 3);
+  return score;
+}
+function pickOutline(rows, query) {
+  let best = null;
+  let score = -1;
+  (rows || []).forEach(row => {
+    const next = polygonScore(row, query);
+    if (next > score) { score = next; best = row; }
+  });
+  return score >= 2 ? best : null;
+}
+function outlineFromHit(hit, fallback) {
+  const rings = prepRings(geoOuterRings(hit.geojson));
+  if (!rings.length) return null;
+  const addr = hit.address || {};
+  return {
+    rings,
+    bbox: bboxOf(rings),
+    lat: Number(hit.lat),
+    lon: Number(hit.lon),
+    fallback: fallback || "region",
+    country: addr.country || "",
+    localName: hit.name || addr.city || addr.town || addr.village || addr.state || ""
+  };
+}
+function zoneQueries(w) {
+  const region = String((w && (w.region || w.appellation)) || "").trim();
+  const country = geoCountryName((w && w.country) || "");
+  const local = String((w && w.country) || "").trim();
+  const list = [];
+  if (region && country) list.push(region + ", " + country);
+  if (region && local && foldZone(local) !== foldZone(country)) list.push(region + ", " + local);
+  if (region) list.push(region);
+  if (country) list.push(country);
+  return list.filter((q, i) => q && list.indexOf(q) === i);
+}
+async function nominatimPolygons(q, threshold) {
+  let rows = await nominatimSearch({ q, polygon_geojson: "1", polygon_threshold: String(threshold), limit: "6" });
+  const heavy = rows.some(row => JSON.stringify(row.geojson || "").length > 90000);
+  if (heavy) rows = await nominatimSearch({ q, polygon_geojson: "1", polygon_threshold: "0.03", limit: "4" });
+  return rows;
+}
+async function resolveOutline(w) {
+  const queries = zoneQueries(w);
+  const memoKey = queries.join("|");
+  if (outlineMemo.has(memoKey)) return outlineMemo.get(memoKey);
+  let hint = null;
+  let found = null;
+  for (let i = 0; i < queries.length; i++) {
+    const rows = await nominatimPolygons(queries[i], i === queries.length - 1 ? 0.02 : 0.0025);
+    if (!hint && rows[0] && rows[0].address) hint = rows[0].address;
+    const best = pickOutline(rows, queries[i]);
+    if (best) {
+      const kind = foldZone(queries[i]) === foldZone(geoCountryName(w.country || "")) ? "country" : "region";
+      found = outlineFromHit(best, kind);
+      break;
+    }
+  }
+  if (!found && hint) {
+    const prov = hint.state || hint.province || hint.county || "";
+    const country = hint.country || geoCountryName(w.country || "");
+    const extra = [];
+    if (prov && country) extra.push({ q: prov + ", " + country, kind: "province" });
+    if (country) extra.push({ q: country, kind: "country" });
+    for (let i = 0; i < extra.length; i++) {
+      const rows = await nominatimPolygons(extra[i].q, extra[i].kind === "country" ? 0.03 : 0.012);
+      const best = pickOutline(rows, extra[i].q);
+      if (best) { found = outlineFromHit(best, extra[i].kind); break; }
+    }
+  }
+  if (found) outlineMemo.set(memoKey, found);
+  return found;
+}
+function settlementName(hit) {
+  const addr = (hit && hit.address) || {};
+  const name = addr.city || addr.town || addr.village || addr.hamlet || "";
+  if (!name) return "";
+  if (/municipality|district|province|region|landscape|county|comunidad|comarca|administrative/i.test(name)) return "";
+  return name;
+}
+function producerMentioned(w, hit) {
+  const tokens = foldZone(w && w.producer).split(/[^a-z0-9]+/).filter(t => t.length >= 4);
+  if (!tokens.length || !hit) return false;
+  const blob = foldZone((hit.name || "") + " " + (hit.display_name || ""));
+  return tokens.some(t => blob.includes(t));
+}
+async function geocodePin(w, outline) {
+  const memoKey = foldZone(w.producer || "") + "|" + outline.lat + "," + outline.lon;
+  if (outline.pin && outline.pinKey === memoKey) return outline.pin;
+  const q = [w.producer, w.region || w.appellation, geoCountryName(w.country || "")].filter(Boolean).join(", ");
+  const lat0 = Number(outline.lat);
+  const lon0 = Number(outline.lon);
+  const centerHit = await nominatimReverse(lat0, lon0);
+  const fallback = { lat: lat0, lon: lon0, label: settlementName(centerHit) || outline.localName || w.region || w.country || "" };
+  let pin = fallback;
+  if (w.producer) {
+    const rows = await nominatimSearch({ q, limit: "3" });
+    const hit = (rows || []).find(row => producerMentioned(w, row) && settlementName(row));
+    if (hit) {
+      const lat = Number(hit.lat);
+      const lon = Number(hit.lon);
+      const box = outline.bbox;
+      const span = Math.max(box.maxX - box.minX, box.maxY - box.minY, 0.25);
+      if (Number.isFinite(lat) && Number.isFinite(lon) && Math.abs(lat - lat0) <= span * 1.4 && Math.abs(lon - lon0) <= span * 1.4) {
+        pin = { lat, lon, label: settlementName(hit) };
+      }
+    }
+  }
+  outline.pin = pin;
+  outline.pinKey = memoKey;
+  return pin;
+}
+async function nearbyTowns(pin, outline) {
+  if (outline.towns && outline.townPin === pin.label) return outline.towns;
+  const dirs = [[1, 0], [0, 1], [-1, 0], [0, -1], [0.7, 0.7], [-0.7, 0.7], [0.7, -0.7], [-0.7, -0.7]];
+  const spots = [];
+  [16, 28].forEach(km => {
+    const dlat = km / 111;
+    const dlon = km / (111 * Math.max(0.25, Math.cos(pin.lat * Math.PI / 180)));
+    dirs.forEach(dir => spots.push([pin.lat + dir[0] * dlat, pin.lon + dir[1] * dlon]));
+  });
+  const seen = new Set();
+  const pinName = foldZone(pin.label);
+  const zoneName = foldZone(outline.localName || "");
+  if (pinName) seen.add(pinName);
+  if (zoneName) seen.add(zoneName);
+  const towns = [];
+  for (let i = 0; i < spots.length && towns.length < 4; i++) {
+    const hit = await nominatimReverse(spots[i][0], spots[i][1]);
+    const label = settlementName(hit);
+    const key = foldZone(label);
+    if (!label || !key || seen.has(key)) continue;
+    const lat = Number(hit.lat);
+    const lon = Number(hit.lon);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue;
+    seen.add(key);
+    towns.push({ lat, lon, label });
+  }
+  outline.towns = towns;
+  outline.townPin = pin.label;
+  return towns;
+}
+function projectPoint(lon, lat, proj) {
+  return [
+    proj.ox + (lon - proj.minX) * proj.s,
+    proj.oy + (proj.maxY - lat) * proj.s
+  ];
+}
+function makeProject(rings, box) {
+  const b = bboxOf(rings);
+  const bw = Math.max(1e-6, b.maxX - b.minX);
+  const bh = Math.max(1e-6, b.maxY - b.minY);
+  const fill = 0.76;
+  const s = Math.min(box.w * fill / bw, box.h * fill / bh);
+  const dw = bw * s;
+  const dh = bh * s;
+  return {
+    minX: b.minX,
+    maxY: b.maxY,
+    s,
+    ox: box.x + (box.w - dw) / 2,
+    oy: box.y + (box.h - dh) / 2
+  };
+}
+function townNearOutline(town, rings) {
+  const b = bboxOf(rings);
+  const mx = Math.max(1e-6, b.maxX - b.minX) * 0.12;
+  const my = Math.max(1e-6, b.maxY - b.minY) * 0.12;
+  return town.lon >= b.minX - mx && town.lon <= b.maxX + mx && town.lat >= b.minY - my && town.lat <= b.maxY + my;
+}
+function ringPath(ring, proj) {
+  return ring.map((p, i) => {
+    const xy = projectPoint(p[0], p[1], proj);
+    return (i ? "L" : "M") + xy[0].toFixed(1) + " " + xy[1].toFixed(1);
+  }).join("") + "Z";
+}
+function shortPlace(s) {
+  const t = plateTitle(s);
+  if (t.length <= 28) return t;
+  const cut = t.slice(0, 28);
+  const sp = cut.lastIndexOf(" ");
+  return (sp > 8 ? cut.slice(0, sp) : cut).trim();
+}
+function plateTextWidth(text, size, track) {
+  return Math.max(8, String(text || "").length * size * 0.58 + Math.max(0, String(text || "").length - 1) * track);
+}
+function plateRectsHit(a, b) {
+  const pad = 5;
+  return a.x < b.x + b.w + pad && a.x + a.w + pad > b.x && a.y < b.y + b.h + pad && a.y + a.h + pad > b.y;
+}
+function labelBox(tx, ty, anchor, width, size) {
+  const top = ty - size * 0.82;
+  const left = anchor === "start" ? tx : anchor === "end" ? tx - width : tx - width / 2;
+  return { x: left, y: top, w: width, h: size * 1.05 };
+}
+function segsCross(ax, ay, bx, by, cx, cy, dx, dy) {
+  const d = (bx - ax) * (dy - cy) - (by - ay) * (dx - cx);
+  if (Math.abs(d) < 1e-9) return false;
+  const t = ((cx - ax) * (dy - cy) - (cy - ay) * (dx - cx)) / d;
+  const u = ((cx - ax) * (by - ay) - (cy - ay) * (bx - ax)) / d;
+  return t >= 0 && t <= 1 && u >= 0 && u <= 1;
+}
+function segHitsRect(x1, y1, x2, y2, r) {
+  const minX = Math.min(x1, x2);
+  const maxX = Math.max(x1, x2);
+  const minY = Math.min(y1, y2);
+  const maxY = Math.max(y1, y2);
+  if (maxX < r.x || minX > r.x + r.w || maxY < r.y || minY > r.y + r.h) return false;
+  const inside = (x, y) => x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h;
+  if (inside(x1, y1) || inside(x2, y2)) return true;
+  const x2r = r.x + r.w;
+  const y2r = r.y + r.h;
+  return segsCross(x1, y1, x2, y2, r.x, r.y, x2r, r.y)
+    || segsCross(x1, y1, x2, y2, x2r, r.y, x2r, y2r)
+    || segsCross(x1, y1, x2, y2, x2r, y2r, r.x, y2r)
+    || segsCross(x1, y1, x2, y2, r.x, y2r, r.x, r.y);
+}
+function boxHitsOutline(box, rings) {
+  const pad = 5;
+  const r = { x: box.x - pad, y: box.y - pad, w: box.w + pad * 2, h: box.h + pad * 2 };
+  for (let i = 0; i < rings.length; i++) {
+    const ring = rings[i];
+    for (let k = 0; k < ring.length; k++) {
+      const a = ring[k];
+      const b = ring[(k + 1) % ring.length];
+      if (segHitsRect(a[0], a[1], b[0], b[1], r)) return true;
+    }
+  }
+  return false;
+}
+function placeTownLabel(text, px, py, obstacles, safe, rings) {
+  const size = 13;
+  const track = 0.8;
+  const width = plateTextWidth(text, size, track);
+  const spots = [];
+  [12, 28, 46].forEach(gap => {
+    spots.push(
+      { anchor: "start", x: px + gap, y: py + 4 },
+      { anchor: "end", x: px - gap, y: py + 4 },
+      { anchor: "middle", x: px, y: py + gap + size },
+      { anchor: "middle", x: px, y: py - gap },
+      { anchor: "start", x: px + gap, y: py + gap + size * 0.55 },
+      { anchor: "end", x: px - gap, y: py + gap + size * 0.55 },
+      { anchor: "start", x: px + gap, y: py - gap },
+      { anchor: "end", x: px - gap, y: py - gap }
+    );
+  });
+  for (let i = 0; i < spots.length; i++) {
+    const spot = spots[i];
+    const box = labelBox(spot.x, spot.y, spot.anchor, width, size);
+    if (box.x < safe.x || box.y < safe.y || box.x + box.w > safe.x + safe.w || box.y + box.h > safe.y + safe.h) continue;
+    if (obstacles.some(ob => plateRectsHit(box, ob))) continue;
+    if (rings && boxHitsOutline(box, rings)) continue;
+    return { x: spot.x, y: spot.y, anchor: spot.anchor, box, text, size, track };
+  }
+  return null;
+}
+function titleWidth(text, size, track) {
+  return Math.max(8, String(text || "").length * size * 0.72 + Math.max(0, String(text || "").length - 1) * track);
+}
+function splitPlateTitle(text) {
+  const mid = Math.floor(text.length / 2);
+  let best = -1;
+  let bestDist = 1e9;
+  for (let i = 0; i < text.length; i++) {
+    if (text[i] !== " ") continue;
+    if (i < 6 || text.length - i - 1 < 6) continue;
+    const dist = Math.abs(i - mid);
+    if (dist < bestDist) { bestDist = dist; best = i; }
+  }
+  if (best < 0) {
+    const sp = text.lastIndexOf(" ");
+    if (sp > 0) return [text.slice(0, sp), text.slice(sp + 1)];
+    return [text.slice(0, mid), text.slice(mid)];
+  }
+  return [text.slice(0, best), text.slice(best + 1)];
+}
+function fitPlateTitle(title) {
+  const text = plateTitle(title).slice(0, 64);
+  const maxW = 760;
+  let size = 46;
+  let track = 5.5;
+  while (text.length > 1 && titleWidth(text, size, track) > maxW && size > 28) {
+    size -= 2;
+    track = Math.max(1.6, track - 0.32);
+  }
+  if (titleWidth(text, size, track) <= maxW) return { lines: [text], size, track };
+  const lines = splitPlateTitle(text);
+  size = 32;
+  track = 2.2;
+  const widest = () => Math.max(titleWidth(lines[0], size, track), titleWidth(lines[1], size, track));
+  while (widest() > maxW && size > 18) {
+    size -= 2;
+    track = Math.max(0.8, track - 0.2);
+  }
+  return { lines, size, track };
+}
+function contourPath(ring, proj, scale) {
+  const pts = ring.map(p => projectPoint(p[0], p[1], proj));
+  let cx = 0;
+  let cy = 0;
+  pts.forEach(p => { cx += p[0]; cy += p[1]; });
+  cx /= pts.length;
+  cy /= pts.length;
+  return pts.map((p, i) => {
+    const x = cx + (p[0] - cx) * scale;
+    const y = cy + (p[1] - cy) * scale;
+    return (i ? "L" : "M") + x.toFixed(1) + " " + y.toFixed(1);
+  }).join("") + "Z";
+}
+function cornerFleuron(x, y, sx, sy) {
+  const petals = [];
+  for (let i = 0; i < 6; i++) {
+    const a0 = 0.08 + i * 0.14;
+    const a1 = a0 + 0.16;
+    const mid = (a0 + a1) / 2;
+    const r = 22 + (i % 2) * 7;
+    const x0 = Math.cos(a0) * 7;
+    const y0 = Math.sin(a0) * 7;
+    const x1 = Math.cos(mid) * r;
+    const y1 = Math.sin(mid) * r;
+    const x2 = Math.cos(a1) * 7;
+    const y2 = Math.sin(a1) * 7;
+    petals.push(`<path d="M${x0.toFixed(1)} ${y0.toFixed(1)} Q${x1.toFixed(1)} ${y1.toFixed(1)} ${x2.toFixed(1)} ${y2.toFixed(1)} Q${(x1 * 0.45).toFixed(1)} ${(y1 * 0.45).toFixed(1)} ${x0.toFixed(1)} ${y0.toFixed(1)} Z" fill="#e8c97a" stroke="#c6a35a" stroke-width="0.45"/>`);
+  }
+  return `<g transform="translate(${x} ${y}) scale(${sx} ${sy})">${petals.join("")}<circle cx="5.5" cy="5.5" r="2.3" fill="#f4e4b4" stroke="#c6a35a" stroke-width="0.4"/></g>`;
+}
+function renderEngravedPlate(opts) {
+  const fitted = fitPlateTitle(opts.title);
+  const country = plateTitle(opts.country || opts.subtitle || "").slice(0, 42);
+  const footer = plateTitle(opts.footer || opts.title).slice(0, 42);
+  const twoLines = fitted.lines.length > 1;
+  const box = { x: 108, y: twoLines ? 206 : 196, w: 952, h: twoLines ? 412 : 430 };
+  const proj = makeProject(opts.rings, box);
+  const projected = opts.rings.map(ring => ring.map(p => projectPoint(p[0], p[1], proj)));
+  const paths = opts.rings.map(ring => ringPath(ring, proj)).join("");
+  const inner = opts.rings.map(ring => contourPath(ring, proj, 0.86)).join("");
+  const inner2 = opts.rings.map(ring => contourPath(ring, proj, 0.70)).join("");
+  const inner3 = opts.rings.map(ring => contourPath(ring, proj, 0.52)).join("");
+  const pinXY = projectPoint(opts.pin.lon, opts.pin.lat, proj);
+  const compass = { x: 1034, y: 588 };
+  const safe = { x: 52, y: twoLines ? 178 : 162, w: 1064, h: twoLines ? 516 : 528 };
+  const font = "Palatino, 'Palatino Linotype', 'Iowan Old Style', 'Times New Roman', Times, serif";
+  const obstacles = [
+    { x: 80, y: 36, w: 1008, h: twoLines ? 146 : 122 },
+    { x: 160, y: 688, w: 848, h: 72 },
+    { x: compass.x - 48, y: compass.y - 52, w: 96, h: 104 },
+    { x: pinXY[0] - 14, y: pinXY[1] - 24, w: 28, h: 40 }
+  ];
+  const pinName = shortPlace(opts.pin.label || "");
+  let pinLabel = null;
+  if (pinName) {
+    const width = plateTextWidth(pinName, 14, 1.1);
+    const tx = Math.max(safe.x + width / 2 + 4, Math.min(safe.x + safe.w - width / 2 - 4, pinXY[0]));
+    const ty = pinXY[1] + 40;
+    const boxPin = labelBox(tx, ty, "middle", width, 14);
+    const pinClear = boxPin.y >= safe.y && boxPin.y + boxPin.h <= safe.y + safe.h
+      && !obstacles.some(ob => plateRectsHit(boxPin, ob))
+      && !boxHitsOutline(boxPin, projected);
+    if (pinClear) {
+      pinLabel = { x: tx, y: ty, text: pinName };
+      obstacles.push(boxPin);
+    } else {
+      const placedPin = placeTownLabel(pinName, pinXY[0], pinXY[1], obstacles, safe, projected);
+      if (placedPin) {
+        pinLabel = { x: placedPin.x, y: placedPin.y, text: pinName, anchor: placedPin.anchor };
+        obstacles.push(placedPin.box);
+      }
+    }
+  }
+  const labels = [];
+  (opts.towns || []).forEach(town => {
+    if (!townNearOutline(town, opts.rings)) return;
+    const xy = projectPoint(town.lon, town.lat, proj);
+    if (xy[0] < safe.x + 8 || xy[0] > safe.x + safe.w - 8 || xy[1] < safe.y + 8 || xy[1] > safe.y + safe.h - 8) return;
+    if (Math.hypot(xy[0] - pinXY[0], xy[1] - pinXY[1]) < 28) return;
+    if (Math.hypot(xy[0] - compass.x, xy[1] - compass.y) < 46) return;
+    const text = shortPlace(town.label);
+    if (!text || foldZone(text) === foldZone(pinName)) return;
+    const placed = placeTownLabel(text, xy[0], xy[1], obstacles, safe, projected);
+    if (!placed) return;
+    obstacles.push(placed.box);
+    labels.push({ x: xy[0], y: xy[1], text: placed.text, anchor: placed.anchor, tx: placed.x, ty: placed.y });
+  });
+  const titleW = Math.max.apply(null, fitted.lines.map(line => titleWidth(line, fitted.size, fitted.track)));
+  const cartouche = Math.min(440, Math.max(150, titleW / 2 + 42));
+  return `<?xml version="1.0" encoding="UTF-8"?>` +
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1168 784" width="1168" height="784">` +
+    `<defs>` +
+    `<pattern id="hatch" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(32)">` +
+    `<line x1="0" y1="0" x2="0" y2="5" stroke="#e8c97a" stroke-width="0.9" opacity="0.9"/>` +
+    `</pattern>` +
+    `<pattern id="hatch2" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(-58)">` +
+    `<line x1="0" y1="0" x2="0" y2="8" stroke="#c6a35a" stroke-width="0.6" opacity="0.72"/>` +
+    `</pattern>` +
+    `<radialGradient id="inglow" cx="50%" cy="46%" r="62%">` +
+    `<stop offset="0%" stop-color="#f0d48a" stop-opacity="0.34"/>` +
+    `<stop offset="58%" stop-color="#c6a35a" stop-opacity="0.12"/>` +
+    `<stop offset="100%" stop-color="#c6a35a" stop-opacity="0"/>` +
+    `</radialGradient>` +
+    `<filter id="goldglow" x="-30%" y="-30%" width="160%" height="160%">` +
+    `<feDropShadow dx="0" dy="0" stdDeviation="2.6" flood-color="#e8c97a" flood-opacity="0.7"/>` +
+    `</filter>` +
+    `<clipPath id="region"><path d="${paths}"/></clipPath>` +
+    `</defs>` +
+    `<rect width="1168" height="784" fill="#090b0a"/>` +
+    `<rect x="18" y="18" width="1132" height="748" fill="none" stroke="#c6a35a" stroke-width="2.6"/>` +
+    `<rect x="30" y="30" width="1108" height="724" fill="none" stroke="#e8c97a" stroke-width="1.15"/>` +
+    cornerFleuron(34, 34, 1, 1) + cornerFleuron(1134, 34, -1, 1) + cornerFleuron(34, 750, 1, -1) + cornerFleuron(1134, 750, -1, -1) +
+    `<path d="M${(584 - cartouche).toFixed(0)} 78 H${(584 - cartouche + 28).toFixed(0)} M${(584 + cartouche - 28).toFixed(0)} 78 H${(584 + cartouche).toFixed(0)}" fill="none" stroke="#c6a35a" stroke-width="1.2"/>` +
+    `<path d="M${(584 - cartouche + 36).toFixed(0)} 78 l5 -4.5 5 4.5 -5 4.5 z M${(584 + cartouche - 46).toFixed(0)} 78 l5 -4.5 5 4.5 -5 4.5 z" fill="#e8c97a"/>` +
+    `<path d="M${(584 - cartouche + 54).toFixed(0)} ${twoLines ? 148 : 118} H${(584 + cartouche - 54).toFixed(0)}" fill="none" stroke="#8d7340" stroke-width="0.8"/>` +
+    fitted.lines.map((line, i) => `<text x="584" y="${twoLines ? 104 + i * 30 : 108}" text-anchor="middle" fill="#f3e2b0" font-family="${font}" font-size="${fitted.size}" letter-spacing="${fitted.track.toFixed(1)}">${xmlEsc(line)}</text>`).join("") +
+    (country ? `<text x="584" y="${twoLines ? 168 : 136}" text-anchor="middle" fill="#c6a35a" font-family="${font}" font-size="14" letter-spacing="3.2">${xmlEsc(country)}</text>` : "") +
+    `<g clip-path="url(#region)">` +
+    `<path d="${paths}" fill="url(#inglow)"/>` +
+    `<rect width="1168" height="784" fill="url(#hatch)"/>` +
+    `<rect width="1168" height="784" fill="url(#hatch2)"/>` +
+    `</g>` +
+    `<path d="${inner}" fill="none" stroke="#f0d48a" stroke-width="1.2" opacity="0.88"/>` +
+    `<path d="${inner2}" fill="none" stroke="#e8c97a" stroke-width="1" opacity="0.72"/>` +
+    `<path d="${inner3}" fill="none" stroke="#c6a35a" stroke-width="0.8" opacity="0.58"/>` +
+    `<path d="${paths}" fill="none" stroke="#f0d48a" stroke-width="3.3" stroke-linejoin="round" stroke-linecap="round" filter="url(#goldglow)"/>` +
+    labels.map(lab => `<g><circle cx="${lab.x.toFixed(1)}" cy="${lab.y.toFixed(1)}" r="2.3" fill="#e8c97a"/><text x="${lab.tx.toFixed(1)}" y="${lab.ty.toFixed(1)}" text-anchor="${lab.anchor}" fill="#e4c98a" font-family="${font}" font-size="13" letter-spacing="0.8">${xmlEsc(lab.text)}</text></g>`).join("") +
+    `<g transform="translate(${pinXY[0].toFixed(1)} ${pinXY[1].toFixed(1)})"><path d="M0 -20 C8 -20 12 -13 12 -8 C12 2 0 16 0 16 C0 16 -12 2 -12 -8 C-12 -13 -8 -20 0 -20 Z" fill="#e8c97a" stroke="#f4e4b4" stroke-width="0.6"/><circle cy="-8" r="3.2" fill="#1a1408"/></g>` +
+    (pinLabel ? `<text x="${pinLabel.x.toFixed(1)}" y="${pinLabel.y.toFixed(1)}" text-anchor="${pinLabel.anchor || "middle"}" fill="#f3e2b0" font-family="${font}" font-size="14" letter-spacing="1.1">${xmlEsc(pinLabel.text)}</text>` : "") +
+    `<g transform="translate(${compass.x} ${compass.y})" fill="none" stroke="#e8c97a">` +
+    `<circle r="26" stroke="#c6a35a" stroke-width="1.3"/>` +
+    `<circle r="16" stroke-width="0.7"/>` +
+    `<path d="M0 -24 L5 -7 L0 -2 L-5 -7 Z" fill="#f3e2b0" stroke="none"/>` +
+    `<path d="M0 24 L5 7 L0 2 L-5 7 Z" fill="#c6a35a" stroke="none"/>` +
+    `<path d="M24 0 L7 5 L2 0 L7 -5 Z" fill="#c6a35a" stroke="none"/>` +
+    `<path d="M-24 0 L-7 5 L-2 0 L-7 -5 Z" fill="#c6a35a" stroke="none"/>` +
+    `<path d="M0 -12 V12 M-12 0 H12" stroke="#8d7340" stroke-width="0.7"/>` +
+    `</g>` +
+    `<text x="${compass.x}" y="${compass.y - 32}" text-anchor="middle" fill="#f3e2b0" font-family="${font}" font-size="13">N</text>` +
+    `<text x="${compass.x}" y="${compass.y + 42}" text-anchor="middle" fill="#e8c97a" font-family="${font}" font-size="12">S</text>` +
+    `<text x="${compass.x + 36}" y="${compass.y + 4}" text-anchor="middle" fill="#e8c97a" font-family="${font}" font-size="12">E</text>` +
+    `<text x="${compass.x - 36}" y="${compass.y + 4}" text-anchor="middle" fill="#e8c97a" font-family="${font}" font-size="12">W</text>` +
+    `<text x="584" y="732" text-anchor="middle" fill="#c6a35a" font-family="${font}" font-size="15" letter-spacing="4">${xmlEsc(footer)}</text>` +
+    `<text x="1092" y="756" text-anchor="end" fill="#5c4a28" font-family="${font}" font-size="9">© OSM</text>` +
+    `</svg>`;
+}
+async function buildZonePlate(w) {
+  const outline = await resolveOutline(w);
+  if (!outline) return "";
+  const pin = await geocodePin(w, outline);
+  const towns = await nearbyTowns(pin, outline);
+  const title = w.region || w.appellation || outline.localName || w.country || "Zona";
+  const country = outline.fallback === "country"
+    ? ("Contorno de " + (outline.country || w.country || ""))
+    : outline.fallback === "province"
+      ? ("Contorno de " + (outline.localName || outline.country || ""))
+      : (w.country || outline.country || "");
+  return renderEngravedPlate({ title, country, footer: title, rings: outline.rings, pin, towns });
+}
+async function buildWineryPlate(w) {
+  const outline = await resolveOutline(w);
+  if (!outline) return "";
+  const pin = await geocodePin(w, outline);
+  const towns = await nearbyTowns(pin, outline);
+  return renderEngravedPlate({
+    title: w.producer || w.region || "Bodega",
+    country: w.country || outline.country || "",
+    footer: w.region || w.appellation || outline.localName || "",
+    rings: outline.rings,
+    pin,
+    towns
+  });
+}
+const PLATE_DB = "vinoteca-plates";
+const PLATE_STORE = "images";
+const plateJpegs = new Map();
+const plateImageMiss = new Map();
+const plateImagePending = new Set();
+
+function plateDb() {
+  return new Promise((resolve, reject) => {
+    if (!window.indexedDB) { reject(new Error("sin indexedDB")); return; }
+    const req = indexedDB.open(PLATE_DB, 1);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains(PLATE_STORE)) db.createObjectStore(PLATE_STORE);
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+function idbReq(req) {
+  return new Promise((resolve, reject) => {
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function readAllPlateImages() {
+  const db = await plateDb();
+  const rows = await idbReq(db.transaction(PLATE_STORE, "readonly").objectStore(PLATE_STORE).getAll());
+  const keys = await idbReq(db.transaction(PLATE_STORE, "readonly").objectStore(PLATE_STORE).getAllKeys());
+  return (keys || []).map((key, i) => ({ key, value: (rows || [])[i] }));
+}
+async function savePlateJpeg(key, blob, model) {
+  const db = await plateDb();
+  await idbReq(db.transaction(PLATE_STORE, "readwrite").objectStore(PLATE_STORE).put({ blob, model: model || "", at: Date.now() }, key));
+  const prev = plateJpegs.get(key);
+  if (prev) URL.revokeObjectURL(prev);
+  plateJpegs.set(key, URL.createObjectURL(blob));
+}
+async function deletePlateJpeg(key) {
+  const prev = plateJpegs.get(key);
+  if (prev) URL.revokeObjectURL(prev);
+  plateJpegs.delete(key);
+  try {
+    const db = await plateDb();
+    await idbReq(db.transaction(PLATE_STORE, "readwrite").objectStore(PLATE_STORE).delete(key));
+  } catch (e) {}
+}
+async function hydratePlateImages() {
+  try {
+    const rows = await readAllPlateImages();
+    rows.forEach(row => {
+      const blob = row && row.value && row.value.blob;
+      if (!row || !row.key || !blob) return;
+      const prev = plateJpegs.get(row.key);
+      if (prev) URL.revokeObjectURL(prev);
+      plateJpegs.set(row.key, URL.createObjectURL(blob));
+    });
+  } catch (e) {}
+  if (!currentWine) return;
+  if (screenId === "wine-sub" && currentSub) openWineSub(currentSub);
+  else if (screenId === "wine") openWine(currentWine.id, currentBottle);
+}
+function blobToDataUrl(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(blob);
+  });
+}
+async function plateImagesForBackup() {
+  const out = {};
+  try {
+    const rows = await readAllPlateImages();
+    for (let i = 0; i < rows.length; i++) {
+      const blob = rows[i] && rows[i].value && rows[i].value.blob;
+      if (!rows[i] || !rows[i].key || !blob) continue;
+      out[rows[i].key] = await blobToDataUrl(blob);
+    }
+  } catch (e) {}
+  return out;
+}
+async function restorePlateImages(map) {
+  const keys = Object.keys(map || {});
+  for (let i = 0; i < keys.length; i++) {
+    const url = String(map[keys[i]] || "");
+    const comma = url.indexOf(",");
+    if (url.indexOf("data:image/") !== 0 || comma < 0) continue;
+    const mime = url.slice(5, url.indexOf(";")) || "image/jpeg";
+    try {
+      const bin = atob(url.slice(comma + 1));
+      const arr = new Uint8Array(bin.length);
+      for (let n = 0; n < bin.length; n++) arr[n] = bin.charCodeAt(n);
+      await savePlateJpeg(keys[i], new Blob([arr], { type: mime }), "copia");
+    } catch (e) {}
+  }
+}
+function dataUrlPayload(dataUrl) {
+  const comma = String(dataUrl || "").indexOf(",");
+  return comma >= 0 ? String(dataUrl).slice(comma + 1) : "";
+}
+function lonTileX(lon, z) {
+  return (lon + 180) / 360 * Math.pow(2, z);
+}
+function latTileY(lat, z) {
+  const s = Math.sin(lat * Math.PI / 180);
+  const clamped = Math.max(-0.9999, Math.min(0.9999, s));
+  return (0.5 - Math.log((1 + clamped) / (1 - clamped)) / (4 * Math.PI)) * Math.pow(2, z);
+}
+function chooseReliefZoom(bbox) {
+  for (let z = 12; z >= 5; z--) {
+    const spanX = Math.abs(lonTileX(bbox.maxX, z) - lonTileX(bbox.minX, z));
+    const spanY = Math.abs(latTileY(bbox.maxY, z) - latTileY(bbox.minY, z));
+    if (Math.max(spanX, spanY) <= 4.2) return z;
+  }
+  return 5;
+}
+async function loadTerrarium(bbox) {
+  const padX = Math.max(1e-4, (bbox.maxX - bbox.minX) * 0.08);
+  const padY = Math.max(1e-4, (bbox.maxY - bbox.minY) * 0.08);
+  const box = { minX: bbox.minX - padX, maxX: bbox.maxX + padX, minY: bbox.minY - padY, maxY: bbox.maxY + padY };
+  const z = chooseReliefZoom(box);
+  const x0 = Math.floor(lonTileX(box.minX, z));
+  const x1 = Math.floor(lonTileX(box.maxX, z));
+  const y0 = Math.floor(Math.min(latTileY(box.maxY, z), latTileY(box.minY, z)));
+  const y1 = Math.floor(Math.max(latTileY(box.maxY, z), latTileY(box.minY, z)));
+  const jobs = [];
+  for (let x = x0; x <= x1; x++) {
+    for (let y = y0; y <= y1; y++) jobs.push({ x, y });
+  }
+  const limited = jobs.slice(0, 16);
+  const tiles = new Map();
+  await Promise.all(limited.map(async job => {
+    try {
+      const url = "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/" + z + "/" + job.x + "/" + job.y + ".png";
+      const res = await fetch(url);
+      if (!res.ok) return;
+      const bmp = await createImageBitmap(await res.blob());
+      const canvas = document.createElement("canvas");
+      canvas.width = bmp.width;
+      canvas.height = bmp.height;
+      const g = canvas.getContext("2d", { willReadFrequently: true });
+      g.drawImage(bmp, 0, 0);
+      tiles.set(job.x + "," + job.y, { x: job.x, y: job.y, w: canvas.width, h: canvas.height, data: g.getImageData(0, 0, canvas.width, canvas.height).data });
+    } catch (e) {}
+  }));
+  return { z, tiles };
+}
+function sampleElev(pack, lon, lat) {
+  if (!pack || !pack.tiles.size) return null;
+  const fx = lonTileX(lon, pack.z);
+  const fy = latTileY(lat, pack.z);
+  const tx = Math.floor(fx);
+  const ty = Math.floor(fy);
+  const tile = pack.tiles.get(tx + "," + ty);
+  if (!tile) return null;
+  const px = Math.max(0, Math.min(tile.w - 1, Math.floor((fx - tx) * tile.w)));
+  const py = Math.max(0, Math.min(tile.h - 1, Math.floor((fy - ty) * tile.h)));
+  const i = (py * tile.w + px) * 4;
+  return tile.data[i] * 256 + tile.data[i + 1] + tile.data[i + 2] / 256 - 32768;
+}
+async function fetchZoneRivers(bbox, kindsIn) {
+  const south = bbox.minY.toFixed(4);
+  const west = bbox.minX.toFixed(4);
+  const north = bbox.maxY.toFixed(4);
+  const east = bbox.maxX.toFixed(4);
+  const kinds = String(kindsIn || "river|canal");
+  const q = "[out:json][timeout:12];way[\"waterway\"~\"" + kinds + "\"](" + south + "," + west + "," + north + "," + east + ");out geom 8;";
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 16000);
+  try {
+    const res = await fetch("https://overpass-api.de/api/interpreter?data=" + encodeURIComponent(q), { signal: ctrl.signal });
+    if (!res.ok) return [];
+    const json = await res.json();
+    const ways = ((json && json.elements) || []).filter(el => el.type === "way" && el.geometry && el.geometry.length > 3);
+    ways.sort((a, b) => b.geometry.length - a.geometry.length);
+    return ways.slice(0, 6).map(el => {
+      const raw = el.geometry.map(p => [Number(p.lon), Number(p.lat)]).filter(p => Number.isFinite(p[0]) && Number.isFinite(p[1]));
+      const step = raw.length > 80 ? Math.ceil(raw.length / 80) : 1;
+      const line = raw.filter((_, i) => i % step === 0);
+      return { name: (el.tags && el.tags.name) || "", line };
+    }).filter(river => river.line.length > 2);
+  } catch (e) {
+    return [];
+  } finally {
+    clearTimeout(timer);
+  }
+}
+function paintGoldRelief(ctx, rings, proj, pack) {
+  let minx = 1e9;
+  let miny = 1e9;
+  let maxx = -1e9;
+  let maxy = -1e9;
+  rings.forEach(ring => ring.forEach(p => {
+    const xy = projectPoint(p[0], p[1], proj);
+    if (xy[0] < minx) minx = xy[0];
+    if (xy[1] < miny) miny = xy[1];
+    if (xy[0] > maxx) maxx = xy[0];
+    if (xy[1] > maxy) maxy = xy[1];
+  }));
+  const x0 = Math.max(0, Math.floor(minx));
+  const y0 = Math.max(0, Math.floor(miny));
+  const x1 = Math.min(1167, Math.ceil(maxx));
+  const y1 = Math.min(783, Math.ceil(maxy));
+  const step = 2;
+  const w = Math.max(1, Math.ceil((x1 - x0) / step));
+  const h = Math.max(1, Math.ceil((y1 - y0) / step));
+  const off = document.createElement("canvas");
+  off.width = w;
+  off.height = h;
+  const img = off.getContext("2d").createImageData(w, h);
+  const shades = new Float32Array(w * h);
+  const bbox = bboxOf(rings);
+  const delta = Math.max(bbox.maxX - bbox.minX, bbox.maxY - bbox.minY) / 140;
+  const az = 315 * Math.PI / 180;
+  const zen = 42 * Math.PI / 180;
+  let lo = 1;
+  let hi = 0;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const px = x0 + x * step;
+      const py = y0 + y * step;
+      const lon = proj.minX + (px - proj.ox) / proj.s;
+      const lat = proj.maxY - (py - proj.oy) / proj.s;
+      const e = sampleElev(pack, lon, lat);
+      const eR = sampleElev(pack, lon + delta, lat);
+      const eU = sampleElev(pack, lon, lat + delta);
+      let shade = 0.5;
+      if (e != null && eR != null && eU != null) {
+        const dx = (eR - e) / 70;
+        const dy = (e - eU) / 70;
+        const slope = Math.atan(Math.hypot(dx, dy));
+        const aspect = Math.atan2(dy, -dx);
+        shade = Math.cos(zen) * Math.cos(slope) + Math.sin(zen) * Math.sin(slope) * Math.cos(az - aspect);
+        shade = Math.max(0, Math.min(1, shade));
+        if (shade < lo) lo = shade;
+        if (shade > hi) hi = shade;
+      }
+      shades[y * w + x] = shade;
+    }
+  }
+  const span = Math.max(0.05, hi - lo);
+  for (let n = 0; n < shades.length; n++) {
+    const norm = (shades[n] - lo) / span;
+    const t = Math.max(0, Math.min(1, Math.pow(0.25 * shades[n] + 0.75 * norm, 0.85)));
+    const i = n * 4;
+    img.data[i] = Math.round(22 + t * 220);
+    img.data[i + 1] = Math.round(14 + t * 175);
+    img.data[i + 2] = Math.round(6 + t * 86);
+    img.data[i + 3] = 255;
+  }
+  const g = off.getContext("2d");
+  g.putImageData(img, 0, 0);
+  const path = new Path2D(rings.map(ring => ringPath(ring, proj)).join(""));
+  ctx.save();
+  ctx.clip(path);
+  ctx.fillStyle = "#5c4520";
+  ctx.fillRect(x0, y0, Math.max(1, x1 - x0), Math.max(1, y1 - y0));
+  if (pack && pack.tiles.size) ctx.drawImage(off, x0, y0, Math.max(1, x1 - x0), Math.max(1, y1 - y0));
+  ctx.restore();
+  ctx.save();
+  ctx.strokeStyle = "#f3e2b0";
+  ctx.lineWidth = 2.6;
+  ctx.lineJoin = "round";
+  ctx.stroke(path);
+  ctx.restore();
+  return path;
+}
+function drawGuideRivers(ctx, rivers, proj, clip) {
+  if (!rivers || !rivers.length) return;
+  ctx.save();
+  if (clip) ctx.clip(clip);
+  ctx.strokeStyle = "#d5e4ee";
+  ctx.lineWidth = 1.7;
+  ctx.lineJoin = "round";
+  ctx.lineCap = "round";
+  rivers.forEach(river => {
+    ctx.beginPath();
+    river.line.forEach((p, i) => {
+      const xy = projectPoint(p[0], p[1], proj);
+      if (i) ctx.lineTo(xy[0], xy[1]);
+      else ctx.moveTo(xy[0], xy[1]);
+    });
+    ctx.stroke();
+  });
+  ctx.restore();
+}
+function drawGuidePin(ctx, x, y) {
+  ctx.beginPath();
+  ctx.moveTo(x, y + 16);
+  ctx.bezierCurveTo(x - 11, y + 2, x - 11, y - 16, x, y - 18);
+  ctx.bezierCurveTo(x + 11, y - 16, x + 11, y + 2, x, y + 16);
+  ctx.fillStyle = "#f3e2b0";
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(x, y - 8, 3.1, 0, Math.PI * 2);
+  ctx.fillStyle = "#1a1408";
+  ctx.fill();
+}
+function plateFinishPrompt(info) {
+  const towns = (info.towns || []).filter(Boolean).join(", ") || "(ninguno dentro del recuadro)";
+  const rivers = (info.rivers || []).filter(Boolean).join(", ");
+  const riverLine = rivers
+    ? rivers
+    : "(ninguno en la guía: no inventes ríos que no aparezcan en ella)";
+  return [
+    "Redraw the first image, the geographic guide, in the exact style of the reference maps that follow.",
+    "Match the references: black background, gold engraving, three-dimensional relief, vineyards drawn on the slopes, rivers as fine engraved lines, a double gold frame with fleurons in the four corners, a cartouche with the zone in serif capitals and the country in small capitals underneath, a compass rose marked N, S, E and W, town names in small caps, a gold pin on the winery town, and a footer with the appellation.",
+    "Keep the outline shape from the guide. Keep the positions of the relief, the rivers, the towns and the pin. Do not move them and do not replace the border with a different shape.",
+    "Zone (cartouche): " + info.zone,
+    "Country: " + info.country,
+    "Appellation (footer): " + info.footer,
+    "Winery town (gold pin): " + info.pin,
+    "Towns: " + towns,
+    "Rivers in the guide: " + riverLine,
+    "Proportion: 1168 by 784 pixels, landscape, the same as the reference maps. If you cannot use that exact size, keep the same 1168:784 proportion."
+  ].join("\n");
+}
+async function drawPlateGuide(spec) {
+  const box = { x: 108, y: 168, w: 952, h: 500 };
+  const proj = makeProject(spec.rings, box);
+  const pack = spec.relief || await loadTerrarium(bboxOf(spec.rings));
+  const canvas = document.createElement("canvas");
+  canvas.width = 1168;
+  canvas.height = 784;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#090b0a";
+  ctx.fillRect(0, 0, 1168, 784);
+  ctx.strokeStyle = "#c6a35a";
+  ctx.lineWidth = 2;
+  ctx.strokeRect(18, 18, 1132, 748);
+  const clip = paintGoldRelief(ctx, spec.rings, proj, pack);
+  drawGuideRivers(ctx, spec.rivers || [], proj, clip);
+  const projected = spec.rings.map(ring => ring.map(p => projectPoint(p[0], p[1], proj)));
+  const pinXY = projectPoint(spec.pin.lon, spec.pin.lat, proj);
+  const font = "Palatino, 'Palatino Linotype', 'Times New Roman', serif";
+  ctx.textAlign = "center";
+  ctx.fillStyle = "#f3e2b0";
+  ctx.font = "600 40px " + font;
+  ctx.fillText(spec.zone, 584, 86);
+  ctx.fillStyle = "#c6a35a";
+  ctx.font = "16px " + font;
+  ctx.fillText(spec.country, 584, 112);
+  ctx.fillText(spec.footer, 584, 742);
+  const safe = { x: 48, y: 140, w: 1072, h: 560 };
+  const obstacles = [
+    { x: 80, y: 28, w: 1008, h: 100 },
+    { x: 180, y: 700, w: 808, h: 60 },
+    { x: pinXY[0] - 16, y: pinXY[1] - 22, w: 32, h: 42 }
+  ];
+  const nearTowns = (spec.towns || []).filter(town => townNearOutline(town, spec.rings));
+  ctx.font = "13px " + font;
+  ctx.fillStyle = "#e8c97a";
+  nearTowns.forEach(town => {
+    const xy = projectPoint(town.lon, town.lat, proj);
+    if (Math.hypot(xy[0] - pinXY[0], xy[1] - pinXY[1]) < 26) return;
+    const text = shortPlace(town.label);
+    if (!text || foldZone(text) === foldZone(spec.pin.label || "")) return;
+    const placed = placeTownLabel(text, xy[0], xy[1], obstacles, safe, projected);
+    if (!placed) return;
+    obstacles.push(placed.box);
+    ctx.beginPath();
+    ctx.arc(xy[0], xy[1], 2.4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.textAlign = placed.anchor === "start" ? "left" : placed.anchor === "end" ? "right" : "center";
+    ctx.fillText(placed.text, placed.x, placed.y);
+  });
+  drawGuidePin(ctx, pinXY[0], pinXY[1]);
+  const pinName = shortPlace(spec.pin.label || "");
+  if (pinName) {
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#f3e2b0";
+    ctx.font = "14px " + font;
+    ctx.fillText(pinName, pinXY[0], pinXY[1] + 36);
+  }
+  return { canvas, proj };
+}
+async function composePlateGuide(wine) {
+  const outline = await resolveOutline(wine);
+  if (!outline) return null;
+  const pin = await geocodePin(wine, outline);
+  const towns = await nearbyTowns(pin, outline);
+  setFichaProgress("Trazando el relieve…");
+  let rivers = await fetchZoneRivers(outline.bbox, "river|canal");
+  if (!rivers.length) rivers = await fetchZoneRivers(outline.bbox, "stream");
+  const zone = plateTitle(wine.region || wine.appellation || outline.localName || "Zona");
+  const country = plateTitle(wine.country || outline.country || "");
+  const footer = plateTitle(wine.appellation || wine.region || zone);
+  const drawn = await drawPlateGuide({ rings: outline.rings, pin, towns, rivers, zone, country, footer });
+  const near = towns.filter(town => townNearOutline(town, outline.rings));
+  const info = {
+    zone,
+    country,
+    footer,
+    pin: plateTitle(pin.label || ""),
+    towns: near.map(town => plateTitle(town.label)),
+    rivers: rivers.map(river => river.name).filter(Boolean)
+  };
+  return { canvas: drawn.canvas, prompt: plateFinishPrompt(info), info };
+}
+async function referencePlateParts() {
+  const files = ["./mapa-rioja.jpg", "./mapa-douro.jpg"];
+  const parts = [];
+  for (let i = 0; i < files.length; i++) {
+    try {
+      const res = await fetch(files[i]);
+      if (!res.ok) continue;
+      const bmp = await createImageBitmap(await res.blob());
+      const canvas = document.createElement("canvas");
+      canvas.width = 584;
+      canvas.height = 392;
+      canvas.getContext("2d").drawImage(bmp, 0, 0, 584, 392);
+      parts.push({ mime: "image/jpeg", data: dataUrlPayload(canvas.toDataURL("image/jpeg", 0.72)) });
+    } catch (e) {}
+  }
+  return parts;
+}
+function imageBytesFromGemini(json) {
+  const parts = ((((json || {}).candidates || [])[0] || {}).content || {}).parts || [];
+  for (let i = 0; i < parts.length; i++) {
+    const inline = parts[i].inlineData || parts[i].inline_data;
+    if (inline && inline.data) return { mime: inline.mimeType || inline.mime_type || "image/png", data: inline.data };
+  }
+  const preds = (json && json.predictions) || [];
+  for (let i = 0; i < preds.length; i++) {
+    const raw = preds[i].bytesBase64Encoded || (preds[i].image && preds[i].image.bytesBase64Encoded) || "";
+    if (raw) return { mime: preds[i].mimeType || "image/png", data: raw };
+  }
+  return null;
+}
+function bytesToBlob(b64, mime) {
+  const bin = atob(b64);
+  const arr = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+  return new Blob([arr], { type: mime || "image/jpeg" });
+}
+async function postGeminiJson(url, key, body, signal) {
+  return fetch(url, {
+    method: "POST",
+    signal,
+    headers: { "Content-Type": "application/json", "x-goog-api-key": key },
+    body: JSON.stringify(body)
+  });
+}
+async function geminiDrawPlate(key, prompt, images) {
+  if (!window.WineDataProvider || !WineDataProvider.pickGeminiImageModel) {
+    return { blob: null, reason: "No hay un modelo de imagen disponible para esta clave.", model: "" };
+  }
+  const skip = [];
+  let last = "No hay un modelo de imagen disponible para esta clave.";
+  for (let n = 0; n < 3; n++) {
+    let model = "";
+    try {
+      model = await WineDataProvider.pickGeminiImageModel(key, { skip });
+    } catch (err) {
+      const status = err && err.status;
+      const reason = status === 401 || status === 403 ? ("clave rechazada (HTTP " + status + ")") : (status ? ("HTTP " + status) : "red o CORS");
+      return { blob: null, reason, model: "", fatal: true };
+    }
+    if (!model) return { blob: null, reason: last, model: "" };
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 45000);
+    try {
+      const parts = [{ text: prompt }].concat((images || []).map(img => ({ inlineData: { mimeType: img.mime, data: img.data } })));
+      let res = await postGeminiJson(
+        "https://generativelanguage.googleapis.com/v1beta/models/" + encodeURIComponent(model) + ":generateContent",
+        key,
+        { contents: [{ role: "user", parts }], generationConfig: { responseModalities: ["IMAGE"] } },
+        ctrl.signal
+      );
+      if (res.status === 400) {
+        res = await postGeminiJson(
+          "https://generativelanguage.googleapis.com/v1beta/models/" + encodeURIComponent(model) + ":generateContent",
+          key,
+          { contents: [{ role: "user", parts }], generationConfig: { responseModalities: ["TEXT", "IMAGE"] } },
+          ctrl.signal
+        );
+      }
+      if ((res.status === 404 || res.status === 400) && /imagen/i.test(model)) {
+        res = await postGeminiJson(
+          "https://generativelanguage.googleapis.com/v1beta/models/" + encodeURIComponent(model) + ":predict",
+          key,
+          { instances: [{ prompt }], parameters: { sampleCount: 1, aspectRatio: "3:2" } },
+          ctrl.signal
+        );
+      }
+      if (res.status === 404) {
+        WineDataProvider.forgetGeminiModel(model);
+        skip.push(model);
+        last = "modelo no disponible (HTTP 404)";
+        continue;
+      }
+      if (res.status === 401 || res.status === 403 || res.status === 429) {
+        return { blob: null, reason: geminiReasonFrom(res.status, "", null, null), model, fatal: true };
+      }
+      if (!res.ok) {
+        last = geminiReasonFrom(res.status, "", null, null);
+        continue;
+      }
+      const json = await res.json();
+      const pic = imageBytesFromGemini(json);
+      if (!pic || !pic.data) {
+        last = "respuesta sin imagen";
+        continue;
+      }
+      return { blob: bytesToBlob(pic.data, pic.mime), reason: "", model };
+    } catch (err) {
+      return { blob: null, reason: geminiReasonFrom(0, "", null, err), model, fatal: err && err.name !== "AbortError" };
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+  return { blob: null, reason: last, model: "" };
+}
+function rememberMapNote(wine, key, reason) {
+  plateImageMiss.set(key, reason);
+  wine.provenance = wine.provenance || {};
+  wine.provenance.mapNote = reason;
+}
+async function ensureZoneIllustration(wine, force) {
+  if (!wine || isCatalogWineId(wine.id)) return false;
+  const fixed = fixedZoneOf(wine);
+  if (fixed && fixed.map) return false;
+  const key = zoneImageKey(wine);
+  if (!key || key === "z5:") return false;
+  if (plateImagePending.has(key)) return false;
+  if (!force && plateJpegs.has(key)) return false;
+  if (!force && (plateImageMiss.has(key) || (wine.provenance && wine.provenance.mapNote))) {
+    if (wine.provenance && wine.provenance.mapNote) plateImageMiss.set(key, wine.provenance.mapNote);
+    return false;
+  }
+  plateImagePending.add(key);
+  plateImageMiss.delete(key);
+  if (force) {
+    wine.provenance = wine.provenance || {};
+    wine.provenance.mapNote = "";
+  }
+  try {
+    const geminiKey = storedGeminiKey();
+    if (!geminiKey) {
+      rememberMapNote(wine, key, "Sin clave de Gemini en esta app. Se muestra el grabado de reserva. Si la guardaste en Safari, pégala también aquí: Inicio › Avisos › Precios de mercado.");
+      save();
+      return false;
+    }
+    const guide = await composePlateGuide(wine);
+    if (!guide) {
+      rememberMapNote(wine, key, "No hay contorno público de esta zona. Se muestra el grabado de reserva.");
+      save();
+      return false;
+    }
+    setFichaProgress("Gemini dibuja el mapa…");
+    const guideUrl = guide.canvas.toDataURL("image/jpeg", 0.8);
+    const refs = await referencePlateParts();
+    const drawn = await geminiDrawPlate(geminiKey, guide.prompt, [{ mime: "image/jpeg", data: dataUrlPayload(guideUrl) }].concat(refs));
+    if (!drawn.blob) {
+      rememberMapNote(wine, key, "Gemini no dibujó el mapa (" + (drawn.reason || "error") + "). Se muestra el grabado de reserva.");
+      wine.provenance.mapModel = drawn.model || "";
+      save();
+      return false;
+    }
+    await savePlateJpeg(key, drawn.blob, drawn.model);
+    plateImageMiss.delete(key);
+    wine.provenance = wine.provenance || {};
+    wine.provenance.mapNote = "";
+    wine.provenance.mapModel = drawn.model || "";
+    save();
+    return true;
+  } catch (err) {
+    rememberMapNote(wine, key, "Gemini no dibujó el mapa (red o CORS). Se muestra el grabado de reserva.");
+    save();
+    return false;
+  } finally {
+    plateImagePending.delete(key);
+  }
+}
+async function regenerateZoneMap(id) {
+  const wine = wineById(id);
+  if (!wine || isCatalogWineId(wine.id)) return;
+  const fixed = fixedZoneOf(wine);
+  if (fixed && fixed.map) return;
+  const key = zoneImageKey(wine);
+  wine.provenance = wine.provenance || {};
+  wine.provenance.mapNote = "";
+  plateImageMiss.delete(key);
+  await deletePlateJpeg(key);
+  setFichaProgress("Regenerando el mapa…");
+  await ensureGeneratedPlates(wine);
+  if (!currentWine || currentWine.id !== id) return;
+  if (screenId === "wine-sub" && currentSub) openWineSub(currentSub);
+  else if (screenId === "wine") openWine(id, currentBottle);
+}
+function platesOutstanding(w) {
+  if (!w || isCatalogWineId(w.id)) return false;
+  const fixed = fixedZoneOf(w);
+  const cache = plateCache();
+  const zoneKey = zonePlateKey(w);
+  const bodegaKey = wineryPlateKey(w);
+  const imageKey = zoneImageKey(w);
+  if (!(fixed && fixed.map)) {
+    if (!cache[zoneKey] && !plateMiss.has(zoneKey)) return true;
+    if (!plateJpegs.has(imageKey) && !plateImageMiss.has(imageKey) && !(w.provenance && w.provenance.mapNote)) return true;
+  }
+  if (!PRODUCER_ART[w.producer] && w.producer && !cache[bodegaKey] && !plateMiss.has(bodegaKey)) return true;
+  return false;
+}
+async function ensureGeneratedPlates(wine) {
+  if (!wine || isCatalogWineId(wine.id)) return false;
+  wine.plateKeys = wine.plateKeys || {};
+  const fixed = fixedZoneOf(wine);
+  let changed = false;
+  if (!(fixed && fixed.map)) {
+    const key = zonePlateKey(wine);
+    plateMiss.delete(key);
+    if (key !== "z3:" && !plateCache()[key]) {
+      setFichaProgress("Trazando el mapa de la zona…");
+      const svg = await buildZonePlate(wine);
+      if (svg) { plateCache()[key] = svg; changed = true; }
+      else plateMiss.add(key);
+    }
+    if (key !== "z3:" && plateCache()[key]) wine.plateKeys.zone = key;
+    if (await ensureZoneIllustration(wine, false)) changed = true;
+  }
+  if (!PRODUCER_ART[wine.producer] && wine.producer) {
+    const key = wineryPlateKey(wine);
+    plateMiss.delete(key);
+    if (!plateCache()[key]) {
+      setFichaProgress("Trazando el mapa de la bodega…");
+      const svg = await buildWineryPlate(wine);
+      if (svg) { plateCache()[key] = svg; changed = true; }
+      else plateMiss.add(key);
+    }
+    if (plateCache()[key]) wine.plateKeys.winery = key;
+  }
+  if (changed) save();
+  return changed;
+}
+function schedulePlate(w) {
+  if (!platesOutstanding(w)) return;
+  const id = w.id;
+  platePending.add(id);
+  ensureGeneratedPlates(w).then(() => {
+    platePending.delete(id);
+    if (!currentWine || currentWine.id !== id) return;
+    if (screenId === "wine-sub" && currentSub) openWineSub(currentSub);
+    else if (screenId === "wine") openWine(id, currentBottle);
+  }).catch(() => { platePending.delete(id); });
+}
+function estateArt(w) {
+  const hit = PRODUCER_ART[w.producer];
+  if (hit) return hit;
+  const hitZone = fixedZoneOf(w);
+  const fixed = hitZone && hitZone.map ? hitZone.map : "";
+  if (!w || isCatalogWineId(w.id)) {
+    return fixed ? { land: fixed, cap: "capsula.jpg", map: fixed } : { land: "", cap: "capsula.jpg", map: "" };
+  }
+  const cache = plateCache();
+  const jpeg = !fixed && plateJpegs.get(zoneImageKey(w));
+  const zoneSvg = !fixed && cache[zonePlateKey(w)];
+  const winerySvg = cache[wineryPlateKey(w)];
+  const zoneSrc = fixed || jpeg || (zoneSvg ? svgDataUrl(zoneSvg) : "");
+  const landSrc = jpeg || (winerySvg ? svgDataUrl(winerySvg) : zoneSrc);
+  return { land: landSrc, cap: "capsula.jpg", map: zoneSrc };
+}
+function mapArtKind(src) {
+  const s = String(src || "");
+  if (!s) return "";
+  if (s.indexOf("blob:") === 0 || s.indexOf("data:image/jpeg") === 0 || s.indexOf("data:image/png") === 0) return "gemini";
+  if (s.indexOf("data:") === 0) return "generado";
+  return s;
 }
 
 function capsuleLines(w) {
@@ -1409,7 +2727,8 @@ function bottleMarkup(w) {
 }
 function estateSVG(w) {
   const art = estateArt(w);
-  const land = art.land ? `<img class="estate-photo" src="${art.land}" alt="" onerror="this.style.display='none'">` : "";
+  const landKind = art.land ? mapArtKind(art.land) : "";
+  const land = art.land ? `<img class="estate-photo" data-land="${landKind}" src="${art.land}" alt="" onerror="this.style.display='none'">` : "";
   return `
     ${land}
     <div class="foil-wrap">
@@ -1669,7 +2988,9 @@ function openWine(wineId, bottle) {
     </div>
     ${cataPersonalCard(w)}
   `;
+  if (platesOutstanding(w)) platePending.add(w.id);
   show("wine");
+  schedulePlate(w);
 }
 
 function getTaste(id) {
@@ -3910,6 +5231,7 @@ async function completeWineRecord(wine, pageUrl) {
     wine.provenance.geminiNote = "";
   }
   sealWineProvenance(wine);
+  try { await ensureGeneratedPlates(wine); } catch (e) {}
   save();
   return wine;
 }
@@ -4787,10 +6109,17 @@ function mapaBlock(w) {
   const art = estateArt(w);
   const g = bodegaGeo(w);
   const file = (p) => "./" + String(p || "").replace(/^\.\//, "");
-  const mapSrc = art.map ? file(art.map) : "";
+  const mapSrc = art.map ? (String(art.map).indexOf("data:") === 0 || String(art.map).indexOf("blob:") === 0 ? art.map : file(art.map)) : "";
+  const mapKind = mapArtKind(mapSrc);
   const mapImg = mapSrc
-    ? `<img class="map-art" data-map="${mapSrc}" src="${mapSrc}" alt="" onerror="this.style.display='none'">`
-    : `<p class="muted" data-map="" style="text-align:center;margin:8px 0">Sin mapa de esta zona</p>`;
+    ? `<img class="map-art" data-map="${mapKind}" src="${mapSrc}" alt="" onerror="this.style.display='none'">`
+    : `<p class="muted" data-map="" style="text-align:center;margin:8px 0">${platePending.has(w.id) || plateImagePending.size ? "Trazando el mapa de la zona…" : "Sin mapa de esta zona"}</p>`;
+  const fixedMap = !!(fixedZoneOf(w) && fixedZoneOf(w).map);
+  const mapNote = (!fixedMap && w.provenance && w.provenance.mapNote) || "";
+  const regen = !fixedMap && !isCatalogWineId(w.id)
+    ? `<button type="button" class="btn btn-ghost" data-regen="1" style="width:100%;margin-top:10px" onclick="regenerateZoneMap('${w.id}')">Regenerar mapa</button>`
+    : "";
+  const noteHtml = mapNote ? `<p class="tiny" data-map-note="1" style="margin-top:8px">${escHtml(mapNote)}</p>` : "";
   const hasPin = g.lat != null && g.lng != null && Number.isFinite(Number(g.lat)) && Number.isFinite(Number(g.lng));
   const osm = hasPin ? `https://www.openstreetmap.org/?mlat=${g.lat}&mlon=${g.lng}#map=16/${g.lat}/${g.lng}` : "";
   const pin = hasPin ? `${g.lat},${g.lng}` : "";
@@ -4803,6 +6132,8 @@ function mapaBlock(w) {
   const shops = (w.shops || []).map(s => `<a class="btn btn-ghost" style="width:100%;margin-top:8px;display:block;text-align:center" href="${escHtml(s.url)}" target="_blank" rel="noopener noreferrer" onclick="return openExternal(this.href)">${escHtml(s.source || "Tienda")}${s.price ? " · " + escHtml(s.price) : ""}</a>`).join("");
   return `
     ${mapImg}
+    ${noteHtml}
+    ${regen}
     <p class="tiny" style="margin:0 0 10px;text-align:center">${g.zone || w.region}</p>
     <p class="eyebrow" style="font-size:10px;letter-spacing:.14em;margin:2px 0 0">${w.appellation || ""}</p>
     <h3 style="font-size:17px;margin:2px 0 2px;line-height:1.2">${w.producer}</h3>
@@ -5058,7 +6389,7 @@ function setSource(key, on) {
   prefs().sources[key] = !!on;
   save();
 }
-function exportBackup() {
+async function exportBackup() {
   const payload = {
     version: "1.0.0",
     savedAt: new Date().toISOString(),
@@ -5068,7 +6399,10 @@ function exportBackup() {
     tasting: state.tasting,
     favorites: state.favorites,
     prefs: state.prefs,
-    notify: state.notify
+    notify: state.notify,
+    customWines: state.customWines || [],
+    plateCache: state.plateCache || {},
+    plateImages: await plateImagesForBackup()
   };
   downloadFile("MiVinoteca_Backup_" + new Date().toISOString().slice(0,10) + ".json", JSON.stringify(payload, null, 2), "application/json");
   prefs().lastBackup = Date.now();
@@ -5125,10 +6459,18 @@ function reviewRestore(file) {
       state.favorites = data.favorites || [];
       if (data.prefs) state.prefs = Object.assign(prefs(), data.prefs);
       if (data.notify) state.notify = data.notify;
+      if (Array.isArray(data.customWines)) state.customWines = data.customWines;
+      if (data.plateCache && typeof data.plateCache === "object") state.plateCache = data.plateCache;
       prefs().lastBackup = Date.now();
       save();
-      toast("Colección restaurada");
-      show("perfil");
+      const images = data.plateImages;
+      const done = () => {
+        toast("Colección restaurada");
+        show("perfil");
+      };
+      if (images && typeof images === "object") restorePlateImages(images).then(done, done);
+      else done();
+      return;
     } catch {
       toast("JSON ilegible");
     }
@@ -5230,6 +6572,7 @@ document.addEventListener("DOMContentLoaded", () => {
   clock();
   setInterval(clock, 30000);
   renderHome();
+  hydratePlateImages();
   setTimeout(() => $("#splash").classList.add("hide"), 700);
   setTimeout(() => runNotifyCheck(false), 1600);
 });
