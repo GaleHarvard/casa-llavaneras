@@ -4922,23 +4922,46 @@ function setPriceMode(on) {
   if (!window.WineDataProvider) return;
   WineDataProvider.saveCfg({ mode: on ? "live" : "demo" });
 }
+function refreshGeminiKeyState() {
+  const stateEl = document.getElementById("gemini-key-state");
+  if (!stateEl) return;
+  const typed = ($("#p-gemini-key") && $("#p-gemini-key").value.trim()) || "";
+  const stored = storedGeminiKey();
+  if (typed && typed !== stored) {
+    stateEl.textContent = "Clave escrita, pulsa Guardar precios para guardarla";
+    return;
+  }
+  if (stored) {
+    stateEl.textContent = "Clave guardada en esta app.";
+    return;
+  }
+  stateEl.textContent = "No hay clave en esta app. Pégala aquí: Safari y el icono de inicio no comparten la clave.";
+}
 async function probeGeminiKey() {
   const el = document.getElementById("gemini-probe");
   const typed = ($("#p-gemini-key") && $("#p-gemini-key").value.trim()) || "";
   const key = typed || storedGeminiKey();
   if (!key) {
     if (el) el.textContent = "No hay clave. Pégala arriba o guárdala antes.";
+    refreshGeminiKeyState();
     return;
   }
   if (el) el.textContent = "Probando la clave…";
   try {
     const msg = await geminiProbe(key);
     if (el) el.textContent = msg;
+    if (typed && /^Funciona\b/.test(String(msg || ""))) {
+      const box = $("#p-gemini");
+      if (box) box.checked = true;
+      const result = persistPriceCfg();
+      toast(result.ok ? "Clave de Gemini guardada en esta app" : "No se pudo guardar la clave");
+    }
   } catch (e) {
     if (el) el.textContent = "red o CORS";
   }
+  refreshGeminiKeyState();
 }
-function savePriceCfg() {
+function persistPriceCfg() {
   const prev = readPriceCfg();
   const url = ($("#p-url") && $("#p-url").value.trim()) || "";
   const key = ($("#p-key") && $("#p-key").value.trim()) || "";
@@ -4958,16 +4981,21 @@ function savePriceCfg() {
     if (window.WineDataProvider && typeof WineDataProvider.saveCfg === "function") WineDataProvider.saveCfg(next);
     else localStorage.setItem(PRICE_CFG_KEY, JSON.stringify(Object.assign({}, prev, next)));
   } catch (e) {
-    toast("No se pudo guardar la clave");
-    return;
+    return { ok: false, saved: "", live: false };
   }
   const saved = String((readPriceCfg().geminiKey) || "").trim();
-  if (geminiKey && saved !== geminiKey) {
+  if (geminiKey && saved !== geminiKey) return { ok: false, saved: saved, live: !!(live && key) };
+  return { ok: true, saved: saved, live: !!(live && key) };
+}
+function savePriceCfg() {
+  const result = persistPriceCfg();
+  if (!result.ok) {
     toast("No se pudo guardar la clave");
     return;
   }
   hideSheets();
-  toast(saved ? "Clave de Gemini guardada en esta app" : (live && key ? "Precios: Wine-Searcher" : "Precios: dossier"));
+  toast(result.saved ? "Clave de Gemini guardada en esta app" : (result.live ? "Precios: Wine-Searcher" : "Precios: dossier"));
+  refreshGeminiKeyState();
 }
 function hydratePriceFields() {
   const cfg = readPriceCfg();
@@ -4977,8 +5005,7 @@ function hydratePriceFields() {
   if ($("#p-gemini")) $("#p-gemini").checked = !!cfg.geminiOn && !!cfg.geminiKey;
   const keyEl = $("#p-gemini-key");
   if (keyEl && document.activeElement !== keyEl) keyEl.value = cfg.geminiKey || "";
-  const stateEl = document.getElementById("gemini-key-state");
-  if (stateEl) stateEl.textContent = cfg.geminiKey ? "Clave guardada en esta app." : "No hay clave en esta app. Pégala aquí: Safari y el icono de inicio no comparten la clave.";
+  refreshGeminiKeyState();
 }
 
 function prefs() { return state.prefs || (state.prefs = {}); }
@@ -5264,6 +5291,7 @@ window.setPriceMode = setPriceMode;
 window.APP_VERSION = APP_VERSION;
 window.savePriceCfg = savePriceCfg;
 window.probeGeminiKey = probeGeminiKey;
+window.refreshGeminiKeyState = refreshGeminiKeyState;
 window.setNotify = setNotify;
 window.enableNotifications = enableNotifications;
 window.testNotification = testNotification;

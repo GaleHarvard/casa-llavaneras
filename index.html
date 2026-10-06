@@ -323,7 +323,7 @@
         <h3 style="margin-top:22px">Precios de mercado</h3>
         <p class="muted" style="margin:6px 0 10px">Vivino no tiene API. Sin clave se usa el dossier. Gemini estima la horquilla (no es una cotización). Wine-Searcher solo si tienes su clave.</p>
         <label class="switch-row"><span>Estimar con Gemini</span><input id="p-gemini" type="checkbox" /></label>
-        <label class="field"><span>Clave Gemini (AI Studio)</span><input id="p-gemini-key" type="password" placeholder="No se guarda en el código" autocomplete="off" /></label>
+        <label class="field"><span>Clave Gemini (AI Studio)</span><input id="p-gemini-key" type="password" placeholder="No se guarda en el código" autocomplete="off" oninput="refreshGeminiKeyState()" /></label>
         <button type="button" class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="probeGeminiKey()">Probar Gemini</button>
         <p id="gemini-key-state" class="tiny" style="margin:8px 0 0"></p>
         <p id="gemini-probe" class="tiny" style="margin:8px 0 0"></p>
