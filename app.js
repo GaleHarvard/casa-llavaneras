@@ -1,6 +1,7 @@
 function dossierOf(w) {
   const packed = (window.WINE_DOSSIERS && w && window.WINE_DOSSIERS[w.id]) || {};
-  return Object.assign({
+  const own = (w && w.dossier) || {};
+  const merged = Object.assign({
     soils: "Suelo de la denominación.",
     elevation: "—",
     vineyard: w ? (w.appellation + " · " + (w.grapes || []).join(", ")) : "",
@@ -13,7 +14,15 @@ function dossierOf(w) {
     market: { low: 0, mid: 0, high: 0, trend: "—" },
     similar: [],
     awards: []
-  }, packed);
+  }, packed, own);
+  if (w && w.provenance && !(window.WINE_DOSSIERS && window.WINE_DOSSIERS[w.id])) {
+    ["soils", "elevation", "vineyard", "vinification", "elevage", "glass", "decant", "oxygen", "history"].forEach(k => {
+      if (!own[k]) merged[k] = "Sin dato";
+    });
+    if (!own.awards) merged.awards = [];
+    if (!own.market) merged.market = { low: null, mid: null, high: null, trend: "Sin dato" };
+  }
+  return merged;
 }
 
 const NOW = new Date(2026, 8, 22);
@@ -973,12 +982,12 @@ function calBlock(title, arr) {
         <div>
           <h3>${shortWineName(w)}</h3>
           <p class="muted">${w.name} ${w.vintage}</p>
-          <p class="tiny">Beber hasta ${w.aging.peakEnd}</p>
+          <p class="tiny">${datesAreReal(w) ? "Beber hasta " + w.aging.peakEnd : "Beber hasta Sin dato"}</p>
         </div>
       </div>
       <div class="win-row">
         <span class="tiny">Ventana de consumo</span>
-        <span class="tiny win-left">${yearsUntilPeakEnd(w.aging.peakEnd)}</span>
+        <span class="tiny win-left">${datesAreReal(w) ? yearsUntilPeakEnd(w.aging.peakEnd) : "Sin dato"}</span>
       </div>
       <div class="win-bar" role="img" aria-label="Apogeo de ${w.aging.peakStart} a ${w.aging.peakEnd}. Año actual ${YEAR}.">
         <span class="win-peak" style="left:${mark.left}%;width:${mark.width}%"></span>
@@ -1188,6 +1197,105 @@ function pendingPlacementLine(wineId) {
   if (!rows.length) return "";
   return rows.map(r => `<p class="tiny" style="text-align:center;margin:6px 0 4px">Alta pendiente · ${cellarName(r.cellarId)} · ${r.bin}</p>`).join("");
 }
+function datesAreReal(w) {
+  if (!w || !w.provenance) return true;
+  return !!(w.provenance.aging && w.provenance.aging !== "valor por defecto");
+}
+function fieldIsReal(w, key) {
+  if (!w || !w.provenance) return true;
+  return !!(w.provenance[key] && w.provenance[key] !== "valor por defecto");
+}
+function rateScore(score, digits) {
+  const n = Number(score);
+  if (!n) return "Sin dato";
+  return digits ? n.toFixed(digits) : String(n);
+}
+function isPlaceholderNote(text) {
+  return /ficha a partir de la bodega|alta por etiqueta|completa la ficha|ficha creada/i.test(String(text || ""));
+}
+function publishedNote(obj) {
+  const n = ((obj && obj.note) || "").trim();
+  if (!n || isPlaceholderNote(n)) return "";
+  if (/^https?:\/\//i.test(n)) return "";
+  return n;
+}
+function criticBlurb(w) {
+  const note = publishedNote(w && w.ratings && w.ratings.parker);
+  if (note) return note;
+  const tasting = publishedNote({ note: w && w.tasting });
+  if (tasting.length > 24) return tasting;
+  return "Sin dato";
+}
+function criticMeters(w) {
+  const r = (w && w.ratings) || {};
+  const bit = (label, block, digits) => {
+    const score = block && block.score;
+    const est = block && block.estimate && score ? " est." : "";
+    return label + " " + rateScore(score, digits) + est;
+  };
+  const dec = r.decanter && r.decanter.score ? " · Decanter " + rateScore(r.decanter.score, 0) + (r.decanter.estimate ? " est." : "") : "";
+  return bit("WA", r.parker, 0) + " · " + bit("Peñín", r.penin, 0) + " · " + bit("WS", r.spectator, 0) + dec + " · " + bit("Vivino", r.vivino, 1);
+}
+function styleLabel(w) {
+  if (!w) return "Sin dato";
+  const kind = w.kindStyle || "";
+  if (w.provenance && (w.style === "internet" || w.style === "escaneo") && !kind) return w.type || "Sin dato";
+  if (kind) return kind + " · " + (w.type || "");
+  return (w.style || "Sin dato") + " · " + (w.type || "");
+}
+function shownTemp(w, which) {
+  if (!fieldIsReal(w, which)) return "Sin dato";
+  const c = w.conservation || {};
+  if (which === "cellar") return c.cellarMin + "–" + c.cellarMax + " °C";
+  return c.serveMin + "–" + c.serveMax + " °C";
+}
+function pairingPackOf(w) {
+  if (!w) return null;
+  if (window.WINE_PAIRINGS && WINE_PAIRINGS[w.id]) return WINE_PAIRINGS[w.id];
+  if (w.pairingPack && Array.isArray(w.pairingPack.matches) && w.pairingPack.matches.length) return w.pairingPack;
+  if (Array.isArray(w.pairing) && w.pairing.length) {
+    return {
+      logic: w.pairing.join(" · "),
+      serve: fieldIsReal(w, "service") ? (w.conservation.serveMin + "–" + w.conservation.serveMax + " °C") : "",
+      avoid: [],
+      matches: w.pairing.map((name, i) => ({ dishId: null, score: 0, why: String(name), label: String(name) }))
+    };
+  }
+  return null;
+}
+function pairFeatureHtml(w) {
+  const pack = pairingPackOf(w);
+  const top = pack && pack.matches && pack.matches[0];
+  if (!top) return `<p class="muted" style="margin:0 0 12px">Sin dato</p>`;
+  const dish = top.dishId ? PAIRING_DISHES.find(d => d.id === top.dishId) : null;
+  const title = dish ? dish.name : (top.label || top.why);
+  const score = top.score ? `<div class="pair-score">${top.score}/100</div>` : "";
+  const why = dish ? top.why : "";
+  return `<div class="pair-feature" role="button" onclick="openWineSub('pairings')">
+      ${dish ? dishArt() : ""}
+      <div>
+        <h3>${escHtml(title)}</h3>
+        ${score}
+        ${why ? `<p class="muted" style="margin-top:4px">${escHtml(why)}</p>` : ""}
+      </div>
+    </div>`;
+}
+function fichaStatusCard(w) {
+  if (!w || isCatalogWineId(w.id)) return "";
+  const note = (w.provenance && w.provenance.geminiNote) || "";
+  const btn = `<button class="btn btn-gold" style="width:100%;margin-top:8px" onclick="completeExistingWine('${w.id}')">Completar ficha</button>`;
+  if (!note) return `<div id="ficha-status">${btn}</div>`;
+  return `<div class="card" id="ficha-status"><p>${escHtml(note)}</p>${btn}</div>`;
+}
+function setFichaProgress(msg) {
+  setScanStatus(msg);
+  const el = document.getElementById("ficha-status");
+  if (el) el.innerHTML = `<p>${escHtml(msg)}</p>`;
+  const box = document.getElementById("scan-results");
+  if (box && document.getElementById("scan") && document.getElementById("scan").classList.contains("active")) {
+    box.innerHTML = `<div class="card"><p>${escHtml(msg)}</p><p class="tiny">Primero la página de la tienda o la bodega. Lo que no aparezca, si hay clave guardada, lo estima Gemini.</p></div>`;
+  }
+}
 function openWine(wineId, bottle) {
   const w = wineById(wineId);
   if (!w) {
@@ -1200,11 +1308,8 @@ function openWine(wineId, bottle) {
   currentBottle = bottle || state.bottles.find(b => b.wineId === wineId) || null;
   const p = phaseOf(w);
   const r = w.ratings;
-  const pack = WINE_PAIRINGS[w.id];
-  const top = pack?.matches?.[0];
-  const dish = top ? PAIRING_DISHES.find(d => d.id === top.dishId) : null;
   const backTo = lastList === "wine" ? (bottle ? "cellar" : "scan") : lastList;
-  const pill = (p.label || "").toUpperCase();
+  const pill = datesAreReal(w) ? (p.label || "").toUpperCase() : "SIN DATO";
 
   $("#wine-body").innerHTML = `
     <div class="wine-top">
@@ -1226,6 +1331,7 @@ function openWine(wineId, bottle) {
       <button type="button" onclick="openWineSub('anadas')">Añadas</button>
     </div>
     ${zoneStrip(w)}
+    ${fichaStatusCard(w)}
 
     <div class="sec-head" role="button" onclick="openWineSub('ratings')"><h2>Calificaciones</h2><span class="sec-ico">▦</span></div>
     <div class="rate-grid" role="button" onclick="openWineSub('ratings')">
@@ -1234,53 +1340,46 @@ function openWine(wineId, bottle) {
           <div class="badge-round vivino-mark">
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#fff" stroke-width="1.6"><path d="M12 4c2 4 6 6 6 11a6 6 0 1 1-12 0c0-5 4-7 6-11z"/></svg>
           </div>
-          <div><b>Vivino</b><div class="stars">${starsRow(r.vivino.score)}</div></div>
+          <div><b>Vivino</b><div class="stars">${r.vivino.score ? starsRow(r.vivino.score) : ""}</div></div>
         </div>
-        <div class="rate-score">${r.vivino.score.toFixed(1)}</div>
+        <div class="rate-score" style="${r.vivino.score ? "" : "font-size:14px"}">${rateScore(r.vivino.score, 1)}</div>
       </div>
       <div class="rate-card">
         <div class="who"><b>Peñín</b></div>
-        <div class="rate-end"><div class="rate-score">${r.penin.score}</div>
+        <div class="rate-end"><div class="rate-score" style="${r.penin.score ? "" : "font-size:14px"}">${rateScore(r.penin.score, 0)}</div>
           <svg class="rate-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M12 3 20 7v6c0 5-3.5 8-8 11-4.5-3-8-6-8-11V7z"/></svg>
         </div>
       </div>
       <div class="rate-card">
         <div class="who"><b>Parker</b></div>
-        <div class="rate-end"><div class="rate-score">${r.parker.score}</div><span class="parker-p">P</span></div>
+        <div class="rate-end"><div class="rate-score" style="${r.parker.score ? "" : "font-size:14px"}">${rateScore(r.parker.score, 0)}</div><span class="parker-p">P</span></div>
       </div>
       <div class="rate-card">
         <div class="who"><b>Spectator</b></div>
-        <div class="rate-end"><div class="rate-score">${r.spectator.score}</div>
+        <div class="rate-end"><div class="rate-score" style="${r.spectator.score ? "" : "font-size:14px"}">${rateScore(r.spectator.score, 0)}</div>
           <svg class="rate-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M18 6l-2.5 2.5M6 18l2.5-2.5"/></svg>
         </div>
       </div>
     </div>
     <div class="card" role="button" onclick="openWineSub('ratings')" style="margin:8px 0 12px">
       <p class="tiny">Crítica publicada</p>
-      <p style="margin-top:8px;line-height:1.45">${(r.parker && r.parker.note) || w.tasting}</p>
-      <p class="muted" style="margin-top:8px">${r.parker && r.parker.reviewer ? r.parker.reviewer + " · " : ""}WA ${r.parker.score} · Peñín ${r.penin.score} · WS ${r.spectator.score}${r.decanter && r.decanter.score ? " · Decanter " + r.decanter.score : ""} · Vivino ${r.vivino.score.toFixed(1)}</p>
+      <p style="margin-top:8px;line-height:1.45">${escHtml(criticBlurb(w))}</p>
+      <p class="muted" style="margin-top:8px">${r.parker && r.parker.reviewer && r.parker.score ? escHtml(r.parker.reviewer) + " · " : ""}${escHtml(criticMeters(w))}</p>
     </div>
 
     <div class="sec-head" role="button" onclick="openWineSub('pairings')"><h2>Maridajes</h2><span class="sec-ico">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 13h14v3H5z"/><path d="M7 13c0-5 2.5-8 5-8s5 3 5 8"/><path d="M4 19h16"/></svg>
     </span></div>
-    ${dish ? `<div class="pair-feature" role="button" onclick="openWineSub('pairings')">
-      ${dishArt()}
-      <div>
-        <h3>${dish.name}</h3>
-        <div class="pair-score">${top.score}/100</div>
-        <p class="muted" style="margin-top:4px">${top.why}</p>
-      </div>
-    </div>` : ""}
+    ${pairFeatureHtml(w)}
 
     <div class="serve-bar" role="button" onclick="openWineSub('keep')">
       <div class="serve-cell">
         <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 3v3M8 5l1.2 2.2M16 5l-1.2 2.2"/><path d="M7 14a5 5 0 0 0 10 0c0-3-2.4-5.5-5-7-2.6 1.5-5 4-5 7z"/></svg>
-        <div><div class="lbl">Guarda</div><div class="val">${w.conservation.cellarMin}–${w.conservation.cellarMax} °C</div></div>
+        <div><div class="lbl">Guarda</div><div class="val">${shownTemp(w, "cellar")}</div></div>
       </div>
       <div class="serve-cell">
         <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M8 3h8l-1 9a5 5 0 1 1-6 0L8 3z"/><path d="M9 21h6"/></svg>
-        <div><div class="lbl">Servicio</div><div class="val">${w.conservation.serveMin}–${w.conservation.serveMax} °C</div></div>
+        <div><div class="lbl">Servicio</div><div class="val">${shownTemp(w, "service")}</div></div>
       </div>
     </div>
     <div class="dossier-grid">
@@ -1345,10 +1444,12 @@ function openWineSub(kind) {
   let body = "";
   if (kind === "ratings") {
     const d = dossierOf(w);
-    const casa = (w.tasting || "").trim();
+    const casaRaw = publishedNote({ note: w.tasting });
+    const casa = casaRaw || (w.provenance ? "Sin dato" : (w.tasting || "").trim());
     const noteOf = (obj, extra) => {
-      const n = ((obj && obj.note) || extra || "").trim();
+      const n = publishedNote(obj) || publishedNote({ note: extra });
       if (n && n !== casa) return n;
+      if (w.provenance) return "Sin dato";
       return "Sin párrafo propio de esta guía para la añada. La nota de la casa está abajo.";
     };
     const card = (fuente, puntos, texto) => `
@@ -1359,16 +1460,16 @@ function openWineSub(kind) {
     body = `
       <p class="tiny" style="margin:6px 0 8px">Guías del sector + nota de la casa. Vivino no tiene API: la media es de dossier, no de la web en vivo.</p>
       <div class="temp-grid" style="margin:8px 0 12px">
-        <div class="temp"><span class="tiny">Vivino</span><b>${r.vivino.score.toFixed(1)}</b></div>
-        <div class="temp"><span class="tiny">Peñín</span><b>${r.penin.score}</b></div>
-        <div class="temp"><span class="tiny">Parker / WA</span><b>${r.parker.score}</b></div>
-        <div class="temp"><span class="tiny">Spectator</span><b>${r.spectator.score}</b></div>
+        <div class="temp"><span class="tiny">Vivino</span><b>${rateScore(r.vivino.score, 1)}</b></div>
+        <div class="temp"><span class="tiny">Peñín</span><b>${rateScore(r.penin.score, 0)}</b></div>
+        <div class="temp"><span class="tiny">Parker / WA</span><b>${rateScore(r.parker.score, 0)}</b></div>
+        <div class="temp"><span class="tiny">Spectator</span><b>${rateScore(r.spectator.score, 0)}</b></div>
       </div>
-      ${card("Guía Peñín", r.penin.score + "/100", noteOf(r.penin))}
-      ${card(r.parker.reviewer || "Luis Gutiérrez / Wine Advocate", r.parker.score + "/100", noteOf(r.parker))}
-      ${card("Wine Spectator", r.spectator.score + "/100", noteOf(r.spectator, r.spectator.note))}
-      ${card("Decanter", (r.decanter && r.decanter.score ? r.decanter.score + "/100" : "—"), noteOf(r.decanter))}
-      ${card("Vivino · usuarios", r.vivino.score.toFixed(1) + "/5 · " + (r.vivino.count || "—") + " valoraciones", noteOf(r.vivino))}
+      ${card("Guía Peñín" + (r.penin.estimate ? " · estimación" : ""), r.penin.score ? r.penin.score + "/100" : "Sin dato", noteOf(r.penin))}
+      ${card((r.parker.reviewer || "Wine Advocate") + (r.parker.estimate ? " · estimación" : ""), r.parker.score ? r.parker.score + "/100" : "Sin dato", noteOf(r.parker))}
+      ${card("Wine Spectator" + (r.spectator.estimate ? " · estimación" : ""), r.spectator.score ? r.spectator.score + "/100" : "Sin dato", noteOf(r.spectator, r.spectator.note))}
+      ${card("Decanter" + (r.decanter && r.decanter.estimate ? " · estimación" : ""), (r.decanter && r.decanter.score ? r.decanter.score + "/100" : "Sin dato"), noteOf(r.decanter))}
+      ${card("Vivino · usuarios" + (r.vivino.estimate ? " · estimación" : ""), (r.vivino.score ? r.vivino.score.toFixed(1) + "/5 · " + (r.vivino.count || "Sin dato") + " valoraciones" : "Sin dato"), noteOf(r.vivino))}
       ${card("Nota de cata (casa)", "ficha", casa)}
       ${d.awards && d.awards.length ? `<div class="card"><p class="tiny">Referencias</p><p style="margin-top:8px">${d.awards.join(" · ")}</p></div>` : ""}
       <button class="btn btn-ghost" style="width:100%;margin-top:12px" onclick="openWineSub('taste')">Cata personal ›</button>
@@ -1378,10 +1479,10 @@ function openWineSub(kind) {
   } else if (kind === "keep") {
     body = `
       <div class="temp-grid" style="margin:10px 0">
-        <div class="temp"><span class="tiny">Vinoteca</span><b>${w.conservation.cellarMin}–${w.conservation.cellarMax} °C</b></div>
-        <div class="temp"><span class="tiny">Servicio</span><b>${w.conservation.serveMin}–${w.conservation.serveMax} °C</b></div>
-        <div class="temp"><span class="tiny">Humedad</span><b>${w.conservation.humidity}</b></div>
-        <div class="temp"><span class="tiny">Posición</span><b style="font-size:16px">${w.conservation.position}</b></div>
+        <div class="temp"><span class="tiny">Vinoteca</span><b>${shownTemp(w, "cellar")}</b></div>
+        <div class="temp"><span class="tiny">Servicio</span><b>${shownTemp(w, "service")}</b></div>
+        <div class="temp"><span class="tiny">Humedad</span><b>${fieldIsReal(w, "cellar") ? w.conservation.humidity : "Sin dato"}</b></div>
+        <div class="temp"><span class="tiny">Posición</span><b style="font-size:16px">${fieldIsReal(w, "cellar") ? w.conservation.position : "Sin dato"}</b></div>
       </div>
       <div class="card">
         <p class="muted">Luz: ${w.conservation.light}. El corcho vive con humedad ${corkHumidity(w)}: por debajo se reseca y entra oxígeno; por encima hay moho en la cápsula.</p>
@@ -1396,22 +1497,22 @@ function openWineSub(kind) {
     const d = dossierOf(w);
     body = `
       <div class="temp-grid" style="margin:10px 0">
-        <div class="temp"><span class="tiny">Servir</span><b>${w.conservation.serveMin}–${w.conservation.serveMax} °C</b></div>
+        <div class="temp"><span class="tiny">Servir</span><b>${shownTemp(w, "service")}</b></div>
         <div class="temp"><span class="tiny">Decantar</span><b style="font-size:16px">${d.decant}</b></div>
       </div>
       <div class="card"><p class="tiny">Copa</p><p>${d.glass}</p></div>
       <div class="card"><p class="tiny">Oxígeno</p><p class="muted" style="margin-top:6px">${d.oxygen}</p></div>
-      <div class="card"><p class="tiny">Guarda en cava</p><p class="muted" style="margin-top:6px">${w.conservation.cellarMin}–${w.conservation.cellarMax} °C · ${w.conservation.humidity} · ${w.conservation.position}</p></div>`;
+      <div class="card"><p class="tiny">Guarda en cava</p><p class="muted" style="margin-top:6px">${shownTemp(w, "cellar")} · ${fieldIsReal(w, "cellar") ? w.conservation.humidity : "Sin dato"} · ${fieldIsReal(w, "cellar") ? w.conservation.position : "Sin dato"}</p></div>`;
   } else if (kind === "tecnica") {
     const d = dossierOf(w);
     body = `
       ${provenanceCard(w)}
       <div class="fact"><span>Uvas</span><b>${(w.grapes || []).join(", ") || "—"}</b></div>
       <div class="fact"><span>Alcohol</span><b>${w.abv ? w.abv + "% vol." : "—"}</b></div>
-      <div class="fact"><span>Estilo</span><b>${w.style} · ${w.type}</b></div>
+      <div class="fact"><span>Estilo</span><b>${escHtml(styleLabel(w))}</b></div>
       ${w.provenance ? `<div class="fact"><span>Zona</span><b>${escHtml([w.appellation || w.region, w.country].filter(Boolean).join(" · ") || "—")}</b></div>
-      <div class="fact"><span>Beber</span><b>${w.aging.drinkFrom}–${w.aging.peakEnd}</b></div>
-      <div class="fact"><span>Límite</span><b>${w.aging.holdTo}</b></div>
+      <div class="fact"><span>Beber</span><b>${datesAreReal(w) ? w.aging.drinkFrom + "–" + w.aging.peakEnd : "Sin dato"}</b></div>
+      <div class="fact"><span>Límite</span><b>${datesAreReal(w) ? w.aging.holdTo : "Sin dato"}</b></div>
       <div class="fact"><span>Maridaje</span><b>${escHtml((w.pairing || []).join(", ") || "—")}</b></div>` : ""}
       <div class="fact"><span>Altitud</span><b>${d.elevation}</b></div>
       <div class="card" style="margin-top:12px"><p class="tiny">Suelos</p><p class="muted" style="margin-top:6px">${d.soils}</p></div>
@@ -1426,8 +1527,8 @@ function openWineSub(kind) {
       ${paras.map(t => `<div class="card"><p style="line-height:1.5">${t}</p></div>`).join("")}
       <div class="card"><p class="tiny">Elaboración</p><p style="margin-top:8px">${d.vinification}</p><p class="muted" style="margin-top:8px">${d.elevage}</p></div>
       <div class="card"><p class="tiny">Crítica de añada ${w.vintage}</p>
-        <p style="margin-top:8px;line-height:1.45">${(r.parker && r.parker.note) || w.tasting}</p>
-        <p class="muted" style="margin-top:8px">${r.parker && r.parker.reviewer ? r.parker.reviewer + " · " : ""}WA ${r.parker.score} · Peñín ${r.penin.score} · WS ${r.spectator.score}${r.decanter && r.decanter.score ? " · Decanter " + r.decanter.score : ""}</p>
+        <p style="margin-top:8px;line-height:1.45">${escHtml(criticBlurb(w))}</p>
+        <p class="muted" style="margin-top:8px">${escHtml(criticMeters(w))}</p>
         ${(r.penin && r.penin.note) ? `<p class="muted" style="margin-top:10px">${r.penin.note}</p>` : ""}
       </div>
       ${d.awards && d.awards.length ? `<div class="card"><p class="tiny">Referencias</p><p style="margin-top:8px">${d.awards.join(" · ")}</p></div>` : ""}
@@ -1437,14 +1538,17 @@ function openWineSub(kind) {
     body = `<div id="mercado-box">${mercadoSkeleton(w)}</div>`;
     setTimeout(() => fillMercado(w), 0);
   } else if (kind === "evolve") {
+    const when = datesAreReal(w)
+      ? `Añada ${w.vintage}. Beber desde ${w.aging.drinkFrom}. Apogeo ${w.aging.peakStart}–${w.aging.peakEnd}. Límite prudente ${w.aging.holdTo}.`
+      : `Añada ${w.vintage}. Ventana de consumo: Sin dato.`;
     body = `
-      <p class="muted" style="margin:6px 0">Añada ${w.vintage}. Beber desde ${w.aging.drinkFrom}. Apogeo ${w.aging.peakStart}–${w.aging.peakEnd}. Límite prudente ${w.aging.holdTo}.</p>
-      <div class="peak-pill">${(p.label || "").toUpperCase()}</div>
-      <div class="bar"><i style="width:${pr.pct}%"></i></div>
-      <div class="row tiny"><span>${w.vintage}</span><span>hoy ${YEAR}</span><span>${w.aging.holdTo}</span></div>
+      <p class="muted" style="margin:6px 0">${when}</p>
+      <div class="peak-pill">${datesAreReal(w) ? (p.label || "").toUpperCase() : "SIN DATO"}</div>
+      ${datesAreReal(w) ? `<div class="bar"><i style="width:${pr.pct}%"></i></div>
+      <div class="row tiny"><span>${w.vintage}</span><span>hoy ${YEAR}</span><span>${w.aging.holdTo}</span></div>` : ""}
       <div class="timeline">
-        ${(w.evolutionNotes || []).map(n => `<div class="tl-item"><em>${n.year} · ${n.phase}</em><strong>${n.text}</strong></div>`).join("")}
-        <div class="tl-item"><em>${YEAR} · Estado actual</em><strong>${currentAdvice(w, p)}</strong></div>
+        ${(w.evolutionNotes || []).map(n => `<div class="tl-item"><em>${n.year} · ${n.phase}</em><strong>${escHtml(n.text)}</strong></div>`).join("")}
+        <div class="tl-item"><em>${YEAR} · Estado actual</em><strong>${datesAreReal(w) ? currentAdvice(w, p) : "Sin dato de ventana. Pulsa Completar ficha."}</strong></div>
       </div>`;
   } else if (kind === "profile") {
     body = `
@@ -1457,7 +1561,7 @@ function openWineSub(kind) {
       </div>
       <div class="card">
         <p>Uvas: ${(w.grapes || []).join(", ") || "—"}</p>
-        <p class="muted">${w.abv}% vol. · ${w.type} · ${w.style} · ${w.priceHint}</p>
+        <p class="muted">${w.abv ? w.abv + "% vol." : "Sin dato"} · ${escHtml(styleLabel(w))} · ${w.priceHint && w.priceHint !== "—" ? escHtml(w.priceHint) : "Sin dato"}</p>
       </div>
       <div class="card">
         <p class="tiny">Suelos</p>
@@ -1484,21 +1588,26 @@ function openWineSub(kind) {
   } else if (kind === "vinos") {
     const house = WINE_CATALOG.filter(x => x.producer === w.producer);
     const zone = WINE_CATALOG.filter(x => x.producer !== w.producer && (x.region === w.region || x.appellation === w.appellation));
+    const ownHouse = (!house.length && w.houseWines) ? w.houseWines : [];
     body = mapTabs("vinos") + `
       <h2>${w.producer}</h2>
       ${house.map(s => `<div class="card" role="button" onclick="openWine('${s.id}')">
         <div class="row"><h3>${s.name} ${s.vintage}</h3><span class="badge">Parker ${s.ratings.parker.score}</span></div>
         <p class="muted">${s.appellation}</p>
-      </div>`).join("") || `<p class="muted">Solo esta referencia de la casa.</p>`}
+      </div>`).join("") || ownHouse.map(s => `<div class="card"><div class="row"><h3>${escHtml(s.name)}</h3></div><p class="muted">${escHtml(s.note || "")}</p></div>`).join("") || `<p class="muted">${w.provenance ? "Sin dato" : "Solo esta referencia de la casa."}</p>`}
       ${zone.length ? `<h2 style="margin-top:16px">Misma zona</h2>` + zone.map(s => `<div class="card" role="button" onclick="openWine('${s.id}')">
         <div class="row"><h3>${s.producer} ${s.name}</h3><span class="badge">${s.vintage}</span></div>
       </div>`).join("") : ""}`;
   } else if (kind === "anadas") {
     const sibs = WINE_CATALOG.filter(x => x.producer === w.producer && x.name === w.name);
+    const extra = (!sibs.length && Array.isArray(w.vintages)) ? w.vintages : [];
     body = sibs.length ? sibs.map(s => `<div class="card" role="button" onclick="openWine('${s.id}')">
       <div class="row"><h3>${s.vintage}</h3><span class="badge">Parker ${s.ratings.parker.score}</span></div>
       <p class="muted">${s.priceHint} · ${phaseOf(s).label}</p>
-    </div>`).join("") : `<p class="muted">No hay otras añadas en el catálogo.</p>`;
+    </div>`).join("") : (extra.length ? extra.map(s => `<div class="card">
+      <div class="row"><h3>${escHtml(String(s.vintage))}</h3></div>
+      <p class="muted">${escHtml([s.priceHint, s.note].filter(Boolean).join(" · ") || "Sin dato")}</p>
+    </div>`).join("") : `<p class="muted">${w.provenance ? "Sin dato" : "No hay otras añadas en el catálogo."}</p>`);
   } else if (kind === "compras") {
     const b = currentBottle;
     const d = dossierOf(w);
@@ -1578,22 +1687,18 @@ function openWineSub(kind) {
 }
 
 function pairingBlock(w) {
-  const pack = WINE_PAIRINGS[w.id] || {
-    logic: (w.pairing || []).join(" · ") || "Maridaje de la ficha.",
-    serve: w.conservation ? (`${w.conservation.serveMin}–${w.conservation.serveMax} °C`) : "Servir a temperatura de tipo.",
-    avoid: [],
-    matches: (w.pairing || []).map((name, i) => ({ dishId: null, score: 90 - i * 3, why: name }))
-  };
-  if (!pack) return "";
+  const pack = pairingPackOf(w);
+  if (!pack) return `<p class="muted">Sin dato</p>`;
   const inCellar = state.bottles.some(b => b.wineId === w.id);
   return `
     <h2 style="margin-top:16px">Maridajes de este vino</h2>
     <p class="muted" style="margin:6px 0 10px">${pack.logic}</p>
-    <div class="card"><p class="tiny">Servicio en mesa</p><p>${pack.serve}</p>
-      <p class="muted" style="margin-top:8px">Evitar: ${pack.avoid.join(" · ")}</p></div>
+    <div class="card"><p class="tiny">Servicio en mesa</p><p>${escHtml(pack.serve || "Sin dato")}</p>
+      ${(pack.avoid && pack.avoid.length) ? `<p class="muted" style="margin-top:8px">Evitar: ${escHtml(pack.avoid.join(" · "))}</p>` : ""}</div>
     ${pack.matches.map(m => {
       const d = m.dishId && PAIRING_DISHES.find(x => x.id === m.dishId);
-      if (!d) return `<div class="card"><div class="row"><h3>${m.why}</h3><span class="badge">${m.score}/100</span></div></div>`;
+      const badge = m.score ? `<span class="badge">${m.score}/100</span>` : "";
+      if (!d) return `<div class="card"><div class="row"><h3>${escHtml(m.label || m.why)}</h3>${badge}</div></div>`;
       return `<div class="card" role="button" onclick="openDish('${d.id}')">
         <div class="row"><h3>${d.icon} ${d.name}</h3><span class="badge ${m.score >= 94 ? "ok" : m.score >= 88 ? "warn" : ""}">${m.score}/100</span></div>
         <p class="muted">${m.why}</p>
@@ -2412,10 +2517,7 @@ function needsWineCompletion(w) {
   return w.style === "internet" || w.style === "escaneo";
 }
 function showCompletingStatus() {
-  setScanStatus("Completando la ficha…");
-  if ($("#scan-results")) {
-    $("#scan-results").innerHTML = `<div class="card"><p>Completando la ficha…</p><p class="tiny">Primero la página de la tienda o la bodega. Lo que no aparezca, si hay clave guardada, lo estima Gemini.</p></div>`;
-  }
+  setFichaProgress("Completando la ficha…");
 }
 function colorForWineType(type) {
   if (type === "blanco") return "#e8d9a0";
@@ -2523,7 +2625,44 @@ function parseWinePage(md) {
     const n = Number(serveOne[1]);
     if (n >= 4 && n <= 22) { facts.serveMin = n; facts.serveMax = n; }
   }
+  const euros = priceFromMarkdown(md);
+  if (euros) facts.priceEur = euros;
+  const style = styleFromText(slice);
+  if (style) facts.style = style;
   return facts;
+}
+function styleFromText(text) {
+  const t = normTxt(text);
+  if (/gran reserva/.test(t)) return "gran_reserva";
+  if (/\breserva\b/.test(t)) return "reserva";
+  if (/crianza/.test(t)) return "crianza";
+  if (/\broble\b/.test(t)) return "roble";
+  if (/\bjoven\b/.test(t)) return "joven";
+  return "";
+}
+function priceFromMarkdown(md) {
+  const text = String(md || "");
+  const head = text.search(/^#\s+\S/m);
+  const slice = text.slice(head >= 0 ? head : 0, (head >= 0 ? head : 0) + 7000);
+  const m = slice.match(/(\d{1,4}(?:[,.]\d{2}))\s*€/);
+  if (!m) return 0;
+  const n = Number(m[1].replace(",", "."));
+  if (n < 3 || n > 5000) return 0;
+  return n;
+}
+function applyShelfPrice(wine, euros, source) {
+  const n = typeof euros === "number" ? euros : Number(String(euros).replace(",", ".").replace(/[^\d.]/g, ""));
+  if (!(n >= 3 && n <= 5000)) return;
+  wine.priceHint = n.toFixed(2).replace(".", ",") + " €";
+  wine.dossier = wine.dossier || {};
+  const market = wine.dossier.market || {};
+  wine.dossier.market = {
+    low: market.low || null,
+    mid: Math.round(n),
+    high: market.high || null,
+    trend: "Precio visto en la página de la tienda."
+  };
+  markWineSource(wine, "price", source);
 }
 function markWineSource(wine, field, source) {
   wine.provenance = wine.provenance || {};
@@ -2571,21 +2710,19 @@ function applyPageFacts(wine, facts) {
     wine.conservation.serveMax = facts.serveMax || facts.serveMin;
     markWineSource(wine, "service", "página");
   }
+  if (facts.style) {
+    wine.kindStyle = facts.style;
+    markWineSource(wine, "style", "página");
+  }
+  if (facts.priceEur) applyShelfPrice(wine, facts.priceEur, "página");
 }
+const PAIRING_DISH_IDS = ["cordero", "caza", "buey", "aves", "cerdo", "estofado", "marisco", "pescado-blanco", "pescado-graso", "arroz", "pasta", "setas", "ensalada", "queso-tierno", "queso-curado", "legumbres", "chocolate", "sashimi"];
 function geminiGaps(wine) {
   const p = (wine && wine.provenance) || {};
   const gaps = [];
-  if (p.type !== "página") gaps.push("type");
-  if (p.grapes !== "página") gaps.push("grapes");
-  if (p.region !== "página") gaps.push("region");
-  if (p.country !== "página") gaps.push("country");
-  if (p.abv !== "página") gaps.push("abv");
-  if (p.tasting !== "página") gaps.push("tasting");
-  if (p.crianza !== "página") gaps.push("crianza");
-  if (p.service !== "página") gaps.push("service");
-  if (p.cellar !== "página") gaps.push("cellar");
-  if (p.pairing !== "página") gaps.push("pairings");
-  if (p.aging !== "página") gaps.push("aging");
+  ["type", "grapes", "region", "country", "abv", "tasting", "crianza", "service", "cellar", "pairing", "aging", "style", "ratings", "dossier", "web", "evolution", "vintages", "price"].forEach(k => {
+    if (p[k] !== "página") gaps.push(k);
+  });
   return gaps;
 }
 function storedGeminiKey() {
@@ -2681,12 +2818,170 @@ function applyGeminiFacts(wine, raw) {
     const holdTo = saneVintageYear(raw.holdTo, vintage);
     if (drinkFrom && peakStart >= drinkFrom && peakEnd >= peakStart && holdTo >= peakEnd) {
       wine.aging = { drinkFrom, peakStart, peakEnd, holdTo };
+      if (raw.structure) {
+        const structure = Math.round(Number(raw.structure));
+        if (structure >= 40 && structure <= 100) wine.aging.structure = structure;
+      }
       markWineSource(wine, "aging", "estimación Gemini");
+    }
+  }
+  applyGeminiRecord(wine, raw);
+}
+function clipText(value, max) {
+  return String(value || "").replace(/\s+/g, " ").trim().slice(0, max);
+}
+function applyGeminiRecord(wine, raw) {
+  if (!raw || typeof raw !== "object") return;
+  const gaps = new Set(geminiGaps(wine));
+  if (gaps.has("style")) {
+    const style = styleFromText(raw.style || raw.kindStyle || "");
+    if (style) {
+      wine.kindStyle = style;
+      markWineSource(wine, "style", "estimación Gemini");
+    }
+  }
+  if (gaps.has("ratings") && raw.ratings && typeof raw.ratings === "object") {
+    const bands = {
+      vivino: { min: 3, max: 5 },
+      penin: { min: 70, max: 100 },
+      parker: { min: 70, max: 100 },
+      spectator: { min: 70, max: 100 },
+      decanter: { min: 70, max: 100 }
+    };
+    let any = false;
+    Object.keys(bands).forEach(k => {
+      const src = raw.ratings[k];
+      if (!src || src.known !== true) return;
+      const score = Number(String(src.score == null ? "" : src.score).replace(",", "."));
+      if (!(score >= bands[k].min && score <= bands[k].max)) return;
+      wine.ratings[k] = wine.ratings[k] || { scale: k === "vivino" ? 5 : 100, note: "" };
+      wine.ratings[k].score = k === "vivino" ? Math.round(score * 10) / 10 : Math.round(score);
+      wine.ratings[k].scale = k === "vivino" ? 5 : 100;
+      wine.ratings[k].note = clipText(src.note, 280);
+      wine.ratings[k].estimate = true;
+      if (k === "vivino") {
+        const count = Math.round(Number(src.count));
+        if (count > 0 && count < 500000) wine.ratings[k].count = count;
+      }
+      if (k === "parker" && src.reviewer) wine.ratings[k].reviewer = clipText(src.reviewer, 60);
+      any = true;
+    });
+    if (any) markWineSource(wine, "ratings", "estimación Gemini");
+  }
+  const pack = raw.pairingPack || raw.pairingsPack;
+  if (gaps.has("pairing") && pack && typeof pack === "object") {
+    const matches = (Array.isArray(pack.matches) ? pack.matches : []).map(m => {
+      const dishId = String((m && m.dishId) || "");
+      const score = Math.round(Number(m && m.score));
+      const why = clipText(m && m.why, 180);
+      if (!PAIRING_DISH_IDS.includes(dishId) || !(score >= 60 && score <= 100) || why.length < 8) return null;
+      const dish = PAIRING_DISHES.find(d => d.id === dishId);
+      return { dishId, score, why, label: dish ? dish.name : dishId };
+    }).filter(Boolean).slice(0, 4);
+    if (matches.length) {
+      wine.pairingPack = {
+        logic: clipText(pack.logic, 220) || matches.map(m => m.label).join(" · "),
+        serve: clipText(pack.serve, 80) || shownTemp(wine, "service"),
+        avoid: (Array.isArray(pack.avoid) ? pack.avoid : []).map(x => clipText(x, 40)).filter(x => x.length > 2).slice(0, 4),
+        matches
+      };
+      wine.pairing = matches.map(m => m.label);
+      markWineSource(wine, "pairing", "estimación Gemini");
+    }
+  }
+  if (gaps.has("dossier") && raw.dossier && typeof raw.dossier === "object") {
+    const d = raw.dossier;
+    wine.dossier = wine.dossier || {};
+    ["soils", "elevation", "vineyard", "vinification", "elevage", "glass", "decant", "oxygen"].forEach(k => {
+      const text = clipText(d[k], 220);
+      if (text.length > 3) wine.dossier[k] = text;
+    });
+    const history = String(d.history || "").replace(/\r/g, "").trim();
+    if (history.length > 40) wine.dossier.history = history.slice(0, 900);
+    if (Array.isArray(d.awards)) {
+      const awards = d.awards.map(a => clipText(a, 40)).filter(a => a.length > 2).slice(0, 6);
+      if (awards.length) wine.dossier.awards = awards;
+    }
+    const pageMid = wine.provenance && wine.provenance.price === "página" && wine.dossier.market ? wine.dossier.market.mid : 0;
+    const market = d.market || {};
+    const low = Math.round(Number(market.low));
+    const mid = Math.round(Number(market.mid));
+    const high = Math.round(Number(market.high));
+    const sane = n => n >= 4 && n <= 8000;
+    if (pageMid) {
+      wine.dossier.market = wine.dossier.market || {};
+      if (sane(low) && low <= pageMid) wine.dossier.market.low = low;
+      if (sane(high) && high >= pageMid) wine.dossier.market.high = high;
+    } else if (sane(mid) && (!sane(low) || low <= mid) && (!sane(high) || high >= mid)) {
+      wine.dossier.market = {
+        low: sane(low) ? low : null,
+        mid,
+        high: sane(high) ? high : null,
+        trend: clipText(market.trend, 140) || "Estimación Gemini, no es cotización."
+      };
+      if (!wine.priceHint || wine.priceHint === "—") wine.priceHint = mid + " €";
+      markWineSource(wine, "price", "estimación Gemini");
+    }
+    if (wine.dossier.history || wine.dossier.soils || wine.dossier.glass) markWineSource(wine, "dossier", "estimación Gemini");
+    if (Array.isArray(d.priceHistory)) {
+      const rows = d.priceHistory.map(r => ({
+        year: Math.round(Number(r && r.year)),
+        mid: Math.round(Number(r && (r.mid != null ? r.mid : r.price)))
+      })).filter(r => r.year >= 2010 && r.year <= YEAR && r.mid >= 4 && r.mid <= 8000).slice(0, 6);
+      if (rows.length) wine.priceHistory = rows;
+    }
+  }
+  if (gaps.has("evolution") && Array.isArray(raw.evolutionNotes)) {
+    const vintage = Number(wine.vintage) || YEAR;
+    const notes = raw.evolutionNotes.map(n => ({
+      year: Math.round(Number(n && n.year)),
+      phase: clipText(n && n.phase, 32),
+      text: clipText(n && n.text, 180)
+    })).filter(n => n.year >= vintage - 2 && n.year <= vintage + 60 && n.phase && n.text.length > 8).slice(0, 4);
+    if (notes.length) {
+      wine.evolutionNotes = notes;
+      markWineSource(wine, "evolution", "estimación Gemini");
+    }
+  }
+  if (gaps.has("vintages") && Array.isArray(raw.vintages)) {
+    const rows = raw.vintages.map(v => ({
+      vintage: Math.round(Number(v && (v.vintage || v.year))),
+      note: clipText(v && v.note, 80),
+      priceHint: clipText(v && v.priceHint, 24)
+    })).filter(v => v.vintage >= 1950 && v.vintage <= YEAR + 1).slice(0, 5);
+    if (rows.length) {
+      wine.vintages = rows;
+      markWineSource(wine, "vintages", "estimación Gemini");
+    }
+  }
+  if (Array.isArray(raw.houseWines)) {
+    const rows = raw.houseWines.map(v => ({
+      name: clipText(v && v.name, 60),
+      note: clipText(v && v.note, 80)
+    })).filter(v => v.name.length > 2).slice(0, 4);
+    if (rows.length) wine.houseWines = rows;
+  }
+  if (gaps.has("web") && raw.geo && typeof raw.geo === "object") {
+    const lat = Number(raw.geo.lat);
+    const lng = Number(raw.geo.lng);
+    const madrid = Math.abs(lat - 40.4) < 0.08 && Math.abs(lng + 3.7) < 0.08;
+    wine.geo = wine.geo || {};
+    if (Number.isFinite(lat) && Number.isFinite(lng) && Math.abs(lat) <= 80 && Math.abs(lng) <= 180 && Math.abs(lat) > 0.2 && !madrid) {
+      wine.geo.lat = Math.round(lat * 1000) / 1000;
+      wine.geo.lng = Math.round(lng * 1000) / 1000;
+      markWineSource(wine, "web", wine.provenance.web || "estimación Gemini");
+    }
+    if (raw.geo.zone) wine.geo.zone = clipText(raw.geo.zone, 80);
+    if (raw.geo.address) wine.geo.address = clipText(raw.geo.address, 120);
+    const web = clipText(raw.geo.web, 140);
+    if (/^https?:\/\//i.test(web) && !/google\.|duckduckgo\.|search-result/i.test(web) && !wine.geo.web) {
+      wine.geo.web = web;
+      if (wine.provenance.web !== "página") markWineSource(wine, "web", "estimación Gemini");
     }
   }
 }
 function sealWineProvenance(wine) {
-  const keys = ["type", "grapes", "region", "country", "abv", "tasting", "crianza", "service", "cellar", "pairing", "aging", "producer"];
+  const keys = ["type", "grapes", "region", "country", "abv", "tasting", "crianza", "service", "cellar", "pairing", "aging", "producer", "style", "ratings", "dossier", "web", "price", "evolution", "vintages", "shops"];
   wine.provenance = wine.provenance || {};
   keys.forEach(k => { if (!wine.provenance[k]) wine.provenance[k] = "valor por defecto"; });
   wine.provenance.done = true;
@@ -2696,7 +2991,9 @@ function provenanceCard(w) {
   const labels = {
     type: "tipo", grapes: "uvas", region: "zona", country: "país", abv: "alcohol",
     tasting: "cata", crianza: "crianza", service: "servicio", cellar: "guarda",
-    pairing: "maridajes", aging: "fechas de consumo", producer: "bodega"
+    pairing: "maridajes", aging: "fechas de consumo", producer: "bodega",
+    style: "estilo", ratings: "puntuaciones", dossier: "historia y técnica",
+    web: "web y mapa", price: "precio", evolution: "evolución", vintages: "añadas", shops: "tiendas"
   };
   const buckets = {};
   Object.keys(labels).forEach(k => {
@@ -2708,109 +3005,218 @@ function provenanceCard(w) {
     `<p style="margin-top:8px"><b>${escHtml(src)}</b><span class="muted"> · ${escHtml(buckets[src].join(", "))}</span></p>`
   ).join("");
   const host = w.provenance.pageHost ? `<p class="tiny" style="margin-top:6px">Página leída: ${escHtml(w.provenance.pageHost)}</p>` : "";
-  return `<div class="card"><p class="tiny">De dónde sale cada dato</p>${host}${lines}</div>`;
+  const why = w.provenance.geminiNote ? `<p style="margin-top:8px">${escHtml(w.provenance.geminiNote)}</p>` : "";
+  return `<div class="card"><p class="tiny">De dónde sale cada dato</p>${host}${why}${lines}</div>`;
+}
+function isShopHost(url) {
+  return /vinissimus|decantalo|bigshopper|vivino|wine-searcher|google\.|amazon\.|duckduckgo|instagram|facebook/i.test(String(url || ""));
+}
+function isReadableWineUrl(url) {
+  return !!(url && !/google\.[^/]+\/search|\/search-result\/|duckduckgo\.com/i.test(url));
+}
+async function readPageQuiet(url) {
+  if (!isReadableWineUrl(url)) return "";
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 14000);
+  try {
+    return await readPublicPage(url, ctrl.signal);
+  } catch (e) {
+    return "";
+  } finally {
+    clearTimeout(timer);
+  }
+}
+function geminiWinePrompt(wine, gaps) {
+  return [
+    "Completa la ficha de vinoteca en JSON. Rellena solo lo que sepas de este vino. No inventes puntuaciones oficiales.",
+    "Vino: " + [wine.producer, wine.name].filter(Boolean).join(" "),
+    "Añada: " + (wine.vintage || "desconocida"),
+    "Ya leído de la página: " + [wine.region, wine.country, (wine.grapes || []).join(", "), wine.type, wine.abv ? wine.abv + "%" : ""].filter(Boolean).join(" · "),
+    "Huecos: " + gaps.join(", "),
+    "type: tinto, blanco, rosado, espumoso o generoso. style: reserva, crianza, roble, joven o gran reserva.",
+    "ratings: para cada guía, known=true solo si recuerdas una puntuación publicada de esa añada. Si no, known=false y score=0. No rellenes un 0 como si fuera la nota. La nota es una estimación, dilo en el texto.",
+    "pairingPack.matches.dishId tiene que ser uno de: " + PAIRING_DISH_IDS.join(", ") + ". score de 60 a 100. why en español.",
+    "dossier.history: dos párrafos en español sobre la bodega y esta añada. market en euros de tienda, no subasta inventada.",
+    "aging: drinkFrom, peakStart, peakEnd y holdTo como años. peakEnd es el último año recomendado para beber.",
+    "geo: lat y lng de la bodega, no de Madrid si no está allí. web es la URL de la bodega si la conoces.",
+    "Si no estás seguro de un campo, cadena vacía, lista vacía, known=false o 0."
+  ].join("\n");
+}
+function geminiWineSchema() {
+  const str = { type: "STRING" };
+  const num = { type: "NUMBER" };
+  const rating = {
+    type: "OBJECT",
+    properties: { known: { type: "BOOLEAN" }, score: num, count: num, note: str, reviewer: str }
+  };
+  return {
+    type: "OBJECT",
+    properties: {
+      type: str, style: str, grapes: { type: "ARRAY", items: str }, region: str, appellation: str, country: str, abv: num,
+      crianza: str, tasting: str, serveMin: num, serveMax: num, cellarMin: num, cellarMax: num,
+      humidity: str, position: str, light: str, drinkFrom: num, peakStart: num, peakEnd: num, holdTo: num, structure: num,
+      ratings: { type: "OBJECT", properties: { vivino: rating, penin: rating, parker: rating, spectator: rating, decanter: rating } },
+      pairingPack: {
+        type: "OBJECT",
+        properties: {
+          logic: str, serve: str, avoid: { type: "ARRAY", items: str },
+          matches: { type: "ARRAY", items: { type: "OBJECT", properties: { dishId: str, score: num, why: str } } }
+        }
+      },
+      dossier: {
+        type: "OBJECT",
+        properties: {
+          soils: str, elevation: str, vineyard: str, vinification: str, elevage: str, glass: str, decant: str, oxygen: str, history: str,
+          awards: { type: "ARRAY", items: str },
+          market: { type: "OBJECT", properties: { low: num, mid: num, high: num, trend: str } },
+          priceHistory: { type: "ARRAY", items: { type: "OBJECT", properties: { year: num, mid: num } } }
+        }
+      },
+      evolutionNotes: { type: "ARRAY", items: { type: "OBJECT", properties: { year: num, phase: str, text: str } } },
+      vintages: { type: "ARRAY", items: { type: "OBJECT", properties: { vintage: num, note: str, priceHint: str } } },
+      houseWines: { type: "ARRAY", items: { type: "OBJECT", properties: { name: str, note: str } } },
+      geo: { type: "OBJECT", properties: { lat: num, lng: num, zone: str, address: str, web: str } }
+    }
+  };
+}
+function geminiFailNote(status, err) {
+  if (!status && err && err.name === "AbortError") return "Gemini no respondió a tiempo. Pulsa Completar ficha para reintentar.";
+  if (!status) return "Gemini no se pudo contactar (red o CORS). Pulsa Completar ficha para reintentar.";
+  if (status === 401 || status === 403) return "Clave de Gemini rechazada. Revísala en Ajustes de precio.";
+  if (status === 429) return "Cuota de Gemini agotada. La ficha de la página se conserva.";
+  return "Gemini no devolvió una ficha válida (HTTP " + status + "). Pulsa Completar ficha para reintentar.";
 }
 async function readGeminiWineFacts(wine, gaps) {
   const key = storedGeminiKey();
-  if (!key || !gaps.length) return null;
-  const user = [
-    "Completa solo los huecos de esta ficha de vinoteca. No inventes puntuaciones.",
-    "Vino: " + [wine.producer, wine.name].filter(Boolean).join(" "),
-    "Añada: " + (wine.vintage || "desconocida"),
-    "Ya conocido: " + [wine.region, wine.country, (wine.grapes || []).join(", "), wine.type].filter(Boolean).join(" · "),
-    "Huecos: " + gaps.join(", "),
-    "type: tinto, blanco, rosado, espumoso o generoso.",
-    "aging: drinkFrom, peakStart, peakEnd y holdTo como años, con peakEnd = último año recomendado para beber.",
-    "pairings: platos concretos en español. Temperaturas en grados enteros.",
-    "Si no estás seguro de un hueco, devuelve cadena vacía, lista vacía o 0."
-  ].join("\n");
-  const body = {
+  wine.provenance = wine.provenance || {};
+  if (!key) {
+    wine.provenance.geminiNote = "Sin clave de Gemini: añádela en Ajustes de precio";
+    return null;
+  }
+  if (!gaps.length) {
+    wine.provenance.geminiNote = "";
+    return null;
+  }
+  const user = geminiWinePrompt(wine, gaps);
+  const withSchema = {
     contents: [{ role: "user", parts: [{ text: user }] }],
-    generationConfig: {
-      temperature: 0.2,
-      maxOutputTokens: 700,
-      responseMimeType: "application/json",
-      responseSchema: {
-        type: "OBJECT",
-        properties: {
-          type: { type: "STRING" },
-          grapes: { type: "ARRAY", items: { type: "STRING" } },
-          region: { type: "STRING" },
-          appellation: { type: "STRING" },
-          country: { type: "STRING" },
-          abv: { type: "NUMBER" },
-          crianza: { type: "STRING" },
-          tasting: { type: "STRING" },
-          serveMin: { type: "NUMBER" },
-          serveMax: { type: "NUMBER" },
-          cellarMin: { type: "NUMBER" },
-          cellarMax: { type: "NUMBER" },
-          humidity: { type: "STRING" },
-          position: { type: "STRING" },
-          pairings: { type: "ARRAY", items: { type: "STRING" } },
-          drinkFrom: { type: "NUMBER" },
-          peakStart: { type: "NUMBER" },
-          peakEnd: { type: "NUMBER" },
-          holdTo: { type: "NUMBER" }
-        },
-        required: ["type", "grapes", "region", "country", "abv", "pairings", "drinkFrom", "peakStart", "peakEnd", "holdTo", "serveMin", "serveMax", "cellarMin", "cellarMax"]
-      }
-    }
+    generationConfig: { temperature: 0.2, maxOutputTokens: 4096, responseMimeType: "application/json", responseSchema: geminiWineSchema() }
+  };
+  const plain = {
+    contents: [{ role: "user", parts: [{ text: user + "\nResponde solo JSON." }] }],
+    generationConfig: { temperature: 0.2, maxOutputTokens: 4096, responseMimeType: "application/json" }
   };
   const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 12000);
+  const timer = setTimeout(() => ctrl.abort(), 22000);
   const models = ["gemini-2.5-flash", "gemini-2.5-flash-lite"];
+  let lastNote = "Gemini no devolvió una ficha válida. Pulsa Completar ficha para reintentar.";
   try {
     for (const model of models) {
       const url = "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent";
-      let res;
-      try {
-        res = await fetch(url, {
-          method: "POST",
-          signal: ctrl.signal,
-          headers: { "Content-Type": "application/json", "x-goog-api-key": key },
-          body: JSON.stringify(body)
-        });
-      } catch (err) {
-        return null;
+      for (const body of [withSchema, plain]) {
+        let res;
+        try {
+          res = await fetch(url, {
+            method: "POST",
+            signal: ctrl.signal,
+            headers: { "Content-Type": "application/json", "x-goog-api-key": key },
+            body: JSON.stringify(body)
+          });
+        } catch (err) {
+          lastNote = geminiFailNote(0, err);
+          wine.provenance.geminiNote = lastNote;
+          return null;
+        }
+        if (res.status === 400 && body === withSchema) continue;
+        if (res.status === 404) break;
+        if (!res.ok) {
+          lastNote = geminiFailNote(res.status);
+          if (res.status === 401 || res.status === 403 || res.status === 429) {
+            wine.provenance.geminiNote = lastNote;
+            return null;
+          }
+          break;
+        }
+        let json;
+        try { json = await res.json(); } catch (e) { lastNote = "Gemini respondió sin JSON. Pulsa Completar ficha para reintentar."; break; }
+        const text = ((((json.candidates || [])[0] || {}).content || {}).parts || []).map(p => p.text || "").join("");
+        const start = text.indexOf("{");
+        const end = text.lastIndexOf("}");
+        if (start < 0 || end <= start) { lastNote = "Gemini no devolvió JSON. Pulsa Completar ficha para reintentar."; continue; }
+        try {
+          const parsed = JSON.parse(text.slice(start, end + 1));
+          wine.provenance.geminiNote = "";
+          wine.provenance.geminiModel = model;
+          return parsed;
+        } catch (e) {
+          lastNote = "No se pudo leer el JSON de Gemini. Pulsa Completar ficha para reintentar.";
+        }
       }
-      if (res.status === 404) continue;
-      if (!res.ok) return null;
-      let json;
-      try { json = await res.json(); } catch (e) { return null; }
-      const text = ((((json.candidates || [])[0] || {}).content || {}).parts || []).map(p => p.text || "").join("");
-      const start = text.indexOf("{");
-      const end = text.lastIndexOf("}");
-      if (start < 0 || end <= start) continue;
-      try { return JSON.parse(text.slice(start, end + 1)); } catch (e) { continue; }
     }
+    wine.provenance.geminiNote = lastNote;
     return null;
   } finally {
     clearTimeout(timer);
   }
 }
 async function completeWineRecord(wine, pageUrl) {
+  normalizeWine(wine);
   wine.provenance = wine.provenance || {};
-  const target = String(pageUrl || "").trim();
-  if (target && !/google\.[^/]+\/search|\/search-result\/|duckduckgo\.com/i.test(target)) {
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 14000);
-    try {
-      const page = await readPublicPage(target, ctrl.signal);
+  const target = String(pageUrl || wine.provenance.pageUrl || "").trim();
+  setFichaProgress("Completando la ficha…");
+  if (isReadableWineUrl(target)) {
+    const page = await readPageQuiet(target);
+    if (page) {
       applyPageFacts(wine, parseWinePage(page));
       wine.provenance.pageHost = hostOf(target) || target;
-    } catch (e) {
-      wine.provenance.pageHost = "";
-    } finally {
-      clearTimeout(timer);
+      wine.provenance.pageUrl = target;
+      wine.provenance.pageNote = "";
+    } else {
+      wine.provenance.pageNote = "No se pudo leer la página de la tienda o la bodega.";
     }
   }
+  setFichaProgress("Buscando la bodega y las tiendas…");
+  try {
+    const remote = await lookupWineOnline([wine.producer, wine.name, wine.vintage].filter(Boolean).join(" "));
+    const hits = (remote && remote.hits) || [];
+    const shops = hits.filter(h => h && h.kind === "tienda" && h.url).slice(0, 3).map(h => ({
+      title: h.title || "",
+      url: h.url,
+      price: h.price || "",
+      source: h.source || hostOf(h.url)
+    }));
+    if (shops.length) {
+      wine.shops = shops;
+      markWineSource(wine, "shops", "página");
+      if (wine.provenance.price !== "página") {
+        const priced = shops.find(s => s.price);
+        if (priced) applyShelfPrice(wine, priced.price, "página");
+      }
+    }
+    const bodega = hits.find(h => h && h.url && h.kind !== "tienda" && h.kind !== "buscar" && !isShopHost(h.url));
+    if (bodega) {
+      wine.geo = wine.geo || {};
+      if (!wine.geo.web) {
+        wine.geo.web = bodega.url;
+        markWineSource(wine, "web", "página");
+      }
+      if (bodega.url !== target) {
+        const md = await readPageQuiet(bodega.url);
+        if (md) applyPageFacts(wine, parseWinePage(md));
+      }
+    }
+  } catch (e) {}
   const gaps = geminiGaps(wine);
-  if (gaps.length && storedGeminiKey()) {
+  if (!storedGeminiKey()) {
+    wine.provenance.geminiNote = "Sin clave de Gemini: añádela en Ajustes de precio";
+  } else if (gaps.length) {
+    setFichaProgress("Completando con Gemini lo que la página no trae…");
     try {
       const raw = await readGeminiWineFacts(wine, gaps);
       if (raw) applyGeminiFacts(wine, raw);
-    } catch (e) {}
+    } catch (e) {
+      if (!wine.provenance.geminiNote) wine.provenance.geminiNote = "Gemini falló. Pulsa Completar ficha para reintentar.";
+    }
   }
   sealWineProvenance(wine);
   save();
@@ -2835,6 +3241,26 @@ async function settleNewWine(wine, raw, source, pageUrl) {
       try { await completeWineRecord(wine, url); } catch (e) {}
     }
     parkScanInInbox(wine, raw, source);
+  } finally {
+    intakeBusy = false;
+  }
+}
+async function completeExistingWine(id) {
+  const wine = wineById(id);
+  if (!wine || isCatalogWineId(wine.id)) return;
+  if (intakeBusy) return toast("Sigue completando la ficha anterior");
+  intakeBusy = true;
+  try {
+    normalizeWine(wine);
+    wine.provenance = wine.provenance || {};
+    wine.provenance.done = false;
+    wine.provenance.geminiNote = "";
+    setFichaProgress("Completando la ficha…");
+    await completeWineRecord(wine, wine.provenance.pageUrl || "");
+    if (currentWine && currentWine.id === wine.id) openWine(wine.id, currentBottle);
+    toast(wine.provenance.geminiNote ? "Ficha a medias" : "Ficha actualizada");
+  } catch (e) {
+    toast("No se pudo completar la ficha");
   } finally {
     intakeBusy = false;
   }
@@ -2869,12 +3295,12 @@ function wineFromInternetHit(hit) {
     ratings: {
       vivino: { score: 0, count: 0, scale: 5, note: "" },
       penin: { score: 0, scale: 100, note: "" },
-      parker: { score: 0, scale: 100, reviewer: "", note: "Ficha a partir de la bodega o la tienda." },
+      parker: { score: 0, scale: 100, reviewer: "", note: "" },
       spectator: { score: 0, scale: 100, note: "" },
       decanter: { score: 0, scale: 100, note: "" }
     },
     priceHint: (hit && hit.price) || "—",
-    tasting: [hit && hit.extract, hit && hit.url].filter(Boolean).join(" ") || "Ficha creada desde la búsqueda de la foto.",
+    tasting: "",
     pairing: [],
     conservation: { cellarMin: 12, cellarMax: 14, serveMin: 16, serveMax: 18, humidity: "65–75%", position: "horizontal", light: "oscura" },
     aging: { drinkFrom: year + 1, peakStart: year + 3, peakEnd: year + 10, holdTo: year + 15 },
@@ -3507,7 +3933,19 @@ const BODEGA_GEO = {
 };
 
 function bodegaGeo(w) {
-  return BODEGA_GEO[w.producer] || { lat: 40.4, lng: -3.7, zone: w.region, web: "" };
+  const known = BODEGA_GEO[w && w.producer];
+  if (known) return known;
+  const g = (w && w.geo) || {};
+  const lat = Number(g.lat);
+  const lng = Number(g.lng);
+  const pin = Number.isFinite(lat) && Number.isFinite(lng) && Math.abs(lat) > 0.2;
+  return {
+    lat: pin ? lat : null,
+    lng: pin ? lng : null,
+    zone: g.zone || (w && (w.appellation || w.region)) || "Sin dato",
+    address: g.address || "",
+    web: g.web || ""
+  };
 }
 function bodegaWeb(url) {
   let u = String(url || "").trim();
@@ -3590,10 +4028,16 @@ function mapaBlock(w) {
   const mapSrc = file(art.map || "mapa-ribera.jpg");
   const same = String(art.land || "") === String(art.map || "");
   const landSrc = same ? "" : file(art.land || "");
-  const osm = `https://www.openstreetmap.org/?mlat=${g.lat}&mlon=${g.lng}#map=16/${g.lat}/${g.lng}`;
-  const pin = `${g.lat},${g.lng}`;
-  const gmaps = `https://www.google.com/maps?q=${pin}`;
-  const apple = `https://maps.apple.com/?ll=${pin}&q=${pin}`;
+  const hasPin = g.lat != null && g.lng != null && Number.isFinite(Number(g.lat)) && Number.isFinite(Number(g.lng));
+  const osm = hasPin ? `https://www.openstreetmap.org/?mlat=${g.lat}&mlon=${g.lng}#map=16/${g.lat}/${g.lng}` : "";
+  const pin = hasPin ? `${g.lat},${g.lng}` : "";
+  const gmaps = hasPin ? `https://www.google.com/maps?q=${pin}` : "";
+  const apple = hasPin ? `https://maps.apple.com/?ll=${pin}&q=${pin}` : "";
+  const mapLinks = hasPin ? `
+    <a class="btn btn-ghost" style="width:100%;margin-top:10px;display:block;text-align:center" href="${gmaps}" target="_blank" rel="noopener noreferrer" onclick="return openExternal(this.href)">Google Maps</a>
+    <a class="btn btn-ghost" style="width:100%;margin-top:8px;display:block;text-align:center" href="${apple}" target="_blank" rel="noopener noreferrer" onclick="return openExternal(this.href)">Mapas de Apple</a>
+    <a class="btn btn-ghost" style="width:100%;margin-top:8px;display:block;text-align:center" href="${osm}" target="_blank" rel="noopener noreferrer" onclick="return openExternal(this.href)">OpenStreetMap</a>` : `<p class="muted" style="margin-top:10px">Sin dato de coordenadas.</p>`;
+  const shops = (w.shops || []).map(s => `<a class="btn btn-ghost" style="width:100%;margin-top:8px;display:block;text-align:center" href="${escHtml(s.url)}" target="_blank" rel="noopener noreferrer" onclick="return openExternal(this.href)">${escHtml(s.source || "Tienda")}${s.price ? " · " + escHtml(s.price) : ""}</a>`).join("");
   return `
     <img class="map-art" src="${mapSrc}" alt="" data-fb="${landSrc}"
       onerror="if(this.dataset.step!=='1'){this.dataset.step='1';this.src=this.dataset.fb;}else{this.style.display='none';}">
@@ -3601,16 +4045,21 @@ function mapaBlock(w) {
     <p class="eyebrow" style="font-size:10px;letter-spacing:.14em;margin:2px 0 0">${w.appellation || ""}</p>
     <h3 style="font-size:17px;margin:2px 0 2px;line-height:1.2">${w.producer}</h3>
     <p class="muted" style="margin:0 0 12px;font-size:13px">${placeLine(w, g)}</p>
-    <a class="btn btn-ghost" style="width:100%;margin-top:10px;display:block;text-align:center" href="${gmaps}" target="_blank" rel="noopener noreferrer" onclick="return openExternal(this.href)">Google Maps</a>
-    <a class="btn btn-ghost" style="width:100%;margin-top:8px;display:block;text-align:center" href="${apple}" target="_blank" rel="noopener noreferrer" onclick="return openExternal(this.href)">Mapas de Apple</a>
-    <a class="btn btn-ghost" style="width:100%;margin-top:8px;display:block;text-align:center" href="${osm}" target="_blank" rel="noopener noreferrer" onclick="return openExternal(this.href)">OpenStreetMap</a>
-    ${bodegaWeb(g.web) ? `<a class="btn btn-gold" style="width:100%;margin-top:8px;display:block;text-align:center" href="${bodegaWeb(g.web)}" target="_blank" rel="noopener noreferrer" onclick="return openExternal(this.href)">Web de la bodega</a>` : ""}`;
+    ${mapLinks}
+    ${bodegaWeb(g.web) ? `<a class="btn btn-gold" style="width:100%;margin-top:8px;display:block;text-align:center" href="${bodegaWeb(g.web)}" target="_blank" rel="noopener noreferrer" onclick="return openExternal(this.href)">Web de la bodega</a>` : (w.provenance ? `<p class="muted" style="margin-top:8px">Web de la bodega: Sin dato</p>` : "")}
+    ${shops}`;
 }
 
+function priceHistoryBlock(w) {
+  if (!w || (!w.provenance && !(w.priceHistory && w.priceHistory.length))) return "";
+  const rows = Array.isArray(w.priceHistory) ? w.priceHistory : [];
+  if (!rows.length) return `<div class="card"><p class="tiny">Evolución de precio</p><p class="muted" style="margin-top:6px">Sin dato</p></div>`;
+  return `<div class="card"><p class="tiny">Evolución de precio</p>${rows.map(r => `<p style="margin-top:8px">${escHtml(String(r.year))} · ${escHtml(String(r.mid))} €</p>`).join("")}</div>`;
+}
 function mercadoSkeleton(w) {
   const band = marketBand(w);
   const mine = currentBottle && currentBottle.price ? currentBottle.price + " €" : "—";
-  const euro = (n) => n ? n + " €" : "—";
+  const euro = (n) => n ? n + " €" : "Sin dato";
   return `
     <p class="muted" style="margin:6px 0 10px">${band.note}</p>
     <div class="temp-grid">
@@ -3619,7 +4068,8 @@ function mercadoSkeleton(w) {
       <div class="temp"><span class="tiny">Alta</span><b>${euro(band.high)}</b></div>
       <div class="temp"><span class="tiny">Tu coste</span><b>${mine}</b></div>
     </div>
-    <p class="tiny" id="mercado-src">${band.source === "ficha" ? "Ficha" : band.source === "dossier" ? "Dossier" : "Sin fuente"} · EUR</p>`;
+    <p class="tiny" id="mercado-src">${band.source === "ficha" ? "Ficha" : band.source === "dossier" ? "Dossier" : "Sin fuente"} · EUR</p>
+    ${priceHistoryBlock(w)}`;
 }
 
 async function fillMercado(w) {
@@ -3642,8 +4092,8 @@ async function fillMercado(w) {
   if (!document.getElementById("mercado-box")) return;
   const d = dossierOf(w);
   const mine = currentBottle && currentBottle.price ? currentBottle.price + " €" : "—";
-  const euro = (n) => n ? n + " €" : "—";
-  const tag = quote.source === "gemini" ? "Gemini" : quote.source === "live" ? "Live" : "Dossier";
+  const euro = (n) => n ? n + " €" : "Sin dato";
+  const tag = quote.source === "gemini" ? "Gemini" : quote.source === "live" ? "Live" : (quote.source === "ficha" ? "Página" : "Dossier");
   box.innerHTML = `
     <p class="muted" style="margin:6px 0 10px">${quote.note}</p>
     <div class="temp-grid">
@@ -3654,6 +4104,7 @@ async function fillMercado(w) {
     </div>
     <div class="card"><p class="tiny">${tag} · ${quote.currency || "EUR"}${quote.confianza ? " · confianza " + quote.confianza : ""}</p>
       <p class="muted" style="margin-top:6px">${quote.trend || ""}</p></div>
+    ${priceHistoryBlock(w)}
     ${d.similar && d.similar.length ? `<h2 style="margin:16px 0 8px">Parecidos en catálogo</h2>${d.similar.map(id => {
       const s = wineById(id);
       if (!s) return "";
