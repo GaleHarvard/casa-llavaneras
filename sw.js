@@ -1,11 +1,24 @@
-const CACHE = "casa-llavaneras-ios-v63";
+const CACHE = "casa-llavaneras-ios-v66";
+const VERSION = "v66";
 const ASSETS = ["./", "./index.html", "./styles.css", "./app.js", "./wines.js", "./dossiers.js", "./providers/wineProvider.js", "./pairings.js", "./manifest.json", "./icon.svg", "./apple-touch-icon.png", "./icon-192.png", "./icon-512.png", "./cave-principal.jpg", "./capsula.jpg", "./botella-tinto.jpg", "./botella-blanco.jpg", "./botella-espumoso.jpg"];
 self.addEventListener("install", e => {
   self.skipWaiting();
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).catch(() => {}));
 });
 self.addEventListener("activate", e => {
-  e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim()));
+  e.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)));
+    await self.clients.claim();
+    const list = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+    list.forEach(client => {
+      try { client.postMessage({ type: "sw-activated", version: VERSION }); } catch (err) {}
+    });
+    await Promise.all(list.map(client => {
+      if (typeof client.navigate !== "function") return null;
+      return client.navigate(client.url).catch(() => {});
+    }));
+  })());
 });
 self.addEventListener("fetch", e => {
   const url = e.request.url;
@@ -15,7 +28,7 @@ self.addEventListener("fetch", e => {
       const copy = r.clone();
       caches.open(CACHE).then(c => c.put(e.request, copy)).catch(() => {});
       return r;
-    }).catch(() => caches.match(e.request)));
+    }).catch(() => caches.match(e.request, { ignoreSearch: true })));
     return;
   }
   e.respondWith(fetch(e.request).then(r => {
@@ -24,7 +37,7 @@ self.addEventListener("fetch", e => {
       caches.open(CACHE).then(c => c.put(e.request, copy)).catch(() => {});
     }
     return r;
-  }).catch(() => caches.match(e.request)));
+  }).catch(() => caches.match(e.request, { ignoreSearch: true })));
 });
 
 self.addEventListener("message", e => {
