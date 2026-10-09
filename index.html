@@ -9,14 +9,14 @@
   <meta name="apple-mobile-web-app-title" content="Casa Llavaneras" />
   <meta name="application-name" content="Casa Llavaneras" />
   <meta name="theme-color" content="#000000" />
-  <meta name="app-version" content="v68" />
+  <meta name="app-version" content="v69" />
   <title>Casa Llavaneras</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="apple-touch-icon" href="apple-touch-icon.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
   <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png" />
-  <link rel="stylesheet" href="styles.css?v=68" />
+  <link rel="stylesheet" href="styles.css?v=69" />
 </head>
 <body>
   <div class="device">
@@ -313,6 +313,7 @@
       <div class="sheet">
         <div class="handle"></div>
         <h3>Avisos</h3>
+        <div id="backup-remind"></div>
         <p class="muted" style="margin:6px 0 14px">En el iPhone solo llegan si la app está en la pantalla de inicio. Un toque activa el permiso.</p>
         <label class="switch-row"><span>Activar avisos</span><input id="n-on" type="checkbox" onchange="setNotify('on', this.checked)" /></label>
         <label class="switch-row"><span>Beber pronto / maduros</span><input id="n-evolve" type="checkbox" onchange="setNotify('evolve', this.checked)" /></label>
@@ -338,11 +339,11 @@
     <div id="toast" style="position:absolute;left:24px;right:24px;bottom:96px;background:#111;border:1px solid #2a2a2a;color:#fff;padding:12px 14px;border-radius:14px;opacity:0;transition:opacity .3s;z-index:60;font-size:13px;text-align:center;pointer-events:none"></div>
   </div>
 
-  <script src="wines.js?v=68"></script>
-  <script src="dossiers.js?v=68"></script>
-  <script src="providers/wineProvider.js?v=68"></script>
-  <script src="pairings.js?v=68"></script>
-  <script src="app.js?v=68"></script>
+  <script src="wines.js?v=69"></script>
+  <script src="dossiers.js?v=69"></script>
+  <script src="providers/wineProvider.js?v=69"></script>
+  <script src="pairings.js?v=69"></script>
+  <script src="app.js?v=69"></script>
   <script>
     document.querySelectorAll(".tab").forEach((t, i) => {
       const icons = [
@@ -375,7 +376,7 @@
         const current = (document.querySelector('meta[name="app-version"]') || {}).content || "";
         if (data.version && current && data.version !== current) reloadForSw();
       });
-      navigator.serviceWorker.register("sw.js?v=68").catch(() => {});
+      navigator.serviceWorker.register("sw.js?v=69").catch(() => {});
     }
   </script>
 </body>
