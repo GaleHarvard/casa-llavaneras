@@ -28,7 +28,7 @@ function dossierOf(w) {
 const NOW = new Date(2026, 8, 22);
 const YEAR = NOW.getFullYear();
 const STORE = "vinoteca.pro.max.v3";
-const APP_VERSION = "v69";
+const APP_VERSION = "v70";
 const PRICE_CFG_KEY = "vinoteca-jgc-provider";
 
 const ICONS = {
@@ -5752,7 +5752,9 @@ document.addEventListener("DOMContentLoaded", () => {
     setInterval(() => { try { clock(); } catch (e) {} }, 30000);
     try { askPersistentStorage(); } catch (e) {}
     try { refreshDirtyInternetWines(); } catch (e) { console.warn("limpieza", e); }
-    try { renderHome(); } catch (e) { console.warn("inicio", e); }
+    try { renderHome(); } catch (e) { console.warn("inicio", e); throw e; }
+    if (window.casaMarkReady) window.casaMarkReady();
+    else hideSplash();
     loadLabelPhotos().then(() => {
       try {
         if (screenId === "cellar") renderCellar();
@@ -5764,8 +5766,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   } catch (e) {
     console.warn("arranque", e);
-  } finally {
-    setTimeout(hideSplash, 700);
+    if (window.casaShowBootError) window.casaShowBootError();
   }
   setTimeout(() => { try { runNotifyCheck(false); } catch (e) {} }, 1600);
 });

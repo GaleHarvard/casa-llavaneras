@@ -474,6 +474,44 @@ label.field span {
   letter-spacing: 0.12em;
   font-weight: 500;
 }
+.update-notice {
+  position: absolute;
+  left: 20px;
+  right: 20px;
+  bottom: calc(84px + var(--safe-bot));
+  z-index: 36;
+  border: 1px solid var(--line);
+  background: #111;
+  color: var(--gold2);
+  border-radius: 999px;
+  padding: 10px 14px;
+  font: inherit;
+  font-size: 13px;
+  letter-spacing: 0.01em;
+  text-align: center;
+}
+.update-notice[hidden] { display: none !important; }
+.boot-error {
+  position: absolute;
+  inset: 0;
+  z-index: 80;
+  background: #000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 28px 24px;
+}
+.boot-error h1 {
+  font-size: 22px;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  margin-top: 8px;
+}
+.boot-error .muted { margin: 12px 0 22px; max-width: 280px; }
+.boot-error .btn { width: min(280px, 100%); }
+.boot-error .tiny { margin-top: 14px; max-width: 280px; }
 .splash h1 { font-size: 22px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 500; }
 .splash .brand-sub { margin-top: 8px; color: var(--gold); letter-spacing: 0.28em; font-size: 11px; text-transform: uppercase; }
 .splash p { margin: 16px 0 0; max-width: 260px; }

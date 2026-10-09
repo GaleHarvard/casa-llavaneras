@@ -9,14 +9,14 @@
   <meta name="apple-mobile-web-app-title" content="Casa Llavaneras" />
   <meta name="application-name" content="Casa Llavaneras" />
   <meta name="theme-color" content="#000000" />
-  <meta name="app-version" content="v69" />
+  <meta name="app-version" content="v70" />
   <title>Casa Llavaneras</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="apple-touch-icon" href="apple-touch-icon.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
   <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png" />
-  <link rel="stylesheet" href="styles.css?v=69" />
+  <link rel="stylesheet" href="styles.css?v=70" />
 </head>
 <body>
   <div class="device">
@@ -32,12 +32,7 @@
         <h1>Vinotecas</h1>
         <p class="muted">Escanea. Conserva. Sirve en su momento.</p>
       </div>
-      <script>
-        setTimeout(function () {
-          var splash = document.getElementById("splash");
-          if (splash) splash.classList.add("hide");
-        }, 2500);
-      </script>
+      <script>window.__splashAt = Date.now();</script>
 
       <section id="home" class="screen active">
         <div class="scroll">
@@ -217,6 +212,7 @@
       <button class="scan-fab" onclick="startScan()" aria-label="Escanear">
         <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" width="28" height="28"><path d="M4 8V5a1 1 0 0 1 1-1h3M20 8V5a1 1 0 0 0-1-1h-3M4 16v3a1 1 0 0 0 1 1h3M20 16v3a1 1 0 0 1-1 1h-3"/><path d="M8 12h8"/></svg>
       </button>
+      <button id="update-notice" class="update-notice" type="button" hidden onclick="location.reload()">Nueva versión disponible</button>
       <nav class="tabbar">
         <button class="tab active" data-go="home" onclick="show('home',{tab:true})"><span></span>Inicio</button>
         <button class="tab" data-go="caves" onclick="show('caves',{tab:true})"><span></span>Vinotecas</button>
@@ -339,11 +335,66 @@
     <div id="toast" style="position:absolute;left:24px;right:24px;bottom:96px;background:#111;border:1px solid #2a2a2a;color:#fff;padding:12px 14px;border-radius:14px;opacity:0;transition:opacity .3s;z-index:60;font-size:13px;text-align:center;pointer-events:none"></div>
   </div>
 
-  <script src="wines.js?v=69"></script>
-  <script src="dossiers.js?v=69"></script>
-  <script src="providers/wineProvider.js?v=69"></script>
-  <script src="pairings.js?v=69"></script>
-  <script src="app.js?v=69"></script>
+  <script>
+    function casaHideSplash() {
+      var el = document.getElementById("splash");
+      if (!el || el.classList.contains("hide")) return;
+      var wait = Math.max(0, 800 - (Date.now() - (window.__splashAt || Date.now())));
+      setTimeout(function () {
+        el.classList.add("hide");
+        window.__splashHiddenAt = Date.now();
+      }, wait);
+    }
+    function casaMarkReady() {
+      window.__casaReady = true;
+      casaHideSplash();
+    }
+    function casaShowUpdateNotice() {
+      var el = document.getElementById("update-notice");
+      if (el) el.hidden = false;
+    }
+    function casaShowBootError() {
+      if (document.getElementById("boot-error")) return;
+      var splash = document.getElementById("splash");
+      if (splash) splash.classList.add("hide");
+      var box = document.createElement("div");
+      box.id = "boot-error";
+      box.className = "boot-error";
+      box.innerHTML = '<div class="mark">J.G.C.</div><h1>No se ha podido abrir</h1><p class="muted">La app no ha arrancado. Tus vinos siguen guardados en este iPhone.</p><button class="btn btn-gold" type="button" onclick="casaRetry()">Reintentar</button><button class="btn btn-ghost" type="button" style="margin-top:8px" onclick="casaRepair()">Reparar</button><p class="tiny">Reparar quita la caché de la app y vuelve a cargarla. No borra la cava.</p>';
+      var host = document.querySelector(".app") || document.body;
+      host.appendChild(box);
+    }
+    function casaRetry() { location.reload(); }
+    function casaRepair() {
+      var finish = function () { location.reload(); };
+      var jobs = [];
+      try {
+        if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations) {
+          jobs.push(navigator.serviceWorker.getRegistrations().then(function (regs) {
+            return Promise.all(regs.map(function (reg) { return reg.unregister(); }));
+          }));
+        }
+      } catch (err) {}
+      try {
+        if (window.caches && caches.keys) {
+          jobs.push(caches.keys().then(function (keys) {
+            return Promise.all(keys.map(function (key) { return caches.delete(key); }));
+          }));
+        }
+      } catch (err) {}
+      Promise.all(jobs).then(finish, finish);
+    }
+    window.onerror = function () { casaShowBootError(); };
+    window.addEventListener("unhandledrejection", function () { casaShowBootError(); });
+    setTimeout(function () {
+      if (!window.__casaReady) casaShowBootError();
+    }, 8000);
+  </script>
+  <script src="wines.js?v=70"></script>
+  <script src="dossiers.js?v=70"></script>
+  <script src="providers/wineProvider.js?v=70"></script>
+  <script src="pairings.js?v=70"></script>
+  <script src="app.js?v=70"></script>
   <script>
     document.querySelectorAll(".tab").forEach((t, i) => {
       const icons = [
@@ -358,9 +409,15 @@
     if ("serviceWorker" in navigator) {
       const reloadForSw = () => {
         try {
-          if (sessionStorage.getItem("casa-sw-reload") === "1") return;
+          if (sessionStorage.getItem("casa-sw-reload") === "1") {
+            if (window.casaShowUpdateNotice) window.casaShowUpdateNotice();
+            return;
+          }
           sessionStorage.setItem("casa-sw-reload", "1");
-        } catch (err) {}
+        } catch (err) {
+          if (window.casaShowUpdateNotice) window.casaShowUpdateNotice();
+          return;
+        }
         location.reload();
       };
       if (navigator.serviceWorker.controller) {
@@ -376,7 +433,7 @@
         const current = (document.querySelector('meta[name="app-version"]') || {}).content || "";
         if (data.version && current && data.version !== current) reloadForSw();
       });
-      navigator.serviceWorker.register("sw.js?v=69").catch(() => {});
+      navigator.serviceWorker.register("sw.js?v=70").catch(() => {});
     }
   </script>
 </body>
