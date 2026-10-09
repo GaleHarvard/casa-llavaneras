@@ -49,8 +49,16 @@ async function activeCache() {
   return caches.open(picked);
 }
 
+function withoutSearch(request) {
+  const url = new URL(request.url);
+  url.search = "";
+  url.hash = "";
+  return url.toString();
+}
+
 async function matchShell(cache, request) {
-  let hit = await cache.match(request, { ignoreSearch: true });
+  const clean = withoutSearch(request);
+  let hit = await cache.match(clean) || await cache.match(request, { ignoreSearch: true });
   if (!hit && request.mode === "navigate") {
     hit = await cache.match("./index.html") || await cache.match("./");
   }
@@ -125,11 +133,20 @@ async function serveShell(request) {
 self.addEventListener("fetch", e => {
   const url = e.request.url;
   if (e.request.method !== "GET") return;
-  if (new URL(url).origin !== self.location.origin) return;
-  if (/\/sw\.js(\?|$)/.test(url)) return;
-  if (/\.(js|css|html)$/.test(url) || e.request.mode === "navigate") {
-    e.respondWith(serveShell(e.request));
-    e.waitUntil(revalidateShell());
+  let path = url;
+  try {
+    const parsed = new URL(url);
+    if (parsed.origin !== self.location.origin) return;
+    path = parsed.pathname;
+  } catch (err) {
+    return;
+  }
+  if (/\/sw\.js$/.test(path)) return;
+  if (e.request.mode === "navigate" || /\.(js|css|html)$/.test(path)) {
+    e.respondWith(serveShell(e.request).then((res) => {
+      revalidateShell();
+      return res;
+    }));
     return;
   }
   e.respondWith(fetch(e.request).then(r => {

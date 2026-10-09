@@ -292,7 +292,7 @@ function renderHome() {
     <div class="kpi"><b>${totalBottles()}/${cap}</b><span>En cava</span></div>
     <div class="kpi"><b>${state.prefs.hideValue ? "—" : cellarValue() + " €"}</b><span>Valor</span></div>
     <div class="kpi"><b>${ready.reduce((n,b)=>n+b.qty,0)}</b><span>Para servir</span></div>
-    <div class="kpi"><b>${main ? main.tHigh.toFixed(1) + "°" : "—"}</b><span>VIP 185</span></div>`;
+    <div class="kpi"><b>${main && Number.isFinite(Number(main.tHigh)) ? Number(main.tHigh).toFixed(1) + "°" : "—"}</b><span>VIP 185</span></div>`;
 
   const featured = pickFeaturedWine();
   $("#home-featured").innerHTML = featured ? `
