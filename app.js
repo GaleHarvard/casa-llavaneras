@@ -28,7 +28,7 @@ function dossierOf(w) {
 const NOW = new Date(2026, 8, 22);
 const YEAR = NOW.getFullYear();
 const STORE = "vinoteca.pro.max.v3";
-const APP_VERSION = "v68";
+const APP_VERSION = "v69";
 const PRICE_CFG_KEY = "vinoteca-jgc-provider";
 
 const ICONS = {
@@ -124,26 +124,6 @@ function load() {
     if (!parsed.customWines) parsed.customWines = [];
     if (!parsed.inbox) parsed.inbox = [];
     parsed.vinotecas.forEach(v => { if (!v.houseId) v.houseId = "h1"; });
-    const main = parsed.vinotecas.find(v => v.id === "v1");
-    if (main) {
-      main.brand = "La Sommelière VIP 185";
-      main.photo = "cave-render-sommeliere.jpg";
-      main.capacity = 185;
-      main.role = "prestige";
-      if (!main.zones || main.zones.join("").includes("Pando") || main.zones.join("").includes("Tintos")) {
-        main.zones = ["Lectura actual · 16,7 °C", "SET 1 / SET 2"];
-      }
-      if (Math.abs(main.tHigh - 13.2) < 0.05) main.tHigh = 16.7;
-    }
-    const guarda = parsed.vinotecas.find(v => v.id === "v2");
-    if (guarda) {
-      guarda.photo = "cave-render-eurocave.jpg";
-      if (!guarda.brand) guarda.brand = "Eurocave";
-    }
-    if (!parsed.bottles.some(b => b.wineId === "vs-unico-2009")) {
-      parsed.bottles.unshift({ uid: "b7", wineId: "vs-unico-2009", qty: 2, cellarId: "v1", bin: "A-01", bought: "2022-10-08", price: 520, note: "Bandeja superior" });
-    }
-    parsed.vinotecas = parsed.vinotecas.filter(v => v.id !== "v3");
     return parsed;
   } catch {
     return defaultState();
@@ -367,6 +347,7 @@ function renderHome() {
       <button class="chip" onclick="quickTaste()">Cata rápida</button>
       <button class="chip" onclick="openHomeMap()">Mapa</button>
     </div>
+    ${backupReminderHtml()}
     <div class="card" role="button" onclick="openNotify()" style="margin-top:12px">
       <div class="row"><h2>Avisos</h2><span class="badge ${on ? "ok" : "wait"}">${on ? "Activos" : "Configurar"}</span></div>
       <p class="muted" style="margin-top:6px">${on ? "Apogeo, beber pronto y temperatura." : "Actívalos para no perder la ventana."}</p>
@@ -1532,6 +1513,37 @@ function loadLabelPhotos() {
     };
     req.onerror = () => reject(req.error);
   })).catch(() => {});
+}
+function readLabelPhotos() {
+  return openLabelDb().then(db => new Promise((resolve, reject) => {
+    const out = {};
+    const tx = db.transaction("thumbs", "readonly");
+    const req = tx.objectStore("thumbs").openCursor();
+    req.onsuccess = () => {
+      const cur = req.result;
+      if (!cur) { resolve(out); return; }
+      if (cur.key && cur.value) out[String(cur.key)] = cur.value;
+      cur.continue();
+    };
+    req.onerror = () => reject(req.error);
+  })).catch(() => ({}));
+}
+function writeLabelPhotos(map) {
+  const photos = map && typeof map === "object" ? map : {};
+  return openLabelDb().then(db => new Promise((resolve, reject) => {
+    const tx = db.transaction("thumbs", "readwrite");
+    const store = tx.objectStore("thumbs");
+    store.clear();
+    Object.keys(photos).forEach(id => {
+      if (photos[id]) store.put(photos[id], id);
+    });
+    tx.oncomplete = () => {
+      Object.keys(labelPhotoCache).forEach(k => { delete labelPhotoCache[k]; });
+      Object.keys(photos).forEach(id => { if (photos[id]) labelPhotoCache[id] = photos[id]; });
+      resolve(true);
+    };
+    tx.onerror = () => reject(tx.error);
+  })).catch(() => false);
 }
 function saveWineLabelPhoto(id, dataUrl) {
   if (!id || !dataUrl) return Promise.resolve(false);
@@ -4824,6 +4836,7 @@ function openNotify() {
     unsupported: "Este navegador no admite avisos."
   };
   $("#notify-perm").textContent = tip[perm] || tip.default;
+  refreshBackupReminder();
   hydratePriceFields();
   showSheet("notify-sheet");
 }
@@ -5325,7 +5338,7 @@ function renderPerfil() {
     <div class="card" role="button" onclick="openPerfilSub('fuentes')"><div class="row"><h3>Puntuaciones externas</h3><span>›</span></div><p class="muted">Qué guías se ven en la ficha.</p></div>
     <div class="card" role="button" onclick="openPerfilSub('privacidad')"><div class="row"><h3>Privacidad y seguridad</h3><span>›</span></div><p class="muted">Valor, precios, hueco.</p></div>
     <div class="card" role="button" onclick="openPerfilSub('backup')"><div class="row"><h3>Copias de seguridad</h3><span>›</span></div><p class="muted">Exportar y restaurar JSON / CSV.</p></div>
-    <div class="card" role="button" onclick="openPerfilSub('acerca')"><div class="row"><h3>Acerca de</h3><span>›</span></div><p class="muted">v1.0.0 · esquema localStorage</p></div>
+    <div class="card" role="button" onclick="openPerfilSub('acerca')"><div class="row"><h3>Acerca de</h3><span>›</span></div><p class="muted">Versión ${APP_VERSION} · esquema localStorage</p></div>
     <input id="restore-file" type="file" accept="application/json,.json" hidden onchange="reviewRestore(this.files[0])" />
     <input id="import-csv" type="file" accept=".csv,text/csv" hidden onchange="importCsv(this.files[0])" />`;
 }
@@ -5374,6 +5387,7 @@ function openPerfilSub(kind) {
   } else if (kind === "backup") {
     body = `
       <div class="card"><p class="tiny">Última copia</p><h3 style="margin-top:4px">${fmtBackup(p.lastBackup)}</h3><p class="muted">${p.lastBackup ? "Correcta" : "Pendiente"}</p></div>
+      <p class="muted" style="margin:0 0 12px">La copia lleva toda la cava: vinos propios, entradas, actividad y las fotos de etiqueta. En el iPhone se ofrece guardar en Archivos o Drive.</p>
       <button class="btn btn-gold" style="width:100%" onclick="exportBackup()">Crear copia ahora · JSON</button>
       <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="exportCsv()">Exportar inventario · CSV</button>
       <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="exportTastingCsv()">Exportar catas · CSV</button>
@@ -5385,6 +5399,7 @@ function openPerfilSub(kind) {
       <div class="card"><h3>Mi Vinoteca</h3><p class="muted" style="margin-top:6px">Versión ${APP_VERSION}</p>
         <p class="tiny" style="margin-top:10px">Esquema vinoteca.pro.max.v3 · ${totalBottles()} botellas · ${uniqueWines()} vinos · ${state.vinotecas.length} vinotecas</p>
         <p class="tiny">Última copia: ${fmtBackup(p.lastBackup)}</p>
+        <div id="about-storage"><p class="tiny" style="margin-top:10px">Consultando el almacenamiento…</p></div>
       </div>
       <p class="muted">Colección privada. No se indexa ni se comparte sola.</p>`;
   }
@@ -5394,6 +5409,7 @@ function openPerfilSub(kind) {
     <h1>${titles[kind]}</h1>
     ${body}`;
   show("perfil-sub");
+  if (kind === "acerca") fillAboutStorage();
 }
 function setPref(key, val) {
   prefs()[key] = val;
@@ -5410,23 +5426,170 @@ function setSource(key, on) {
   prefs().sources[key] = !!on;
   save();
 }
-function exportBackup() {
-  const payload = {
-    version: "1.0.0",
-    savedAt: new Date().toISOString(),
-    houses: state.houses,
-    vinotecas: state.vinotecas,
-    bottles: state.bottles,
-    tasting: state.tasting,
-    favorites: state.favorites,
-    prefs: state.prefs,
-    notify: state.notify
+const BACKUP_STALE_MS = 30 * 24 * 60 * 60 * 1000;
+function backupIsDue() {
+  const ts = Number(prefs().lastBackup) || 0;
+  if (!ts) return true;
+  return Date.now() - ts > BACKUP_STALE_MS;
+}
+function backupReminderHtml() {
+  if (!backupIsDue()) return "";
+  const never = !Number(prefs().lastBackup);
+  return `<div class="card backup-remind" role="button" onclick="openPerfilSub('backup')" style="margin-top:12px">
+    <div class="row"><h3>Copia de seguridad</h3><span class="badge warn">${never ? "Pendiente" : "Hace tiempo"}</span></div>
+    <p class="muted" style="margin-top:6px">${never ? "Aún no hay una copia de esta cava. Conviene guardarla en Archivos o Drive." : "La última copia tiene más de 30 días. Conviene hacer otra."}</p>
+  </div>`;
+}
+function refreshBackupReminder() {
+  const box = document.getElementById("backup-remind");
+  if (box) box.innerHTML = backupReminderHtml();
+}
+function askPersistentStorage() {
+  try {
+    if (navigator.storage && typeof navigator.storage.persist === "function") {
+      navigator.storage.persist().catch(() => {});
+    }
+  } catch (e) {}
+}
+function formatBytes(n) {
+  n = Number(n) || 0;
+  if (n < 1024) return Math.round(n) + " B";
+  if (n < 1048576) return (n / 1024).toFixed(1) + " KB";
+  return (n / 1048576).toFixed(1) + " MB";
+}
+function fillAboutStorage() {
+  const el = document.getElementById("about-storage");
+  if (!el) return;
+  const paint = (persistent, space) => {
+    const box = document.getElementById("about-storage");
+    if (!box) return;
+    box.innerHTML = `<p class="tiny" style="margin-top:10px">Almacenamiento persistente</p><p>${persistent}</p><p class="tiny" style="margin-top:8px">Espacio usado</p><p>${space}</p>`;
   };
-  downloadFile("MiVinoteca_Backup_" + new Date().toISOString().slice(0,10) + ".json", JSON.stringify(payload, null, 2), "application/json");
+  Promise.resolve().then(async () => {
+    let persistent = "No se puede consultar en este navegador.";
+    let space = "Sin dato";
+    try {
+      if (navigator.storage && typeof navigator.storage.persisted === "function") {
+        persistent = (await navigator.storage.persisted())
+          ? "Sí. El sistema conserva estos datos."
+          : "No. El sistema puede borrarlos si necesita espacio.";
+      }
+    } catch (e) {}
+    try {
+      if (navigator.storage && typeof navigator.storage.estimate === "function") {
+        const est = await navigator.storage.estimate();
+        const used = formatBytes(est && est.usage);
+        const quota = est && est.quota ? formatBytes(est.quota) : "";
+        space = quota ? used + " de " + quota : used;
+      }
+    } catch (e) {}
+    paint(persistent, space);
+  });
+}
+function ensureStateShape(target) {
+  if (!target.favorites) target.favorites = [];
+  if (!target.notify) target.notify = { on: false, evolve: true, ready: true, temp: true, last: {} };
+  if (!target.notify.last) target.notify.last = {};
+  if (!target.tasting) target.tasting = {};
+  if (!target.houses) target.houses = [{ id: "h1", name: "Casa Llavaneras", type: "Casa", note: "" }];
+  target.prefs = Object.assign({
+    hideValue: false, hidePrices: false, hideBin: false, scale: 10, decimals: true,
+    currency: "EUR", demo: true, lastBackup: null,
+    sources: { vivino: true, penin: true, parker: true, spectator: true, decanter: true, vinous: true, suckling: true }
+  }, target.prefs || {});
+  if (!target.prefs.sources) {
+    target.prefs.sources = { vivino: true, penin: true, parker: true, spectator: true, decanter: true, vinous: true, suckling: true };
+  }
+  if (!target.activity) target.activity = [];
+  if (!target.customWines) target.customWines = [];
+  if (!target.inbox) target.inbox = [];
+  (target.vinotecas || []).forEach(v => { if (v && !v.houseId) v.houseId = "h1"; });
+  return target;
+}
+async function collectBackup() {
+  const labels = await readLabelPhotos();
+  let provider = {};
+  try { provider = readPriceCfg() || {}; } catch (e) { provider = {}; }
+  return {
+    format: 2,
+    version: "2",
+    savedAt: new Date().toISOString(),
+    app: APP_VERSION,
+    state: JSON.parse(JSON.stringify(state)),
+    labels: labels || {},
+    provider: provider
+  };
+}
+function markBackupSaved() {
   prefs().lastBackup = Date.now();
   save();
-  toast("Copia JSON descargada");
-  if ($("#perfil-sub").classList.contains("active")) openPerfilSub("backup");
+  toast("Copia guardada");
+  if ($("#perfil-sub") && $("#perfil-sub").classList.contains("active")) openPerfilSub("backup");
+  if (screenId === "home") renderHome();
+  refreshBackupReminder();
+}
+async function exportBackup() {
+  try {
+    askPersistentStorage();
+    const payload = await collectBackup();
+    const name = "MiVinoteca_Backup_" + new Date().toISOString().slice(0, 10) + ".json";
+    const text = JSON.stringify(payload, null, 2);
+    const file = new File([text], name, { type: "application/json" });
+    let canFileShare = false;
+    try {
+      canFileShare = !!(navigator.share && typeof navigator.canShare === "function" && navigator.canShare({ files: [file] }));
+    } catch (e) { canFileShare = false; }
+    if (canFileShare) {
+      try {
+        await navigator.share({ files: [file], title: "Copia de Mi Vinoteca" });
+        markBackupSaved();
+        return;
+      } catch (err) {
+        if (err && err.name === "AbortError") {
+          toast("Copia no guardada");
+          return;
+        }
+      }
+    }
+    downloadFile(name, text, "application/json");
+    markBackupSaved();
+  } catch (e) {
+    toast("No se pudo crear la copia");
+  }
+}
+function applyRestoredBackup(data) {
+  if (!data || typeof data !== "object") throw new Error("invalid");
+  const full = data.state && data.state.bottles && data.state.vinotecas;
+  const keptStamp = Number(prefs().lastBackup) || null;
+  if (full) {
+    state = ensureStateShape(data.state);
+    if (!state.prefs) state.prefs = {};
+    state.prefs.lastBackup = keptStamp;
+    save();
+  } else {
+    if (!data.bottles || !data.vinotecas) throw new Error("invalid");
+    if (data.houses) state.houses = data.houses;
+    state.vinotecas = data.vinotecas;
+    state.bottles = data.bottles;
+    if (data.tasting) state.tasting = data.tasting;
+    if (data.favorites) state.favorites = data.favorites;
+    if (data.notify) state.notify = data.notify;
+    if (data.customWines) state.customWines = data.customWines;
+    if (data.inbox) state.inbox = data.inbox;
+    if (data.activity) state.activity = data.activity;
+    if (data.prefs) {
+      state.prefs = Object.assign(prefs(), data.prefs);
+      state.prefs.lastBackup = keptStamp;
+    }
+    ensureStateShape(state);
+    save();
+  }
+  const writes = [];
+  if (data.labels && typeof data.labels === "object") writes.push(writeLabelPhotos(data.labels));
+  if (data.provider && typeof data.provider === "object") {
+    try { localStorage.setItem(PRICE_CFG_KEY, JSON.stringify(data.provider)); } catch (e) {}
+  }
+  return Promise.all(writes);
 }
 function exportCsv() {
   const head = ["Nombre","Bodega","Añada","Región","País","Tipo","Cantidad","Ubicación","Puntuación","Estado","Precio"];
@@ -5465,22 +5628,19 @@ function reviewRestore(file) {
   reader.onload = () => {
     try {
       const data = JSON.parse(reader.result);
-      const nB = (data.bottles||[]).length;
-      const nW = new Set((data.bottles||[]).map(b => b.wineId)).size;
-      const nT = Object.keys(data.tasting||{}).length;
-      if (!confirm(`COPIA ENCONTRADA\n${nW} vinos\n${nB} lotes de botellas\n${nT} catas\nFecha: ${data.savedAt||"—"}\n\nEsto REEMPLAZA la colección actual. ¿Continuar?`)) return;
-      if (!data.bottles || !data.vinotecas) return toast("Archivo no válido");
-      state.houses = data.houses || state.houses;
-      state.vinotecas = data.vinotecas;
-      state.bottles = data.bottles;
-      state.tasting = data.tasting || {};
-      state.favorites = data.favorites || [];
-      if (data.prefs) state.prefs = Object.assign(prefs(), data.prefs);
-      if (data.notify) state.notify = data.notify;
-      prefs().lastBackup = Date.now();
-      save();
-      toast("Colección restaurada");
-      show("perfil");
+      const bag = (data && data.state && data.state.bottles) ? data.state : data;
+      const bottles = bag.bottles || [];
+      const nB = bottles.length;
+      const nW = new Set(bottles.map(b => b.wineId)).size;
+      const nT = Object.keys((bag.tasting) || {}).length;
+      const nCustom = ((bag.customWines) || data.customWines || []).length;
+      const nLabels = data.labels ? Object.keys(data.labels).length : 0;
+      if (!confirm(`COPIA ENCONTRADA\n${nW} vinos\n${nB} lotes de botellas\n${nT} catas\n${nCustom} vinos propios\n${nLabels} fotos de etiqueta\nFecha: ${data.savedAt || "—"}\n\nEsto REEMPLAZA la colección actual. ¿Continuar?`)) return;
+      applyRestoredBackup(data).then(() => {
+        toast("Colección restaurada");
+        show("perfil");
+        renderHome();
+      }).catch(() => toast("Archivo no válido"));
     } catch {
       toast("JSON ilegible");
     }
@@ -5590,6 +5750,7 @@ document.addEventListener("DOMContentLoaded", () => {
   try {
     clock();
     setInterval(() => { try { clock(); } catch (e) {} }, 30000);
+    try { askPersistentStorage(); } catch (e) {}
     try { refreshDirtyInternetWines(); } catch (e) { console.warn("limpieza", e); }
     try { renderHome(); } catch (e) { console.warn("inicio", e); }
     loadLabelPhotos().then(() => {
