@@ -9,14 +9,14 @@
   <meta name="apple-mobile-web-app-title" content="Casa Llavaneras" />
   <meta name="application-name" content="Casa Llavaneras" />
   <meta name="theme-color" content="#000000" />
-  <meta name="app-version" content="v75" />
+  <meta name="app-version" content="v76" />
   <title>Casa Llavaneras</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="apple-touch-icon" href="apple-touch-icon.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
   <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png" />
-  <link rel="stylesheet" href="styles.css?v=75" />
+  <link rel="stylesheet" href="styles.css?v=76" />
 </head>
 <body>
   <div class="device">
@@ -480,12 +480,23 @@
       if (!window.__casaReady) casaShowBootError();
     }, 8000);
   </script>
-  <script src="wines.js?v=75"></script>
-  <script src="bodegas.js?v=75"></script>
-  <script src="dossiers.js?v=75"></script>
-  <script src="providers/wineProvider.js?v=75"></script>
-  <script src="pairings.js?v=75"></script>
-  <script src="app.js?v=75"></script>
+  <script src="wines.js?v=76"></script>
+  <script src="bodegas.js?v=76"></script>
+  <script src="dossiers.js?v=76"></script>
+  <script src="providers/wineProvider.js?v=76"></script>
+  <script src="pairings.js?v=76"></script>
+  <script src="casa-util.js?v=76"></script>
+  <script src="casa-vino.js?v=76"></script>
+  <script src="casa-estado.js?v=76"></script>
+  <script src="casa-inicio.js?v=76"></script>
+  <script src="casa-vinoteca.js?v=76"></script>
+  <script src="casa-bodega.js?v=76"></script>
+  <script src="casa-ficha.js?v=76"></script>
+  <script src="casa-mesa.js?v=76"></script>
+  <script src="casa-bebidas.js?v=76"></script>
+  <script src="casa-gemini.js?v=76"></script>
+  <script src="casa-ajustes.js?v=76"></script>
+  <script src="app.js?v=76"></script>
   <script>
     document.querySelectorAll(".tab").forEach((t, i) => {
       const icons = [
@@ -524,7 +535,7 @@
         const current = (document.querySelector('meta[name="app-version"]') || {}).content || "";
         if (data.version && current && data.version !== current) reloadForSw();
       });
-      navigator.serviceWorker.register("sw.js?v=75").catch(() => {});
+      navigator.serviceWorker.register("sw.js?v=76").catch(() => {});
     }
   </script>
 </body>
