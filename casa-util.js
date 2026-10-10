@@ -9,6 +9,7 @@ const ICONS = {
   scan: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="28" height="28"><path d="M4 8V5a1 1 0 0 1 1-1h3M20 8V5a1 1 0 0 0-1-1h-3M4 16v3a1 1 0 0 0 1 1h3M20 16v3a1 1 0 0 1-1 1h-3"/><path d="M8 12h8"/></svg>'
 };
 function euro(n) {
+  if (typeof formatEuro === "function") return formatEuro(n);
   const v = Math.round(Number(n) || 0);
   try { return v.toLocaleString("es-ES") + " €"; }
   catch (e) { return v + " €"; }
@@ -25,6 +26,7 @@ function snapNav() {
 }
 function show(id, opts) {
   opts = opts || {};
+  if (typeof langRefresh !== "undefined" && langRefresh) opts.replace = true;
   if (!id) id = "home";
   if (opts.tab) navStack = [];
   else if (!opts.replace && !opts.pop && screenId && screenId !== id) {
@@ -53,18 +55,18 @@ function show(id, opts) {
 }
 function backCaption() {
   const p = navStack[navStack.length - 1];
-  if (!p) return "Inicio";
+  if (!p) return t("nav.home");
   const names = {
-    home: "Inicio", caves: "Vinotecas", "cave-detail-screen": "Vinoteca",
-    cellar: "Botellas", calendar: "Fechas", pairings: "Mesa", scan: "Escanear", inbox: "Entradas",
-    perfil: "Perfil", "perfil-sub": "Perfil", zonas: "Zonas", catas: "Catas", bebidas: "Bebidas", balance: "Balance",
-    dish: "Plato", wine: "Ficha", "wine-sub": "Ficha"
+    home: "nav.home", caves: "nav.caves", "cave-detail-screen": "nav.cave",
+    cellar: "nav.bottles", calendar: "nav.dates", pairings: "nav.table", scan: "nav.scan", inbox: "nav.inbox",
+    perfil: "nav.profile", "perfil-sub": "nav.profile", zonas: "nav.zones", catas: "nav.tastings", bebidas: "nav.drinks", balance: "nav.balance",
+    dish: "nav.dish", wine: "nav.wine", "wine-sub": "nav.wine"
   };
   if (p.id === "wine" && p.wineId) {
     const w = wineById(p.wineId);
-    return w ? w.producer.split(" ").slice(0, 2).join(" ") : "Ficha";
+    return w ? w.producer.split(" ").slice(0, 2).join(" ") : t("nav.wine");
   }
-  return names[p.id] || "Atrás";
+  return names[p.id] ? t(names[p.id]) : t("nav.back");
 }
 function goBack() {
   hideSheets();
@@ -90,9 +92,10 @@ function restoreNav(p) {
   }
   show(p.id, { replace: true });
 }
-function typeLabel(t) {
-  const map = { tinto: "Tinto", blanco: "Blanco", espumoso: "Espumoso", rosado: "Rosado", dulce: "Dulce", generoso: "Generoso", otro: "Otro" };
-  return map[t] || (t ? String(t).charAt(0).toUpperCase() + String(t).slice(1) : "Otro");
+function typeLabel(kind) {
+  const key = "type." + typeKey(kind || "otro");
+  const hit = t(key);
+  return hit === key ? (kind ? String(kind) : t("type.otro")) : hit;
 }
 function fold(s) {
   return String(s || "")
@@ -139,7 +142,7 @@ function showSheet(id) {
     $("#move-cellar").value = currentBottle.cellarId;
     $("#move-bin").value = currentBottle.bin || "";
     if ($("#move-qty")) $("#move-qty").value = currentBottle.qty;
-    if ($("#move-hint")) $("#move-hint").textContent = `${currentBottle.qty} ud en ${cellarName(currentBottle.cellarId)} ${currentBottle.bin || ""}`;
+    if ($("#move-hint")) $("#move-hint").textContent = t("move.hint", { n: currentBottle.qty, where: (cellarName(currentBottle.cellarId) + " " + (currentBottle.bin || "")).trim() });
   }
   if (id === "add-sheet") refreshAddKeep();
   $$(".modal-bg").forEach(m => m.classList.remove("show"));

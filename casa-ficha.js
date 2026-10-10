@@ -3,14 +3,14 @@ function renderCatas() {
   const list = lastTastings(20);
   $("#catas-body").innerHTML = `
     <button class="back" onclick="goBack()">‹ ${backCaption()}</button>
-    <p class="eyebrow">Mi Vinoteca</p>
-    <h1>Catas</h1>
-    <button class="btn btn-gold" style="width:100%;margin:10px 0" onclick="quickTaste()">Cata rápida</button>
-    ${list.length ? list.map(t => `<div class="card" role="button" onclick="openWineThenTaste('${t.wine.id}')">
-      <div class="label-row">${labelThumbHtml(t.wine)}<div class="label-copy"><div class="row"><h3>${t.wine.producer}</h3><span class="tiny">${t.when}</span></div>
-      <p class="muted">${t.wine.name} ${t.wine.vintage}</p>
-      <p class="tiny" style="margin-top:6px">${t.note || "Cuaderno sin recuerdo"}</p></div></div>
-    </div>`).join("") : `<p class="empty">Todavía no hay catas. Usa Cata rápida.</p>`}`;
+    <p class="eyebrow">${t("eyebrow.cellar")}</p>
+    <h1>${t("catas.h1")}</h1>
+    <button class="btn btn-gold" style="width:100%;margin:10px 0" onclick="quickTaste()">${t("home.quick")}</button>
+    ${list.length ? list.map(row => `<div class="card" role="button" onclick="openWineThenTaste('${row.wine.id}')">
+      <div class="label-row">${labelThumbHtml(row.wine)}<div class="label-copy"><div class="row"><h3>${row.wine.producer}</h3><span class="tiny">${row.when}</span></div>
+      <p class="muted">${row.wine.name} ${row.wine.vintage}</p>
+      <p class="tiny" style="margin-top:6px">${row.note || t("catas.noneNote")}</p></div></div>
+    </div>`).join("") : `<p class="empty">${t("catas.empty")}</p>`}`;
   mountLabelThumbs($("#catas-body"));
 }
 function isFav(id) { return (state.favorites || []).includes(id); }
@@ -27,7 +27,7 @@ function pendingForWine(wineId) {
 function pendingPlacementLine(wineId) {
   const rows = pendingForWine(wineId).filter(r => r.bin);
   if (!rows.length) return "";
-  return rows.map(r => `<p class="tiny" style="text-align:center;margin:6px 0 4px">Alta pendiente · ${cellarName(r.cellarId)} · ${r.bin}</p>`).join("");
+  return rows.map(r => `<p class="tiny" style="text-align:center;margin:6px 0 4px">${t("fact.pendingLine", { cave: cellarName(r.cellarId), bin: r.bin })}</p>`).join("");
 }
 function isPlaceholderNote(text) {
   return /ficha a partir de la bodega|alta por etiqueta|completa la ficha|ficha creada/i.test(String(text || ""));
@@ -46,13 +46,13 @@ function publishedNote(obj) {
 function criticBlurb(w) {
   const parker = w && w.ratings && w.ratings.parker;
   const note = publishedNote(parker);
-  if (note) return (parker && parker.estimate ? "Estimación. " : "") + note;
+  if (note) return (parker && parker.estimate ? t("fact.estimateDot") : "") + note;
   const tasting = publishedNote({ note: w && w.tasting });
   if (tasting.length > 24) {
     const est = w.provenance && w.provenance.tasting === "estimación Gemini";
-    return (est ? "Estimación. " : "") + tasting;
+    return (est ? t("fact.estimateDot") : "") + tasting;
   }
-  return "Sin dato";
+  return t("nodata");
 }
 function criticMeters(w) {
   const r = (w && w.ratings) || {};
@@ -65,7 +65,7 @@ function criticMeters(w) {
   return bit("WA", r.parker, 0) + " · " + bit("Peñín", r.penin, 0) + " · " + bit("WS", r.spectator, 0) + dec + " · " + bit("Vivino", r.vivino, 1);
 }
 function shownTemp(w, which) {
-  if (!fieldIsReal(w, which)) return "Sin dato";
+  if (!fieldIsReal(w, which)) return t("nodata");
   const c = w.conservation || {};
   if (which === "cellar") return c.cellarMin + "–" + c.cellarMax + " °C";
   return c.serveMin + "–" + c.serveMax + " °C";
@@ -87,9 +87,9 @@ function pairingPackOf(w) {
 function pairFeatureHtml(w) {
   const pack = pairingPackOf(w);
   const top = pack && pack.matches && pack.matches[0];
-  if (!top) return `<p class="muted" style="margin:0 0 12px">Sin dato</p>`;
+  if (!top) return `<p class="muted" style="margin:0 0 12px">${t("nodata")}</p>`;
   const dish = top.dishId ? PAIRING_DISHES.find(d => d.id === top.dishId) : null;
-  const title = dish ? dish.name : (top.label || top.why);
+  const title = dish ? dishName(dish) : (top.label || top.why);
   const score = top.score ? `<div class="pair-score">${top.score}/100</div>` : "";
   const why = dish ? top.why : "";
   return `<div class="pair-feature" role="button" onclick="openWineSub('pairings')">
@@ -104,9 +104,10 @@ function pairFeatureHtml(w) {
 function fichaStatusCard(w) {
   if (!w || isCatalogWineId(w.id)) return "";
   const note = (w.provenance && w.provenance.geminiNote) || "";
-  const btn = `<button class="btn btn-gold" style="width:100%;margin-top:8px" onclick="completeExistingWine('${w.id}')">Completar ficha</button>`;
+  const btn = `<button class="btn btn-gold" style="width:100%;margin-top:8px" onclick="completeExistingWine('${w.id}')">${t("fact.complete")}</button>`;
   if (!note) return `<div id="ficha-status">${btn}</div>`;
-  return `<div class="card" id="ficha-status"><p>${escHtml(note)}</p>${btn}</div>`;
+  const shown = note === NO_GEMINI_NOTE ? t("gemini.noKeyNote") : note;
+  return `<div class="card" id="ficha-status"><p>${escHtml(shown)}</p>${btn}</div>`;
 }
 function setFichaProgress(msg) {
   setScanStatus(msg);
@@ -114,13 +115,20 @@ function setFichaProgress(msg) {
   if (el) el.innerHTML = `<p>${escHtml(msg)}</p>`;
   const box = document.getElementById("scan-results");
   if (box && document.getElementById("scan") && document.getElementById("scan").classList.contains("active")) {
-    box.innerHTML = `<div class="card"><p>${escHtml(msg)}</p><p class="tiny">Primero la página de la tienda o la bodega. Lo que no aparezca, si hay clave guardada, lo estima Gemini.</p></div>`;
+    box.innerHTML = `<div class="card"><p>${escHtml(msg)}</p><p class="tiny">${t("fact.shopHint")}</p></div>`;
   }
+}
+function wineTranslateCard(w) {
+  return `<div class="card" id="wine-tr">
+    <p class="tiny">${t("tr.title")}</p>
+    <p class="muted" id="wine-tr-body" style="margin-top:6px">${t("tr.keep")}</p>
+    <button type="button" class="btn btn-ghost" id="wine-tr-btn" style="width:100%;margin-top:8px" onclick="requestWineTranslation('${w.id}')">${t("tr.button")}</button>
+  </div>`;
 }
 function openWine(wineId, bottle) {
   const w = wineById(wineId);
   if (!w) {
-    toast("No hay ficha para este vino");
+    toast(t("wine.noSheet"));
     show("cellar", { tab: true });
     return;
   }
@@ -131,33 +139,34 @@ function openWine(wineId, bottle) {
   const p = phaseOf(w);
   const r = w.ratings;
   const backTo = lastList === "wine" ? (bottle ? "cellar" : "scan") : lastList;
-  const pill = datesAreReal(w) ? (p.label || "").toUpperCase() : (fieldIsReal(w, "type") && w.type ? String(w.type).toUpperCase() : "SIN DATO");
+  const pill = datesAreReal(w) ? (p.label || "").toUpperCase() : (fieldIsReal(w, "type") && w.type ? typeLabel(w.type).toUpperCase() : t("nodata").toUpperCase());
 
   $("#wine-body").innerHTML = `
     <div class="wine-top">
       <button class="back" onclick="goBack()">‹ ${backCaption()}</button>
       <div class="spacer"></div>
-      <button class="icon-btn fav ${isFav(w.id) ? "on" : ""}" onclick="toggleFav('${w.id}')" aria-label="Favorito">${isFav(w.id) ? "♥" : "♡"}</button>
-      <button type="button" class="icon-btn" onclick="openWineMenu()" aria-label="Más de este vino">···</button>
+      <button class="icon-btn fav ${isFav(w.id) ? "on" : ""}" onclick="toggleFav('${w.id}')" aria-label="${t("wine.fav")}">${isFav(w.id) ? "♥" : "♡"}</button>
+      <button type="button" class="icon-btn" onclick="openWineMenu()" aria-label="${t("wine.more")}">···</button>
     </div>
     <div class="wine-hero">${estateSVG(w)}</div>
     <h1 class="wine-producer">${w.producer}</h1>
     <p class="wine-cuvee">${w.name} ${w.vintage}</p>
-    <button type="button" class="btn btn-ghost label-change" onclick="changeWineLabel()">Cambiar etiqueta</button>
+    <button type="button" class="btn btn-ghost label-change" onclick="changeWineLabel()">${t("label.change")}</button>
     <div class="peak-pill">${pill}</div>
-    ${currentBottle ? `<p class="tiny" style="text-align:center;margin:6px 0 4px">En mi bodega · ${currentBottle.qty} botella${currentBottle.qty>1?"s":""}</p>` : ""}
-    ${currentBottle && currentBottle.cellarId ? `<button class="btn btn-ghost" style="width:100%;margin:8px 0" onclick="showLotInCave()">Ver en la vinoteca</button>` : ""}
+    ${wineTranslateCard(w)}
+    ${currentBottle ? `<p class="tiny" style="text-align:center;margin:6px 0 4px">${t("wine.inCellar", { n: currentBottle.qty, noun: nounBottles(currentBottle.qty) })}</p>` : ""}
+    ${currentBottle && currentBottle.cellarId ? `<button class="btn btn-ghost" style="width:100%;margin:8px 0" onclick="showLotInCave()">${t("wine.seeCave")}</button>` : ""}
     ${pendingPlacementLine(w.id)}
     <div class="wine-tabs">
-      <button type="button" onclick="openWineSub('profile')">General</button>
-      <button type="button" onclick="openWineSub('taste')">Cata</button>
-      <button type="button" onclick="openWineSub('mapa')">Bodega</button>
-      <button type="button" onclick="openWineSub('anadas')">Añadas</button>
+      <button type="button" onclick="openWineSub('profile')">${t("wine.general")}</button>
+      <button type="button" onclick="openWineSub('taste')">${t("wine.tasteTab")}</button>
+      <button type="button" onclick="openWineSub('mapa')">${t("wine.estateTab")}</button>
+      <button type="button" onclick="openWineSub('anadas')">${t("wine.vintagesTab")}</button>
     </div>
     ${zoneStrip(w)}
     ${fichaStatusCard(w)}
 
-    <div class="sec-head" role="button" onclick="openWineSub('ratings')"><h2>Calificaciones</h2><span class="sec-ico">▦</span></div>
+    <div class="sec-head" role="button" onclick="openWineSub('ratings')"><h2>${t("wine.ratings")}</h2><span class="sec-ico">▦</span></div>
     <div class="rate-grid" role="button" onclick="openWineSub('ratings')">
       <div class="rate-card">
         <div class="who">
@@ -186,12 +195,12 @@ function openWine(wineId, bottle) {
       </div>
     </div>
     <div class="card" role="button" onclick="openWineSub('ratings')" style="margin:8px 0 12px">
-      <p class="tiny">Crítica publicada</p>
+      <p class="tiny">${t("wine.critic")}</p>
       <p style="margin-top:8px;line-height:1.45">${escHtml(criticBlurb(w))}</p>
       <p class="muted" style="margin-top:8px">${r.parker && r.parker.reviewer && r.parker.score ? escHtml(r.parker.reviewer) + " · " : ""}${escHtml(criticMeters(w))}</p>
     </div>
 
-    <div class="sec-head" role="button" onclick="openWineSub('pairings')"><h2>Maridajes</h2><span class="sec-ico">
+    <div class="sec-head" role="button" onclick="openWineSub('pairings')"><h2>${t("wine.pairings")}</h2><span class="sec-ico">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 13h14v3H5z"/><path d="M7 13c0-5 2.5-8 5-8s5 3 5 8"/><path d="M4 19h16"/></svg>
     </span></div>
     ${pairFeatureHtml(w)}
@@ -199,25 +208,26 @@ function openWine(wineId, bottle) {
     <div class="serve-bar" role="button" onclick="openWineSub('keep')">
       <div class="serve-cell">
         <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 3v3M8 5l1.2 2.2M16 5l-1.2 2.2"/><path d="M7 14a5 5 0 0 0 10 0c0-3-2.4-5.5-5-7-2.6 1.5-5 4-5 7z"/></svg>
-        <div><div class="lbl">Guarda</div><div class="val">${shownTemp(w, "cellar")}</div></div>
+        <div><div class="lbl">${t("wine.keep")}</div><div class="val">${shownTemp(w, "cellar")}</div></div>
       </div>
       <div class="serve-cell">
         <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M8 3h8l-1 9a5 5 0 1 1-6 0L8 3z"/><path d="M9 21h6"/></svg>
-        <div><div class="lbl">Servicio</div><div class="val">${shownTemp(w, "service")}</div></div>
+        <div><div class="lbl">${t("wine.service")}</div><div class="val">${shownTemp(w, "service")}</div></div>
       </div>
     </div>
     <div class="dossier-grid">
-      <button type="button" onclick="openWineSub('tecnica')">Técnica</button>
-      <button type="button" onclick="openWineSub('servicio')">Copa</button>
-      <button type="button" onclick="openWineSub('evolve')">Evolución</button>
-      <button type="button" onclick="openWineSub('mercado')">Mercado</button>
-      <button type="button" onclick="openWineSub('historia')">Historia</button>
-      <button type="button" onclick="openWineSub('origen')">Hueco</button>
-      <button type="button" onclick="openWineSub('compras')">Compras</button>
+      <button type="button" onclick="openWineSub('tecnica')">${t("wine.techBtn")}</button>
+      <button type="button" onclick="openWineSub('servicio')">${t("wine.glassBtn")}</button>
+      <button type="button" onclick="openWineSub('evolve')">${t("wine.evolveBtn")}</button>
+      <button type="button" onclick="openWineSub('mercado')">${t("wine.marketBtn")}</button>
+      <button type="button" onclick="openWineSub('historia')">${t("wine.historyBtn")}</button>
+      <button type="button" onclick="openWineSub('origen')">${t("wine.binBtn")}</button>
+      <button type="button" onclick="openWineSub('compras')">${t("wine.buyBtn")}</button>
     </div>
     ${cataPersonalCard(w)}
   `;
   show("wine");
+  if (typeof paintWineTranslation === "function") paintWineTranslation(w.id);
 }
 function tastingsOf(id) {
   const list = state.tasting && state.tasting[id];
@@ -230,10 +240,10 @@ function cataPersonalCard(w) {
   const note = last && last.conclusion ? last.conclusion.note : "";
   const score = last && last.conclusion && last.conclusion.score != null && last.conclusion.score !== "" ? last.conclusion.score : null;
   const hint = list.length
-    ? ((score != null ? score + "/100 · " : "") + (note || "Cata sin recuerdo") + (list.length > 1 ? " · " + list.length + " catas" : ""))
-    : "Tu nota, no la de las guías.";
+    ? ((score != null ? score + "/100 · " : "") + (note || t("wine.noMemory")) + (list.length > 1 ? " · " + t("wine.nTastings", { n: list.length }) : ""))
+    : t("wine.personalEmpty");
   return `<div class="cata-entry" role="button" onclick="openWineSub('taste')">
-    <div class="row"><h2>Cata personal</h2><span class="sec-ico">›</span></div>
+    <div class="row"><h2>${t("wine.personal")}</h2><span class="sec-ico">›</span></div>
     <p class="muted" style="margin-top:6px">${escHtml(hint)}</p>
   </div>`;
 }
@@ -262,27 +272,27 @@ function tastingById(wineId, id) {
 }
 function evolutionHtml(list) {
   const pts = (list || []).filter(t => t.conclusion && t.conclusion.score != null && t.conclusion.score !== "" && Number(t.conclusion.score) >= 0);
-  if (!pts.length) return `<p class="muted">Aún no hay puntuación para ver la evolución.</p>`;
+  if (!pts.length) return `<p class="muted">${t("taste.noPoints")}</p>`;
   const sorted = pts.slice().sort((a, b) => String(a.date || "").localeCompare(String(b.date || "")) || ((a.at || 0) - (b.at || 0)));
-  return `<div class="evo">${sorted.map(t => {
-    const s = Math.max(0, Math.min(100, Math.round(Number(t.conclusion.score))));
-    return `<div class="evo-row"><span class="tiny">${escHtml(t.date || "—")}</span><div class="evo-bar" role="img" aria-label="${s} sobre 100"><span style="width:${s}%"></span></div><b>${s}</b></div>`;
+  return `<div class="evo">${sorted.map(row => {
+    const s = Math.max(0, Math.min(100, Math.round(Number(row.conclusion.score))));
+    return `<div class="evo-row"><span class="tiny">${escHtml(row.date || "—")}</span><div class="evo-bar" role="img" aria-label="${t("taste.over", { n: s })}"><span style="width:${s}%"></span></div><b>${s}</b></div>`;
   }).join("")}</div>`;
 }
-function tastingHistoryCard(t) {
-  const boca = t.boca || {};
-  const note = (t.conclusion && t.conclusion.note) || "";
-  const score = t.conclusion && t.conclusion.score != null && t.conclusion.score !== "" ? t.conclusion.score : null;
-  const aromas = (t.nariz && t.nariz.aromas) || [];
-  const bits = [t.vista && t.vista.hue, aromas.slice(0, 4).join(", ")].filter(Boolean).join(" · ");
-  const axes = ["Acidez " + (boca.acidez == null ? "—" : boca.acidez), "Dulzor " + (boca.dulzor == null ? "—" : boca.dulzor), "Tanino " + (boca.tanino == null ? "—" : boca.tanino), "Cuerpo " + (boca.cuerpo == null ? "—" : boca.cuerpo)];
-  if (boca.final != null && boca.final !== "") axes.push("Final " + boca.final);
+function tastingHistoryCard(entry) {
+  const boca = entry.boca || {};
+  const note = (entry.conclusion && entry.conclusion.note) || "";
+  const score = entry.conclusion && entry.conclusion.score != null && entry.conclusion.score !== "" ? entry.conclusion.score : null;
+  const aromas = ((entry.nariz && entry.nariz.aromas) || []).slice(0, 4).map(chipLabel);
+  const bits = [entry.vista && entry.vista.hue ? chipLabel(entry.vista.hue) : "", aromas.join(", ")].filter(Boolean).join(" · ");
+  const axes = [t("taste.acidL") + " " + (boca.acidez == null ? "—" : boca.acidez), t("taste.sweetL") + " " + (boca.dulzor == null ? "—" : boca.dulzor), t("taste.tanninL") + " " + (boca.tanino == null ? "—" : boca.tanino), t("taste.bodyL") + " " + (boca.cuerpo == null ? "—" : boca.cuerpo)];
+  if (boca.final != null && boca.final !== "") axes.push(t("taste.finishL") + " " + boca.final);
   return `<article class="card taste-card" style="margin-top:8px">
-    <div class="row"><h3>${escHtml(t.date || "Sin fecha")}</h3>${score != null ? `<span class="badge">${escHtml(String(score))}</span>` : `<span class="tiny">Sin puntuación</span>`}</div>
+    <div class="row"><h3>${escHtml(entry.date || t("taste.noDate"))}</h3>${score != null ? `<span class="badge">${escHtml(String(score))}</span>` : `<span class="tiny">${t("taste.noScore")}</span>`}</div>
     ${bits ? `<p class="tiny" style="margin-top:6px">${escHtml(bits)}</p>` : ""}
     <p class="muted" style="margin-top:6px">${escHtml(axes.join(" · "))}</p>
     ${note ? `<p style="margin-top:6px">${escHtml(note)}</p>` : ""}
-    <button class="btn btn-ghost" style="margin-top:8px" onclick="editTasting('${escHtml(t.id)}')">Editar</button>
+    <button class="btn btn-ghost" style="margin-top:8px" onclick="editTasting('${escHtml(entry.id)}')">${t("taste.editBtn")}</button>
   </article>`;
 }
 function tasteAxis(left, right, id, val) {
@@ -295,52 +305,52 @@ function tastingFormHtml(w, entry) {
   const nariz = entry.nariz || {};
   const boca = entry.boca || {};
   const conclusion = entry.conclusion || {};
-  const hues = hueOptions(w).map(h => `<button type="button" class="chip ${vista.hue === h ? "on" : ""}" data-hue="${escHtml(h)}" onclick="pickTasteChip(this, 'hue')">${h}</button>`).join("");
+  const hues = hueOptions(w).map(h => `<button type="button" class="chip ${vista.hue === h ? "on" : ""}" data-hue="${escHtml(h)}" onclick="pickTasteChip(this, 'hue')">${chipLabel(h)}</button>`).join("");
   const families = AROMA_FAMILIES.map(f => {
-    const chips = f.chips.map(a => `<button type="button" class="chip ${(nariz.aromas || []).indexOf(a) >= 0 ? "on" : ""}" data-aroma="${escHtml(a)}" onclick="pickTasteChip(this, 'aroma')">${a}</button>`).join("");
-    return `<div class="aroma-family"><p class="tiny">${f.label}</p><div class="chip-row">${chips}</div></div>`;
+    const chips = f.chips.map(a => `<button type="button" class="chip ${(nariz.aromas || []).indexOf(a) >= 0 ? "on" : ""}" data-aroma="${escHtml(a)}" onclick="pickTasteChip(this, 'aroma')">${chipLabel(a)}</button>`).join("");
+    return `<div class="aroma-family"><p class="tiny">${chipLabel(f.label)}</p><div class="chip-row">${chips}</div></div>`;
   }).join("");
   const score = conclusion.score == null || conclusion.score === "" ? "" : conclusion.score;
   return `<div id="taste-form">
     <p class="cata-mark">✎</p>
-    <h2 class="cata-title">${entry.id && tastingEditId ? "Editar cata" : "Hoja de cata"}</h2>
-    <p class="cata-kicker">Tu nota, no la de las guías.</p>
-    <label class="field"><span>Fecha</span><input id="taste-date" type="date" value="${escHtml(entry.date || todayIso())}"></label>
-    <h3 style="margin-top:14px">Vista</h3>
+    <h2 class="cata-title">${entry.id && tastingEditId ? t("taste.edit") : t("taste.sheet")}</h2>
+    <p class="cata-kicker">${t("taste.yours")}</p>
+    <label class="field"><span>${t("taste.date")}</span><input id="taste-date" type="date" value="${escHtml(entry.date || todayIso())}"></label>
+    <h3 style="margin-top:14px">${t("taste.sight")}</h3>
     <div class="chip-row" id="taste-hues">${hues}</div>
-    <p class="tiny">Intensidad</p>
-    ${tasteAxis("Pálido", "Cubierto", "taste-vista-int", vista.intensity == null ? 5 : vista.intensity)}
-    <h3 style="margin-top:14px">Nariz</h3>
-    <p class="tiny">Intensidad</p>
-    ${tasteAxis("Cerrada", "Intensa", "taste-nariz-int", nariz.intensity == null ? 5 : nariz.intensity)}
+    <p class="tiny">${t("taste.intensity")}</p>
+    ${tasteAxis(t("taste.pale"), t("taste.deep"), "taste-vista-int", vista.intensity == null ? 5 : vista.intensity)}
+    <h3 style="margin-top:14px">${t("taste.nose")}</h3>
+    <p class="tiny">${t("taste.intensity")}</p>
+    ${tasteAxis(t("taste.closed"), t("taste.intense"), "taste-nariz-int", nariz.intensity == null ? 5 : nariz.intensity)}
     ${families}
-    <label class="field"><span>Otros aromas</span><textarea id="taste-nariz-text" placeholder="Lo que no está en las fichas">${escHtml(nariz.text || "")}</textarea></label>
-    <h3 style="margin-top:14px">Boca</h3>
-    ${tasteAxis("Débil", "Ácido", "taste-acidez", boca.acidez == null ? 6 : boca.acidez)}
-    ${tasteAxis("Seco", "Dulce", "taste-dulzor", boca.dulzor == null ? 2 : boca.dulzor)}
-    ${tasteAxis("Suave", "Tánico", "taste-tanino", boca.tanino == null ? 6 : boca.tanino)}
-    ${tasteAxis("Ligero", "Poderoso", "taste-cuerpo", boca.cuerpo == null ? 7 : boca.cuerpo)}
-    <p class="tiny">Final / persistencia</p>
-    ${tasteAxis("Corto", "Largo", "taste-final", boca.final == null ? 5 : boca.final)}
-    <h3 style="margin-top:14px">Conclusión</h3>
-    <label class="field"><span>Puntuación (0–100)</span><input id="taste-score" type="number" min="0" max="100" step="1" placeholder="85" value="${escHtml(String(score))}"></label>
-    <label class="recuerdo">Recuerdo
-      <textarea id="taste-note" placeholder="¿Qué se te queda en la memoria?">${escHtml(conclusion.note || "")}</textarea>
+    <label class="field"><span>${t("taste.otherAroma")}</span><textarea id="taste-nariz-text" placeholder="${t("taste.otherPh")}">${escHtml(nariz.text || "")}</textarea></label>
+    <h3 style="margin-top:14px">${t("taste.palate")}</h3>
+    ${tasteAxis(t("taste.weak"), t("taste.acid"), "taste-acidez", boca.acidez == null ? 6 : boca.acidez)}
+    ${tasteAxis(t("taste.dry"), t("taste.sweet"), "taste-dulzor", boca.dulzor == null ? 2 : boca.dulzor)}
+    ${tasteAxis(t("taste.soft"), t("taste.tannic"), "taste-tanino", boca.tanino == null ? 6 : boca.tanino)}
+    ${tasteAxis(t("taste.light"), t("taste.powerful"), "taste-cuerpo", boca.cuerpo == null ? 7 : boca.cuerpo)}
+    <p class="tiny">${t("taste.finish")}</p>
+    ${tasteAxis(t("taste.short"), t("taste.long"), "taste-final", boca.final == null ? 5 : boca.final)}
+    <h3 style="margin-top:14px">${t("taste.close")}</h3>
+    <label class="field"><span>${t("taste.score")}</span><input id="taste-score" type="number" min="0" max="100" step="1" placeholder="85" value="${escHtml(String(score))}"></label>
+    <label class="recuerdo">${t("taste.memory")}
+      <textarea id="taste-note" placeholder="${t("taste.memoryPh")}">${escHtml(conclusion.note || "")}</textarea>
     </label>
-    <button class="btn btn-gold" style="width:100%;margin-top:8px" onclick="saveTasting()">Guardar cata</button>
+    <button class="btn btn-gold" style="width:100%;margin-top:8px" onclick="saveTasting()">${t("taste.save")}</button>
     <p class="cata-foot">Casa Llavaneras</p>
   </div>`;
 }
 function tastingScreen(w) {
   const list = tastingsOf(w.id);
   const editing = tastingEditId ? tastingById(w.id, tastingEditId) : null;
-  const history = list.length ? list.slice().reverse().map(tastingHistoryCard).join("") : `<p class="empty">Aún no hay catas de este vino.</p>`;
+  const history = list.length ? list.slice().reverse().map(tastingHistoryCard).join("") : `<p class="empty">${t("taste.none")}</p>`;
   return `
-    <h2>Historial</h2>
+    <h2>${t("taste.history")}</h2>
     <div id="taste-history">${history}</div>
-    <h2 style="margin-top:16px">Evolución</h2>
+    <h2 style="margin-top:16px">${t("taste.evolve")}</h2>
     <div id="taste-evolution">${evolutionHtml(list)}</div>
-    <button class="btn btn-ghost" style="width:100%;margin-top:12px" onclick="newTasting()">Nueva cata</button>
+    <button class="btn btn-ghost" style="width:100%;margin-top:12px" onclick="newTasting()">${t("taste.new")}</button>
     ${tastingFormHtml(w, editing || blankTasting(w.id, tastingLink || {}))}`;
 }
 function pickTasteChip(btn, kind) {
@@ -364,7 +374,7 @@ function editTasting(id) {
 }
 function startTastingForConsumption(id) {
   const row = (state.consumption || []).find(c => c.id === id);
-  if (!row || !row.wineId) return toast("Esa bebida ya no está");
+  if (!row || !row.wineId) return toast(t("taste.gone"));
   tastingEditId = "";
   tastingLink = { consumptionId: row.id, date: row.date || todayIso() };
   openWine(row.wineId);
@@ -422,7 +432,7 @@ function saveTasting() {
   save();
   tastingEditId = "";
   tastingLink = null;
-  toast("Cata guardada");
+  toast(t("taste.saved"));
   openWineSub("taste");
 }
 const VESSEL_LABELS = { barrica: "Barrica", fudre: "Fudre", deposito: "Depósito", anfora: "Ánfora", botella: "Botella", hormigon: "Hormigón", mixto: "Mixto" };
@@ -439,18 +449,22 @@ function openTechEdit() {
   if (!grapes.length) grapes.push("");
   const rows = grapes.map((g, i) => grapeRowHtml(i, g, w.grapePct && w.grapePct[g] ? w.grapePct[g] : "")).join("");
   const e = w.elevage || {};
+  const vesselMap = {};
+  Object.keys(VESSEL_LABELS).forEach(k => { vesselMap[k] = t("vessel." + k); });
+  const oakMap = {};
+  Object.keys(OAK_LABELS).forEach(k => { oakMap[k] = t("oak." + k); });
   box.innerHTML = `<div class="card" style="margin-top:10px">
-    <h3>Uvas</h3>
-    <p class="tiny">El porcentaje es opcional. La lista que ya tenías se queda.</p>
+    <h3>${t("tech.grapes")}</h3>
+    <p class="tiny">${t("tech.pct")}</p>
     <div id="grape-rows">${rows}</div>
-    <button class="btn btn-ghost" style="margin-top:8px" onclick="addGrapeRow()">Añadir uva</button>
-    <h3 style="margin-top:14px">Crianza</h3>
-    <label class="field"><span>Meses</span><input id="elev-months" type="number" min="0" max="120" placeholder="18" value="${e.months || ""}"></label>
-    <label class="field"><span>Recipiente</span><select id="elev-vessel">${selectOptions(VESSEL_LABELS, e.vessel || "", "Sin dato")}</select></label>
-    <label class="field"><span>Roble</span><select id="elev-oak">${selectOptions(OAK_LABELS, e.oak || "", "Sin dato")}</select></label>
-    <label class="field"><span>% roble nuevo</span><input id="elev-new" type="number" min="0" max="100" placeholder="30" value="${e.newOak == null ? "" : e.newOak}"></label>
-    <label class="field"><span>Texto libre</span><textarea id="elev-text" placeholder="La crianza, con tus palabras">${escHtml(w.crianza || "")}</textarea></label>
-    <button class="btn btn-gold" style="width:100%" onclick="saveTechEdit()">Guardar uvas y crianza</button>
+    <button class="btn btn-ghost" style="margin-top:8px" onclick="addGrapeRow()">${t("tech.addGrape")}</button>
+    <h3 style="margin-top:14px">${t("tech.elevage")}</h3>
+    <label class="field"><span>${t("tech.months")}</span><input id="elev-months" type="number" min="0" max="120" placeholder="18" value="${e.months || ""}"></label>
+    <label class="field"><span>${t("tech.vessel")}</span><select id="elev-vessel">${selectOptions(vesselMap, e.vessel || "", t("nodata"))}</select></label>
+    <label class="field"><span>${t("tech.oak")}</span><select id="elev-oak">${selectOptions(oakMap, e.oak || "", t("nodata"))}</select></label>
+    <label class="field"><span>${t("tech.newOak")}</span><input id="elev-new" type="number" min="0" max="100" placeholder="30" value="${e.newOak == null ? "" : e.newOak}"></label>
+    <label class="field"><span>${t("tech.free")}</span><textarea id="elev-text" placeholder="${t("tech.freePh")}">${escHtml(w.crianza || "")}</textarea></label>
+    <button class="btn btn-gold" style="width:100%" onclick="saveTechEdit()">${t("tech.save")}</button>
   </div>`;
 }
 function grapeRowHtml(i, name, pct) {
@@ -494,7 +508,7 @@ function saveTechEdit() {
   };
   applyStoredWineEdit(w);
   save();
-  toast("Uvas y crianza guardadas");
+  toast(t("tech.saved"));
   openWineSub("tecnica");
 }
 function openWineMenu() {
@@ -510,33 +524,33 @@ function openWineSub(kind) {
   const pr = progressOf(w);
   const r = w.ratings;
   const titles = {
-    ratings: "Calificaciones",
-    pairings: "Maridajes",
-    keep: "Conservación",
-    servicio: "Servicio en copa",
-    tecnica: "Ficha técnica",
-    historia: "Historia",
-    mercado: "Valor de mercado",
-    evolve: "Evolución",
-    profile: "Perfil",
-    origen: "Origen y hueco",
-    mapa: "Mapa y bodega",
-    vinos: "Vinos de la zona",
-    taste: "Cuaderno de cata",
-    anadas: "Añadas",
-    compras: "Compras e historial",
-    bottle: currentBottle ? "Ubicación física" : "Añadir a vinoteca"
+    ratings: t("sub.ratings"),
+    pairings: t("sub.pairings"),
+    keep: t("sub.keep"),
+    servicio: t("sub.servicio"),
+    tecnica: t("sub.tecnica"),
+    historia: t("sub.historia"),
+    mercado: t("sub.mercado"),
+    evolve: t("sub.evolve"),
+    profile: t("sub.profile"),
+    origen: t("sub.origen"),
+    mapa: t("sub.mapa"),
+    vinos: t("sub.vinos"),
+    taste: t("sub.taste"),
+    anadas: t("sub.anadas"),
+    compras: t("sub.compras"),
+    bottle: currentBottle ? t("sub.bottle") : t("sub.add")
   };
   let body = "";
   if (kind === "ratings") {
     const d = dossierOf(w);
     const casaRaw = publishedNote({ note: w.tasting });
-    const casa = casaRaw || (w.provenance ? "Sin dato" : (w.tasting || "").trim());
+    const casa = casaRaw || (w.provenance ? t("nodata") : (w.tasting || "").trim());
     const noteOf = (obj, extra) => {
       const n = publishedNote(obj) || publishedNote({ note: extra });
       if (n && n !== casa) return n;
-      if (w.provenance) return "Sin dato";
-      return "Sin párrafo propio de esta guía para la añada. La nota de la casa está abajo.";
+      if (w.provenance) return t("nodata");
+      return t("fact.noGuide");
     };
     const card = (fuente, puntos, texto) => `
       <div class="card" style="margin-top:10px">
@@ -544,68 +558,68 @@ function openWineSub(kind) {
         <p style="margin-top:8px;line-height:1.5">${texto}</p>
       </div>`;
     body = `
-      <p class="tiny" style="margin:6px 0 8px">Guías del sector + nota de la casa. Vivino no tiene API: la media es de dossier, no de la web en vivo.</p>
+      <p class="tiny" style="margin:6px 0 8px">${t("fact.guides")}</p>
       <div class="temp-grid" style="margin:8px 0 12px">
         <div class="temp"><span class="tiny">Vivino</span><b>${rateScore(r.vivino.score, 1)}</b></div>
         <div class="temp"><span class="tiny">Peñín</span><b>${rateScore(r.penin.score, 0)}</b></div>
         <div class="temp"><span class="tiny">Parker / WA</span><b>${rateScore(r.parker.score, 0)}</b></div>
         <div class="temp"><span class="tiny">Spectator</span><b>${rateScore(r.spectator.score, 0)}</b></div>
       </div>
-      ${card("Guía Peñín" + (r.penin.estimate ? " · estimación" : ""), r.penin.score ? r.penin.score + "/100" : "Sin dato", noteOf(r.penin))}
-      ${card((r.parker.reviewer || "Wine Advocate") + (r.parker.estimate ? " · estimación" : ""), r.parker.score ? r.parker.score + "/100" : "Sin dato", noteOf(r.parker))}
-      ${card("Wine Spectator" + (r.spectator.estimate ? " · estimación" : ""), r.spectator.score ? r.spectator.score + "/100" : "Sin dato", noteOf(r.spectator, r.spectator.note))}
-      ${card("Decanter" + (r.decanter && r.decanter.estimate ? " · estimación" : ""), (r.decanter && r.decanter.score ? r.decanter.score + "/100" : "Sin dato"), noteOf(r.decanter))}
-      ${card("Vivino · usuarios" + (r.vivino.estimate ? " · estimación" : ""), (r.vivino.score ? r.vivino.score.toFixed(1) + "/5 · " + (r.vivino.count || "Sin dato") + " valoraciones" : "Sin dato"), noteOf(r.vivino))}
-      ${card("Nota de cata (casa)", "ficha", casa)}
-      ${d.awards && d.awards.length ? `<div class="card"><p class="tiny">Referencias</p><p style="margin-top:8px">${d.awards.join(" · ")}</p></div>` : ""}
-      <button class="btn btn-ghost" style="width:100%;margin-top:12px" onclick="openWineSub('taste')">Cata personal ›</button>
-      <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="openWineSub('historia')">Historia y añada ›</button>`;
+      ${card("Guía Peñín" + (r.penin.estimate ? " · " + t("fact.estimate") : ""), r.penin.score ? r.penin.score + "/100" : t("nodata"), noteOf(r.penin))}
+      ${card((r.parker.reviewer || "Wine Advocate") + (r.parker.estimate ? " · " + t("fact.estimate") : ""), r.parker.score ? r.parker.score + "/100" : t("nodata"), noteOf(r.parker))}
+      ${card("Wine Spectator" + (r.spectator.estimate ? " · " + t("fact.estimate") : ""), r.spectator.score ? r.spectator.score + "/100" : t("nodata"), noteOf(r.spectator, r.spectator.note))}
+      ${card("Decanter" + (r.decanter && r.decanter.estimate ? " · " + t("fact.estimate") : ""), (r.decanter && r.decanter.score ? r.decanter.score + "/100" : t("nodata")), noteOf(r.decanter))}
+      ${card("Vivino · " + t("fact.users") + (r.vivino.estimate ? " · " + t("fact.estimate") : ""), (r.vivino.score ? r.vivino.score.toFixed(1) + "/5 · " + (r.vivino.count || t("nodata")) + " " + t("fact.reviews") : t("nodata")), noteOf(r.vivino))}
+      ${card(t("fact.houseNote"), t("fact.sheetWord"), casa)}
+      ${d.awards && d.awards.length ? `<div class="card"><p class="tiny">${t("fact.refs")}</p><p style="margin-top:8px">${d.awards.join(" · ")}</p></div>` : ""}
+      <button class="btn btn-ghost" style="width:100%;margin-top:12px" onclick="openWineSub('taste')">${t("fact.personalLink")}</button>
+      <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="openWineSub('historia')">${t("fact.historyLink")}</button>`;
   } else if (kind === "pairings") {
     body = pairingBlock(w);
   } else if (kind === "keep") {
     body = `
       <div class="temp-grid" style="margin:10px 0">
-        <div class="temp"><span class="tiny">Vinoteca</span><b>${shownTemp(w, "cellar")}</b></div>
-        <div class="temp"><span class="tiny">Servicio</span><b>${shownTemp(w, "service")}</b></div>
-        <div class="temp"><span class="tiny">Humedad</span><b>${fieldIsReal(w, "cellar") ? w.conservation.humidity : "Sin dato"}</b></div>
-        <div class="temp"><span class="tiny">Posición</span><b style="font-size:16px">${fieldIsReal(w, "cellar") ? w.conservation.position : "Sin dato"}</b></div>
+        <div class="temp"><span class="tiny">${t("fact.cellarShort")}</span><b>${shownTemp(w, "cellar")}</b></div>
+        <div class="temp"><span class="tiny">${t("fact.service")}</span><b>${shownTemp(w, "service")}</b></div>
+        <div class="temp"><span class="tiny">${t("fact.humidity")}</span><b>${fieldIsReal(w, "cellar") ? w.conservation.humidity : t("nodata")}</b></div>
+        <div class="temp"><span class="tiny">${t("fact.pos")}</span><b style="font-size:16px">${fieldIsReal(w, "cellar") ? w.conservation.position : t("nodata")}</b></div>
       </div>
       <div class="card">
-        <p class="muted">Luz: ${w.conservation.light}. El corcho vive con humedad ${corkHumidity(w)}: por debajo se reseca y entra oxígeno; por encima hay moho en la cápsula.</p>
+        <p class="muted">${t("fact.light", { light: w.conservation.light, h: corkHumidity(w) })}</p>
         ${adviseCave(w)}
       </div>
       <div class="card">
-        <strong>Cómo conservarlo</strong>
-        <p class="muted" style="margin-top:6px">Horizontal, oscuro, sin UV ni vibración de electrodomésticos. Estabilidad antes que la cifra exacta: más de 2 °C de oscilación acelera la evolución.</p>
+        <strong>${t("fact.howKeep")}</strong>
+        <p class="muted" style="margin-top:6px">${t("fact.howKeepBody")}</p>
       </div>
-      <button class="btn btn-ghost" style="width:100%;margin-top:10px" onclick="openWineSub('servicio')">Protocolo de servicio ›</button>`;
+      <button class="btn btn-ghost" style="width:100%;margin-top:10px" onclick="openWineSub('servicio')">${t("fact.serviceLink")}</button>`;
   } else if (kind === "servicio") {
     const d = dossierOf(w);
     body = `
       <div class="temp-grid" style="margin:10px 0">
-        <div class="temp"><span class="tiny">Servir</span><b>${shownTemp(w, "service")}</b></div>
-        <div class="temp"><span class="tiny">Decantar</span><b style="font-size:16px">${d.decant}</b></div>
+        <div class="temp"><span class="tiny">${t("fact.serve")}</span><b>${shownTemp(w, "service")}</b></div>
+        <div class="temp"><span class="tiny">${t("fact.decant")}</span><b style="font-size:16px">${d.decant}</b></div>
       </div>
-      <div class="card"><p class="tiny">Copa</p><p>${d.glass}</p></div>
-      <div class="card"><p class="tiny">Oxígeno</p><p class="muted" style="margin-top:6px">${d.oxygen}</p></div>
-      <div class="card"><p class="tiny">Guarda en cava</p><p class="muted" style="margin-top:6px">${shownTemp(w, "cellar")} · ${fieldIsReal(w, "cellar") ? w.conservation.humidity : "Sin dato"} · ${fieldIsReal(w, "cellar") ? w.conservation.position : "Sin dato"}</p></div>`;
+      <div class="card"><p class="tiny">${t("fact.glass")}</p><p>${d.glass}</p></div>
+      <div class="card"><p class="tiny">${t("fact.oxygen")}</p><p class="muted" style="margin-top:6px">${d.oxygen}</p></div>
+      <div class="card"><p class="tiny">${t("fact.cellar")}</p><p class="muted" style="margin-top:6px">${shownTemp(w, "cellar")} · ${fieldIsReal(w, "cellar") ? w.conservation.humidity : t("nodata")} · ${fieldIsReal(w, "cellar") ? w.conservation.position : t("nodata")}</p></div>`;
   } else if (kind === "tecnica") {
     const d = dossierOf(w);
     body = `
       ${provenanceCard(w)}
-      <div class="fact"><span>Uvas</span><b>${escHtml(grapeLine(w))}</b></div>
-      <div class="fact"><span>Alcohol</span><b>${w.abv ? w.abv + "% vol." : "—"}</b></div>
-      <div class="fact"><span>Estilo</span><b>${escHtml(styleLabel(w))}</b></div>
-      ${w.provenance ? `<div class="fact"><span>Zona</span><b>${escHtml([w.appellation || w.region, w.country].filter(Boolean).join(" · ") || "—")}</b></div>
-      <div class="fact"><span>Beber</span><b>${datesAreReal(w) ? w.aging.drinkFrom + "–" + w.aging.peakEnd : "Sin dato"}</b></div>
-      <div class="fact"><span>Límite</span><b>${datesAreReal(w) ? w.aging.holdTo : "Sin dato"}</b></div>
-      <div class="fact"><span>Maridaje</span><b>${escHtml((w.pairing || []).join(", ") || "—")}</b></div>` : ""}
-      <div class="fact"><span>Altitud</span><b>${d.elevation}</b></div>
-      <div class="card" style="margin-top:12px"><p class="tiny">Suelos</p><p class="muted" style="margin-top:6px">${d.soils}</p></div>
-      <div class="card"><p class="tiny">Viñedo</p><p class="muted" style="margin-top:6px">${d.vineyard}</p></div>
-      <div class="card"><p class="tiny">Vinificación</p><p class="muted" style="margin-top:6px">${d.vinification}</p></div>
-      <div class="card"><p class="tiny">Crianza</p>${elevageLine(w) ? `<p style="margin-top:6px">${escHtml(elevageLine(w))}</p>` : ""}<p class="muted" style="margin-top:6px">${escHtml(userLocked(w, "crianza") ? (w.crianza || "Sin texto") : (w.crianza || d.elevage || "Sin texto"))}</p></div>
-      <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="openTechEdit()">Editar uvas y crianza</button>
+      <div class="fact"><span>${t("fact.grapes")}</span><b>${escHtml(grapeLine(w))}</b></div>
+      <div class="fact"><span>${t("fact.abv")}</span><b>${w.abv ? w.abv + "% vol." : "—"}</b></div>
+      <div class="fact"><span>${t("fact.style")}</span><b>${escHtml(styleLabel(w))}</b></div>
+      ${w.provenance ? `<div class="fact"><span>${t("fact.zone")}</span><b>${escHtml([w.appellation || w.region, countryLabel(w.country)].filter(Boolean).join(" · ") || "—")}</b></div>
+      <div class="fact"><span>${t("fact.drink")}</span><b>${datesAreReal(w) ? w.aging.drinkFrom + "–" + w.aging.peakEnd : t("nodata")}</b></div>
+      <div class="fact"><span>${t("fact.limit")}</span><b>${datesAreReal(w) ? w.aging.holdTo : t("nodata")}</b></div>
+      <div class="fact"><span>${t("fact.pair")}</span><b>${escHtml((w.pairing || []).join(", ") || "—")}</b></div>` : ""}
+      <div class="fact"><span>${t("fact.alt")}</span><b>${d.elevation}</b></div>
+      <div class="card" style="margin-top:12px"><p class="tiny">${t("fact.soils")}</p><p class="muted" style="margin-top:6px">${d.soils}</p></div>
+      <div class="card"><p class="tiny">${t("fact.vineyard")}</p><p class="muted" style="margin-top:6px">${d.vineyard}</p></div>
+      <div class="card"><p class="tiny">${t("fact.vini")}</p><p class="muted" style="margin-top:6px">${d.vinification}</p></div>
+      <div class="card"><p class="tiny">${t("fact.elevage")}</p>${elevageLine(w) ? `<p style="margin-top:6px">${escHtml(elevageLine(w))}</p>` : ""}<p class="muted" style="margin-top:6px">${escHtml(userLocked(w, "crianza") ? (w.crianza || t("tech.noText")) : (w.crianza || d.elevage || t("tech.noText")))}</p></div>
+      <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="openTechEdit()">${t("tech.edit")}</button>
       <div id="tech-edit"></div>`;
   } else if (kind === "historia") {
     const d = dossierOf(w);
@@ -613,30 +627,30 @@ function openWineSub(kind) {
     body = `
       ${mapTabs("historia")}
       ${paras.map(t => `<div class="card"><p style="line-height:1.5">${t}</p></div>`).join("")}
-      <div class="card"><p class="tiny">Elaboración</p><p style="margin-top:8px">${d.vinification}</p><p class="muted" style="margin-top:8px">${d.elevage}</p></div>
-      <div class="card"><p class="tiny">Crítica de añada ${w.vintage}</p>
+      <div class="card"><p class="tiny">${t("fact.making")}</p><p style="margin-top:8px">${d.vinification}</p><p class="muted" style="margin-top:8px">${d.elevage}</p></div>
+      <div class="card"><p class="tiny">${t("fact.vintageNote", { y: w.vintage })}</p>
         <p style="margin-top:8px;line-height:1.45">${escHtml(criticBlurb(w))}</p>
         <p class="muted" style="margin-top:8px">${escHtml(criticMeters(w))}</p>
         ${(r.penin && r.penin.note) ? `<p class="muted" style="margin-top:10px">${r.penin.note}</p>` : ""}
       </div>
-      ${d.awards && d.awards.length ? `<div class="card"><p class="tiny">Referencias</p><p style="margin-top:8px">${d.awards.join(" · ")}</p></div>` : ""}
-      <button class="btn btn-ghost" style="width:100%;margin-top:12px" onclick="openWineSub('evolve')">Evolución y fechas ›</button>
-      <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="openWineSub('mapa')">Volver al mapa</button>`;
+      ${d.awards && d.awards.length ? `<div class="card"><p class="tiny">${t("fact.refs")}</p><p style="margin-top:8px">${d.awards.join(" · ")}</p></div>` : ""}
+      <button class="btn btn-ghost" style="width:100%;margin-top:12px" onclick="openWineSub('evolve')">${t("fact.evolveLink")}</button>
+      <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="openWineSub('mapa')">${t("fact.backMap")}</button>`;
   } else if (kind === "mercado") {
     body = `<div id="mercado-box">${mercadoSkeleton(w)}</div>`;
     setTimeout(() => fillMercado(w), 0);
   } else if (kind === "evolve") {
     const when = datesAreReal(w)
-      ? `Añada ${w.vintage}. Beber desde ${w.aging.drinkFrom}. Apogeo ${w.aging.peakStart}–${w.aging.peakEnd}. Límite prudente ${w.aging.holdTo}.`
-      : `Añada ${w.vintage}. Ventana de consumo: Sin dato.`;
+      ? t("fact.vintageLine", { v: w.vintage, from: w.aging.drinkFrom, a: w.aging.peakStart, b: w.aging.peakEnd, h: w.aging.holdTo })
+      : t("fact.vintageUnknown", { v: w.vintage });
     body = `
       <p class="muted" style="margin:6px 0">${when}</p>
-      <div class="peak-pill">${datesAreReal(w) ? (p.label || "").toUpperCase() : "SIN DATO"}</div>
+      <div class="peak-pill">${datesAreReal(w) ? (p.label || "").toUpperCase() : t("nodata").toUpperCase()}</div>
       ${datesAreReal(w) ? `<div class="bar"><i style="width:${pr.pct}%"></i></div>
-      <div class="row tiny"><span>${w.vintage}</span><span>hoy ${YEAR}</span><span>${w.aging.holdTo}</span></div>` : ""}
+      <div class="row tiny"><span>${w.vintage}</span><span>${t("fact.now", { y: YEAR })}</span><span>${w.aging.holdTo}</span></div>` : ""}
       <div class="timeline">
         ${(w.evolutionNotes || []).map(n => `<div class="tl-item"><em>${n.year} · ${n.phase}</em><strong>${escHtml(n.text)}</strong></div>`).join("")}
-        <div class="tl-item"><em>${YEAR} · Estado actual</em><strong>${datesAreReal(w) ? currentAdvice(w, p) : "Sin dato de ventana. Pulsa Completar ficha."}</strong></div>
+        <div class="tl-item"><em>${YEAR} · ${t("fact.state")}</em><strong>${datesAreReal(w) ? currentAdvice(w, p) : t("fact.noWindow")}</strong></div>
       </div>`;
   } else if (kind === "profile") {
     body = `
@@ -644,33 +658,33 @@ function openWineSub(kind) {
       <h3 style="margin:8px 0 6px">${w.producer}</h3>
       <p>${w.name} ${w.vintage}</p>
       <div class="card" style="margin-top:12px">
-        <h2>Cata publicada</h2>
+        <h2>${t("fact.published")}</h2>
         <p style="margin-top:8px">${w.tasting}</p>
       </div>
       <div class="card">
-        <p>Uvas: ${(w.grapes || []).join(", ") || "—"}</p>
-        <p class="muted">${w.abv ? w.abv + "% vol." : "Sin dato"} · ${escHtml(styleLabel(w))} · ${w.priceHint && w.priceHint !== "—" ? escHtml(w.priceHint) : "Sin dato"}</p>
+        <p>${t("fact.grapes")}: ${(w.grapes || []).join(", ") || "—"}</p>
+        <p class="muted">${w.abv ? w.abv + "% vol." : t("nodata")} · ${escHtml(styleLabel(w))} · ${w.priceHint && w.priceHint !== "—" ? escHtml(w.priceHint) : t("nodata")}</p>
       </div>
       <div class="card">
-        <p class="tiny">Suelos</p>
+        <p class="tiny">${t("fact.soils")}</p>
         <p class="muted" style="margin-top:6px">${dossierOf(w).soils}</p>
       </div>
-      <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="openWineSub('tecnica')">Ficha técnica completa ›</button>`;
+      <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="openWineSub('tecnica')">${t("fact.techFull")}</button>`;
   } else if (kind === "origen") {
     const b = currentBottle;
     const pend = pendingForWine(w.id)[0];
-    const pos = b ? (b.bin || "sin hueco") : (pend && pend.bin ? pend.bin + " · pendiente" : "—");
-    const caveLabel = b ? cellarName(b.cellarId) : (pend ? cellarName(pend.cellarId) + " · aún no está en la bodega" : "No está en cava");
+    const pos = b ? (b.bin || t("cellar.noBin")) : (pend && pend.bin ? pend.bin + " · " + t("fact.pending") : "—");
+    const caveLabel = b ? cellarName(b.cellarId) : (pend ? cellarName(pend.cellarId) + " · " + t("fact.notYet") : t("fact.notCellar"));
     body = `
-      <div class="fact"><span>Posición</span><b>${pos}</b></div>
-      <div class="fact"><span>Vinoteca</span><b>${caveLabel}</b></div>
-      <div class="fact"><span>Bodega</span><b>${w.producer}</b></div>
-      <div class="fact"><span>Añada</span><b>${w.vintage}</b></div>
-      <div class="fact"><span>Denominación</span><b>${w.appellation}</b></div>
-      <div class="fact"><span>Región</span><b>${w.region}</b></div>
-      <div class="fact"><span>País</span><b>${w.country}</b></div>
-      ${b && b.price ? `<div class="fact"><span>Precio</span><b>${b.price} €</b></div>` : ""}
-      <button class="btn btn-ghost" style="width:100%;margin-top:14px" onclick="openWineSub('mapa')">Ver mapa de la zona</button>`;
+      <div class="fact"><span>${t("fact.pos")}</span><b>${pos}</b></div>
+      <div class="fact"><span>${t("fact.cellarShort")}</span><b>${caveLabel}</b></div>
+      <div class="fact"><span>${t("fact.estate")}</span><b>${w.producer}</b></div>
+      <div class="fact"><span>${t("fact.vintage")}</span><b>${w.vintage}</b></div>
+      <div class="fact"><span>${t("fact.app")}</span><b>${w.appellation}</b></div>
+      <div class="fact"><span>${t("fact.region")}</span><b>${w.region}</b></div>
+      <div class="fact"><span>${t("fact.country")}</span><b>${countryLabel(w.country)}</b></div>
+      ${b && b.price ? `<div class="fact"><span>${t("fact.price")}</span><b>${formatEuro(b.price)}</b></div>` : ""}
+      <button class="btn btn-ghost" style="width:100%;margin-top:14px" onclick="openWineSub('mapa')">${t("fact.zoneMap")}</button>`;
   } else if (kind === "mapa") {
     body = mapaBlock(w) + mapTabs("mapa");
   } else if (kind === "vinos") {
@@ -682,8 +696,8 @@ function openWineSub(kind) {
       ${house.map(s => `<div class="card" role="button" onclick="openWine('${s.id}')">
         <div class="row"><h3>${s.name} ${s.vintage}</h3><span class="badge">Parker ${s.ratings.parker.score}</span></div>
         <p class="muted">${s.appellation}</p>
-      </div>`).join("") || ownHouse.map(s => `<div class="card"><div class="row"><h3>${escHtml(s.name)}</h3></div><p class="muted">${escHtml(s.note || "")}</p></div>`).join("") || `<p class="muted">${w.provenance ? "Sin dato" : "Solo esta referencia de la casa."}</p>`}
-      ${zone.length ? `<h2 style="margin-top:16px">Misma zona</h2>` + zone.map(s => `<div class="card" role="button" onclick="openWine('${s.id}')">
+      </div>`).join("") || ownHouse.map(s => `<div class="card"><div class="row"><h3>${escHtml(s.name)}</h3></div><p class="muted">${escHtml(s.note || "")}</p></div>`).join("") || `<p class="muted">${w.provenance ? t("nodata") : t("fact.onlyOne")}</p>`}
+      ${zone.length ? `<h2 style="margin-top:16px">${t("fact.sameZone")}</h2>` + zone.map(s => `<div class="card" role="button" onclick="openWine('${s.id}')">
         <div class="row"><h3>${s.producer} ${s.name}</h3><span class="badge">${s.vintage}</span></div>
       </div>`).join("") : ""}`;
   } else if (kind === "anadas") {
@@ -694,26 +708,26 @@ function openWineSub(kind) {
       <p class="muted">${s.priceHint} · ${phaseOf(s).label}</p>
     </div>`).join("") : (extra.length ? extra.map(s => `<div class="card">
       <div class="row"><h3>${escHtml(String(s.vintage))}</h3></div>
-      <p class="muted">${escHtml([s.priceHint, s.note].filter(Boolean).join(" · ") || "Sin dato")}</p>
-    </div>`).join("") : `<p class="muted">${w.provenance ? "Sin dato" : "No hay otras añadas en el catálogo."}</p>`);
+      <p class="muted">${escHtml([s.priceHint, s.note].filter(Boolean).join(" · ") || t("nodata"))}</p>
+    </div>`).join("") : `<p class="muted">${w.provenance ? t("nodata") : t("fact.noOther")}</p>`);
   } else if (kind === "compras") {
     const b = currentBottle;
     const d = dossierOf(w);
     const cost = b && b.price && !state.prefs.hidePrices ? b.price : null;
     const est = d.market && d.market.mid ? d.market.mid : null;
     const pct = cost && est ? Math.round(((est - cost) / cost) * 100) : null;
-    body = state.prefs.hideValue ? `<p class="muted">Valor oculto en Privacidad.</p>` : `
+    body = state.prefs.hideValue ? `<p class="muted">${t("fact.hiddenValue")}</p>` : `
       <div class="temp-grid">
-        <div class="temp"><span class="tiny">Compra</span><b>${cost ? cost + " €" : "—"}</b></div>
-        <div class="temp"><span class="tiny">Estimado</span><b>${est ? est + " €" : "—"}</b></div>
+        <div class="temp"><span class="tiny">${t("fact.buy")}</span><b>${cost ? formatEuro(cost) : "—"}</b></div>
+        <div class="temp"><span class="tiny">${t("fact.estimated")}</span><b>${est ? formatEuro(est) : "—"}</b></div>
         <div class="temp"><span class="tiny">Δ</span><b>${pct == null ? "—" : (pct>=0?"+":"")+pct+"%"}</b></div>
-        <div class="temp"><span class="tiny">Uds</span><b>${b ? b.qty : 0}</b></div>
+        <div class="temp"><span class="tiny">${t("fact.units")}</span><b>${b ? b.qty : 0}</b></div>
       </div>
-      <div class="card"><p class="tiny">Movimientos</p>
-        ${b ? `<p style="margin-top:8px">Compra · ${b.qty} bot. · ${b.bought || "fecha n/d"} ${cost ? "· "+cost+" €/bot." : ""}</p>
-        ${b.note ? `<p class="muted">${b.note}</p>` : ""}` : `<p class="muted">Aún no está en cava.</p>`}
+      <div class="card"><p class="tiny">${t("fact.moves")}</p>
+        ${b ? `<p style="margin-top:8px">${t("fact.buy")} · ${b.qty} ${t("cellar.ud")} · ${b.bought || t("fact.dateNd")} ${cost ? "· " + formatEuro(cost) : ""}</p>
+        ${b.note ? `<p class="muted">${b.note}</p>` : ""}` : `<p class="muted">${t("fact.notInShort")}</p>`}
       </div>
-      <button class="btn btn-ghost" style="width:100%" onclick="openWineSub('mercado')">Horquilla de mercado ›</button>`;
+      <button class="btn btn-ghost" style="width:100%" onclick="openWineSub('mercado')">${t("wine.marketBtn")} ›</button>`;
   } else if (kind === "taste") {
     body = tastingScreen(w);
   } else {
@@ -721,27 +735,27 @@ function openWineSub(kind) {
     body = currentBottle ? `
       <p class="tiny">${houseName(cave && cave.houseId)} · ${cellarName(currentBottle.cellarId)}</p>
       ${cave && cave.photo ? `<img class="estate-wide" src="${cave.photo}" alt="Vinoteca">` : `<img class="estate-wide" src="cave-principal.jpg" alt="Cava">`}
-      <div class="fact"><span>Estantería / hueco</span><b>${state.prefs.hideBin ? "Oculto" : (currentBottle.bin || "sin hueco")}</b></div>
-      <div class="fact"><span>Cantidad</span><b>${currentBottle.qty}</b></div>
-      <div class="fact"><span>Entrada</span><b>${currentBottle.bought || "—"}</b></div>
-      ${!state.prefs.hidePrices && currentBottle.price ? `<div class="fact"><span>Precio</span><b>${currentBottle.price} €</b></div>` : ""}
+      <div class="fact"><span>${t("fact.bin")}</span><b>${state.prefs.hideBin ? t("fact.hidden") : (currentBottle.bin || t("cellar.noBin"))}</b></div>
+      <div class="fact"><span>${t("fact.qty")}</span><b>${currentBottle.qty}</b></div>
+      <div class="fact"><span>${t("fact.in")}</span><b>${currentBottle.bought || "—"}</b></div>
+      ${!state.prefs.hidePrices && currentBottle.price ? `<div class="fact"><span>${t("fact.price")}</span><b>${formatEuro(currentBottle.price)}</b></div>` : ""}
       ${currentBottle.note ? `<div class="card"><p>${currentBottle.note}</p></div>` : ""}
       ${resolveLabelRef(currentBottle.labelPhoto) ? `<img class="cave-photo" src="${resolveLabelRef(currentBottle.labelPhoto)}" alt="Etiqueta escaneada" />` : ""}
       <div class="btn-row">
         <button class="btn btn-ghost" onclick="addToLot(1)">+1</button>
-        <button class="btn btn-gold" onclick="askServe(1)">Servir 1</button>
-        <button class="btn btn-ghost" onclick="askServeMany()">Servir N</button>
+        <button class="btn btn-gold" onclick="askServe(1)">${t("fact.serve1")}</button>
+        <button class="btn btn-ghost" onclick="askServeMany()">${t("fact.serveN")}</button>
       </div>
       <div class="btn-row">
-        <button class="btn btn-ghost" onclick="showSheet('move-sheet')">Mover lote</button>
-        <button class="btn btn-ghost" onclick="showLotInCave()">Ver en la vinoteca</button>
+        <button class="btn btn-ghost" onclick="showSheet('move-sheet')">${t("move.h1")}</button>
+        <button class="btn btn-ghost" onclick="showLotInCave()">${t("wine.seeCave")}</button>
       </div>
-      <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="showSheet('add-sheet')">Otra ubicación</button>
-      <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="openWineSub('compras')">Compras e historial ›</button>` : `
-      <p class="muted" style="margin-bottom:12px">Este vino aún no está en tu cava.</p>
+      <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="showSheet('add-sheet')">${t("fact.otherPlace")}</button>
+      <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="openWineSub('compras')">${t("menu.compras")} ›</button>` : `
+      <p class="muted" style="margin-bottom:12px">${t("fact.notIn")}</p>
       <div class="btn-row">
-        <button class="btn btn-gold" onclick="quickAdd('${w.id}')">Añadir a vinoteca</button>
-        <button class="btn btn-ghost" onclick="showSheet('add-sheet')">Elegir hueco</button>
+        <button class="btn btn-gold" onclick="quickAdd('${w.id}')">${t("sub.add")}</button>
+        <button class="btn btn-ghost" onclick="showSheet('add-sheet')">${t("fact.pickSlot")}</button>
       </div>`;
   }
   const art = estateArt(w);
@@ -752,51 +766,54 @@ function openWineSub(kind) {
     <button class="back" onclick="goBack()">‹ ${backCaption()}</button>
     ${bodegaImg}
     <p class="eyebrow" style="${eyeCss}">${w.name} ${w.vintage}</p>
-    <h1 style="${titleCss}">${titles[kind] || "Ficha"}</h1>
+    <h1 style="${titleCss}">${titles[kind] || t("sub.sheet")}</h1>
     ${body}`;
   show("wine-sub");
 }
 function provenanceCard(w) {
   if (!w || !w.provenance) return "";
   const labels = {
-    type: "tipo", grapes: "uvas", region: "zona", country: "país", abv: "alcohol",
-    tasting: "cata", crianza: "crianza", service: "servicio", cellar: "guarda",
-    pairing: "maridajes", aging: "fechas de consumo", producer: "bodega",
-    style: "estilo", ratings: "puntuaciones", dossier: "historia y técnica",
-    web: "web y mapa", price: "precio", evolution: "evolución", vintages: "añadas", shops: "tiendas"
+    type: "prov.type", grapes: "prov.grapes", region: "prov.region", country: "prov.country", abv: "prov.abv",
+    tasting: "prov.tasting", crianza: "prov.crianza", service: "prov.service", cellar: "prov.cellar",
+    pairing: "prov.pairing", aging: "prov.aging", producer: "prov.producer",
+    style: "prov.style", ratings: "prov.ratings", dossier: "prov.dossier",
+    web: "prov.web", price: "prov.price", evolution: "prov.evolution", vintages: "prov.vintages", shops: "prov.shops"
   };
+  const srcKey = { "página": "src.page", "título": "src.title", "estimación Gemini": "src.gemini", "valor por defecto": "src.default" };
   const buckets = {};
   Object.keys(labels).forEach(k => {
     const src = w.provenance[k] || "valor por defecto";
     buckets[src] = buckets[src] || [];
-    buckets[src].push(labels[k]);
+    buckets[src].push(t(labels[k]));
   });
-  const lines = ["página", "título", "estimación Gemini", "valor por defecto"].filter(src => buckets[src] && buckets[src].length).map(src =>
-    `<p style="margin-top:8px"><b>${escHtml(src)}</b><span class="muted"> · ${escHtml(buckets[src].join(", "))}</span></p>`
+  const lines = Object.keys(srcKey).filter(src => buckets[src] && buckets[src].length).map(src =>
+    `<p style="margin-top:8px"><b>${escHtml(t(srcKey[src]))}</b><span class="muted"> · ${escHtml(buckets[src].join(", "))}</span></p>`
   ).join("");
-  const host = w.provenance.pageHost ? `<p class="tiny" style="margin-top:6px">Página leída: ${escHtml(w.provenance.pageHost)}</p>` : "";
-  const why = w.provenance.geminiNote ? `<p style="margin-top:8px">${escHtml(w.provenance.geminiNote)}</p>` : "";
-  return `<div class="card"><p class="tiny">De dónde sale cada dato</p>${host}${why}${lines}</div>`;
+  const host = w.provenance.pageHost ? `<p class="tiny" style="margin-top:6px">${t("fact.pageRead", { host: w.provenance.pageHost })}</p>` : "";
+  const note = w.provenance.geminiNote;
+  const why = note ? `<p style="margin-top:8px">${escHtml(note === NO_GEMINI_NOTE ? t("gemini.noKeyNote") : note)}</p>` : "";
+  return `<div class="card"><p class="tiny">${t("fact.from")}</p>${host}${why}${lines}</div>`;
 }
 function priceHistoryBlock(w) {
   if (!w || (!w.provenance && !(w.priceHistory && w.priceHistory.length))) return "";
   const rows = Array.isArray(w.priceHistory) ? w.priceHistory : [];
-  if (!rows.length) return `<div class="card"><p class="tiny">Evolución de precio</p><p class="muted" style="margin-top:6px">Sin dato</p></div>`;
-  return `<div class="card"><p class="tiny">Evolución de precio</p>${rows.map(r => `<p style="margin-top:8px">${escHtml(String(r.year))} · ${escHtml(String(r.mid))} €</p>`).join("")}</div>`;
+  if (!rows.length) return `<div class="card"><p class="tiny">${t("fact.priceEvo")}</p><p class="muted" style="margin-top:6px">${t("nodata")}</p></div>`;
+  return `<div class="card"><p class="tiny">${t("fact.priceEvo")}</p>${rows.map(r => `<p style="margin-top:8px">${escHtml(String(r.year))} · ${formatEuro(r.mid)}</p>`).join("")}</div>`;
 }
 function mercadoSkeleton(w) {
   const band = marketBand(w);
-  const mine = currentBottle && currentBottle.price ? currentBottle.price + " €" : "—";
-  const euro = (n) => n ? n + " €" : "Sin dato";
+  const mine = currentBottle && currentBottle.price ? formatEuro(currentBottle.price) : "—";
+  const money = (n) => n ? formatEuro(n) : t("nodata");
+  const src = band.source === "ficha" ? t("fact.sourceFicha") : band.source === "dossier" ? t("fact.sourceDossier") : t("fact.sourceNone");
   return `
     <p class="muted" style="margin:6px 0 10px">${band.note}</p>
     <div class="temp-grid">
-      <div class="temp"><span class="tiny">Baja</span><b>${euro(band.low)}</b></div>
-      <div class="temp"><span class="tiny">Media</span><b>${euro(band.mid)}</b></div>
-      <div class="temp"><span class="tiny">Alta</span><b>${euro(band.high)}</b></div>
-      <div class="temp"><span class="tiny">Tu coste</span><b>${mine}</b></div>
+      <div class="temp"><span class="tiny">${t("fact.low")}</span><b>${money(band.low)}</b></div>
+      <div class="temp"><span class="tiny">${t("fact.mid")}</span><b>${money(band.mid)}</b></div>
+      <div class="temp"><span class="tiny">${t("fact.high")}</span><b>${money(band.high)}</b></div>
+      <div class="temp"><span class="tiny">${t("fact.yourCost")}</span><b>${mine}</b></div>
     </div>
-    <p class="tiny" id="mercado-src">${band.source === "ficha" ? "Ficha" : band.source === "dossier" ? "Dossier" : "Sin fuente"} · EUR</p>
+    <p class="tiny" id="mercado-src">${src} · EUR</p>
     ${priceHistoryBlock(w)}`;
 }
 async function fillMercado(w) {
@@ -818,26 +835,26 @@ async function fillMercado(w) {
   }
   if (!document.getElementById("mercado-box")) return;
   const d = dossierOf(w);
-  const mine = currentBottle && currentBottle.price ? currentBottle.price + " €" : "—";
-  const euro = (n) => n ? n + " €" : "Sin dato";
-  const tag = quote.source === "gemini" ? "Gemini" : quote.source === "live" ? "Live" : (quote.source === "ficha" ? "Página" : "Dossier");
+  const mine = currentBottle && currentBottle.price ? formatEuro(currentBottle.price) : "—";
+  const money = (n) => n ? formatEuro(n) : t("nodata");
+  const tag = quote.source === "gemini" ? "Gemini" : quote.source === "live" ? "Live" : (quote.source === "ficha" ? t("fact.sourcePage") : t("fact.sourceDossier"));
   box.innerHTML = `
     <p class="muted" style="margin:6px 0 10px">${quote.note}</p>
     <div class="temp-grid">
-      <div class="temp"><span class="tiny">Baja</span><b>${euro(quote.low)}</b></div>
-      <div class="temp"><span class="tiny">Media</span><b>${euro(quote.mid)}</b></div>
-      <div class="temp"><span class="tiny">Alta</span><b>${euro(quote.high)}</b></div>
-      <div class="temp"><span class="tiny">Tu coste</span><b>${mine}</b></div>
+      <div class="temp"><span class="tiny">${t("fact.low")}</span><b>${money(quote.low)}</b></div>
+      <div class="temp"><span class="tiny">${t("fact.mid")}</span><b>${money(quote.mid)}</b></div>
+      <div class="temp"><span class="tiny">${t("fact.high")}</span><b>${money(quote.high)}</b></div>
+      <div class="temp"><span class="tiny">${t("fact.yourCost")}</span><b>${mine}</b></div>
     </div>
-    <div class="card"><p class="tiny">${tag} · ${quote.currency || "EUR"}${quote.confianza ? " · confianza " + quote.confianza : ""}</p>
+    <div class="card"><p class="tiny">${tag} · ${quote.currency || "EUR"}${quote.confianza ? " · " + t("fact.confidence") + " " + quote.confianza : ""}</p>
       <p class="muted" style="margin-top:6px">${quote.trend || ""}</p></div>
     ${priceHistoryBlock(w)}
-    ${d.similar && d.similar.length ? `<h2 style="margin:16px 0 8px">Parecidos en catálogo</h2>${d.similar.map(id => {
+    ${d.similar && d.similar.length ? `<h2 style="margin:16px 0 8px">${t("fact.similar")}</h2>${d.similar.map(id => {
       const s = wineById(id);
       if (!s) return "";
       return `<div class="card" role="button" onclick="openWine('${s.id}')"><h3>${s.producer} ${s.name} ${s.vintage}</h3><p class="muted">${s.region} · ${s.priceHint}</p></div>`;
     }).join("")}` : ""}
-    <button class="btn btn-ghost" style="width:100%;margin-top:12px" onclick="openNotify()">Configurar fuente de precios</button>`;
+    <button class="btn btn-ghost" style="width:100%;margin-top:12px" onclick="openNotify()">${t("price.h1")}</button>`;
 }
 function setTaste(id, field, val) {
   if (!state.tasting) state.tasting = {};

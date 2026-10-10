@@ -11,31 +11,31 @@ function dishArt() {
 }
 function pairingBlock(w) {
   const pack = pairingPackOf(w);
-  if (!pack) return `<p class="muted">Sin dato</p>`;
+  if (!pack) return `<p class="muted">${t("nodata")}</p>`;
   const inCellar = state.bottles.some(b => b.wineId === w.id);
   return `
-    <h2 style="margin-top:16px">Maridajes de este vino</h2>
+    <h2 style="margin-top:16px">${t("pair.ofWine")}</h2>
     <p class="muted" style="margin:6px 0 10px">${pack.logic}</p>
-    <div class="card"><p class="tiny">Servicio en mesa</p><p>${escHtml(pack.serve || "Sin dato")}</p>
-      ${(pack.avoid && pack.avoid.length) ? `<p class="muted" style="margin-top:8px">Evitar: ${escHtml(pack.avoid.join(" · "))}</p>` : ""}</div>
+    <div class="card"><p class="tiny">${t("pair.service")}</p><p>${escHtml(pack.serve || t("nodata"))}</p>
+      ${(pack.avoid && pack.avoid.length) ? `<p class="muted" style="margin-top:8px">${t("pair.avoid", { list: pack.avoid.join(" · ") })}</p>` : ""}</div>
     ${pack.matches.map(m => {
       const d = m.dishId && PAIRING_DISHES.find(x => x.id === m.dishId);
       const badge = m.score ? `<span class="badge">${m.score}/100</span>` : "";
       if (!d) return `<div class="card"><div class="row"><h3>${escHtml(m.label || m.why)}</h3>${badge}</div></div>`;
       return `<div class="card" role="button" onclick="openDish('${d.id}')">
-        <div class="row"><h3>${d.icon} ${d.name}</h3><span class="badge ${m.score >= 94 ? "ok" : m.score >= 88 ? "warn" : ""}">${m.score}/100</span></div>
+        <div class="row"><h3>${d.icon} ${dishName(d)}</h3><span class="badge ${m.score >= 94 ? "ok" : m.score >= 88 ? "warn" : ""}">${m.score}/100</span></div>
         <p class="muted">${m.why}</p>
-        <p class="tiny">${d.family} · ${d.heat}${inCellar ? " · lo tienes en vinoteca" : ""}</p>
+        <p class="tiny">${dishFamily(d)} · ${dishHeat(d)}${inCellar ? " · " + t("pair.inCellar") : ""}</p>
       </div>`;
     }).join("")}
-    <button class="btn btn-ghost" style="width:100%;margin-bottom:8px" onclick="show('pairings')">Explorar todos los maridajes</button>`;
+    <button class="btn btn-ghost" style="width:100%;margin-bottom:8px" onclick="show('pairings')">${t("pair.explore")}</button>`;
 }
 function renderPairings() {
   const q = (pairingQuery || "").toLowerCase();
   paintMesaFilterUi();
   if (pairingMode === "platos") {
     const dishes = (PAIRING_DISHES || []).filter(d => {
-      const text = `${d.name} ${d.family} ${(d.tags || []).join(" ")}`.toLowerCase();
+      const text = `${d.name} ${dishName(d)} ${d.family} ${dishFamily(d)} ${(d.tags || []).join(" ")}`.toLowerCase();
       if (!text.includes(q)) return false;
       if (!mesaFilters.owned && !mesaFilters.ready && !mesaFilters.grape && mesaFilters.type === "todos") return true;
       return winesForDish(d.id).length > 0;
@@ -44,13 +44,14 @@ function renderPairings() {
       const wines = winesForDish(d.id);
       const best = wines[0];
       const label = best ? pairLabel(best.wine) : "";
+      const count = wines.length === 1 ? t("pair.wine1") : t("pair.wines", { n: wines.length });
       return `<article class="card dish-hit" role="button" tabindex="0" onclick="openDish('${d.id}')">
-        <div class="row"><h3>${d.icon} ${d.name}</h3><span class="badge">${wines.length} vino${wines.length === 1 ? "" : "s"} ›</span></div>
-        <p class="muted">${d.family} · ${d.heat}</p>
-        ${best ? `<p class="tiny" style="margin-top:8px;color:#c9a227" onclick="event.stopPropagation();openWine('${best.wine.id}')">Mejor encaje: ${label} · ${best.score} ›</p>` : ""}
-        <button type="button" class="btn btn-ghost" style="width:100%;margin-top:10px;pointer-events:none">Ver vinos del plato</button>
+        <div class="row"><h3>${d.icon} ${dishName(d)}</h3><span class="badge">${count}</span></div>
+        <p class="muted">${dishFamily(d)} · ${dishHeat(d)}</p>
+        ${best ? `<p class="tiny" style="margin-top:8px;color:#c9a227" onclick="event.stopPropagation();openWine('${best.wine.id}')">${t("pair.best", { label: label, score: best.score })}</p>` : ""}
+        <button type="button" class="btn btn-ghost" style="width:100%;margin-top:10px;pointer-events:none">${t("pair.seeWines")}</button>
       </article>`;
-    }).join("") || `<p class="empty">Sin platos con ese nombre.</p>`;
+    }).join("") || `<p class="empty">${t("pair.noDish")}</p>`;
     mountLabelThumbs($("#pair-body"));
     return;
   }
@@ -68,12 +69,12 @@ function renderPairings() {
       <div class="pair-copy">
         <h3>${shortWineName(w)}</h3>
         <p class="muted">${w.name} ${w.vintage} · ${w.region}</p>
-        <p class="pair-dish">${d ? d.name : ((w.pairing || []).slice(0,2).join(" · "))}</p>
-        <p class="pair-score-line">${top ? "★ " + top.score + "/100" : "★ ficha"}</p>
+        <p class="pair-dish">${d ? dishName(d) : ((w.pairing || []).slice(0,2).join(" · "))}</p>
+        <p class="pair-score-line">${top ? "★ " + top.score + "/100" : "★ " + t("pair.sheet")}</p>
       </div>
       <span class="pair-go">›</span>
     </div>`;
-  }).join("") || `<p class="empty">Sin coincidencias.</p>`;
+  }).join("") || `<p class="empty">${t("pair.none")}</p>`;
   mountLabelThumbs($("#pair-body"));
 }
 function winesForDish(dishId) {
@@ -119,7 +120,7 @@ function fillGrapeSelect(id, wines, current) {
   const el = document.getElementById(id);
   if (!el) return;
   const grapes = grapeChoices(wines);
-  el.innerHTML = `<option value="">Todas las uvas</option>` + grapes.map(g => `<option value="${escHtml(g)}"${g === current ? " selected" : ""}>${escHtml(g)}</option>`).join("");
+  el.innerHTML = `<option value="">${t("grape.all")}</option>` + grapes.map(g => `<option value="${escHtml(g)}"${g === current ? " selected" : ""}>${escHtml(g)}</option>`).join("");
 }
 function paintMesaFilterUi() {
   const owned = document.getElementById("mesa-owned");
@@ -128,8 +129,7 @@ function paintMesaFilterUi() {
   if (owned) owned.classList.toggle("on", !!mesaFilters.owned);
   if (ready) ready.classList.toggle("on", !!mesaFilters.ready);
   if (typeBtn) {
-    const labels = { todos: "Tipo", tinto: "Tinto", blanco: "Blanco", espumoso: "Espumoso", rosado: "Rosado", dulce: "Dulce", generoso: "Generoso" };
-    typeBtn.textContent = labels[mesaFilters.type] || "Tipo";
+    typeBtn.textContent = mesaFilters.type && mesaFilters.type !== "todos" ? typeLabel(mesaFilters.type) : t("type.word");
     typeBtn.classList.toggle("on", mesaFilters.type !== "todos");
   }
   const pool = pairingMode === "cava"
@@ -153,11 +153,11 @@ function setMesaGrape(value) {
 }
 function mesaFilterSummary() {
   const bits = [];
-  if (mesaFilters.owned) bits.push("Solo lo que tengo");
-  if (mesaFilters.ready) bits.push("Listo para beber");
-  if (mesaFilters.type && mesaFilters.type !== "todos") bits.push(mesaFilters.type);
+  if (mesaFilters.owned) bits.push(t("filter.owned"));
+  if (mesaFilters.ready) bits.push(t("filter.ready"));
+  if (mesaFilters.type && mesaFilters.type !== "todos") bits.push(typeLabel(mesaFilters.type));
   if (mesaFilters.grape) bits.push(mesaFilters.grape);
-  return bits.length ? "Filtros: " + bits.join(" · ") : "";
+  return bits.length ? t("pair.filters", { list: bits.join(" · ") }) : "";
 }
 function refreshMesaView() {
   if (screenId === "dish" && pairingDish) openDish(pairingDish);
@@ -170,32 +170,32 @@ function openDish(id) {
     if (!d) return;
     const wines = winesForDish(id);
     const inCava = wines.filter(x => state.bottles.some(b => b.wineId === x.wine.id));
-    const title = (d.icon ? d.icon + " " : "") + d.name;
     const body = $("#dish-body");
     if (!body) return;
+    const title = (d.icon ? d.icon + " " : "") + dishName(d);
     body.innerHTML = `
-    <button type="button" class="back" onclick="goBack()">‹ Mesa</button>
-    <p class="eyebrow">${d.family || "Plato"}</p>
+    <button type="button" class="back" onclick="goBack()">‹ ${backCaption()}</button>
+    <p class="eyebrow">${dishFamily(d) || t("pair.dish")}</p>
     <h1>${title}</h1>
-    <p class="muted">${d.heat || ""} · ${(d.tags || []).join(" · ")}</p>
+    <p class="muted">${dishHeat(d) || ""} · ${(d.tags || []).join(" · ")}</p>
     ${mesaFilterSummary() ? `<p class="tiny" style="margin-top:8px">${escHtml(mesaFilterSummary())}</p>` : ""}
-    ${inCava.length ? `<div class="card" style="margin-top:12px"><h2>En tu vinoteca ahora</h2>
+    ${inCava.length ? `<div class="card" style="margin-top:12px"><h2>${t("pair.now")}</h2>
       ${inCava.map(x => `<p role="button" style="margin-top:8px" onclick="openWine('${x.wine.id}')"><strong>${pairLabel(x.wine)} ${x.wine.vintage}</strong> · ${x.score}/100 ›<br><span class="muted">${x.why}</span></p>`).join("")}
-    </div>` : `<p class="muted" style="margin-top:12px">Ninguna botella de este maridaje está en stock. Abajo, el catálogo.</p>`}
-    <h2 style="margin-top:16px">Ranking por encaje</h2>
+    </div>` : `<p class="muted" style="margin-top:12px">${t("pair.noneStock")}</p>`}
+    <h2 style="margin-top:16px">${t("pair.rank")}</h2>
     ${wines.length ? wines.map(x => {
       const have = state.bottles.some(b => b.wineId === x.wine.id);
       return `<div class="card" role="button" onclick="openWine('${x.wine.id}')">
         <div class="label-row">${labelThumbHtml(x.wine)}<div class="label-copy">
         <div class="row"><h3>${pairLabel(x.wine)}</h3><span class="badge ${x.score>=94?"ok":"warn"}">${x.score}</span></div>
-        <p class="muted">${x.wine.vintage} · ${x.wine.region} · ${x.wine.type}</p>
+        <p class="muted">${x.wine.vintage} · ${x.wine.region} · ${typeLabel(x.wine.type)}</p>
         <p style="margin-top:8px">${x.why || ""}</p>
-        <p class="tiny">${(x.pack && x.pack.serve) || ""}${have ? " · lo tienes" : ""}</p>
+        <p class="tiny">${(x.pack && x.pack.serve) || ""}${have ? " · " + t("pair.youHave") : ""}</p>
         </div></div>
       </div>`;
-    }).join("") : `<p class="empty">Aún no hay vinos enlazados a este plato.</p>`}
-    <h2>Regla de mesa</h2>
-    ${(window.PAIRING_RULES || []).map(r => `<div class="card"><strong>${r.title}</strong><p class="muted">${r.text}</p></div>`).join("")}`;
+    }).join("") : `<p class="empty">${t("pair.noWines")}</p>`}
+    <h2>${t("pair.rule")}</h2>
+    ${(window.PAIRING_RULES || []).map((r, i) => `<div class="card"><strong>${t("rule." + i + ".t")}</strong><p class="muted">${t("rule." + i + ".d")}</p></div>`).join("")}`;
     show("dish");
   } catch (err) {
     console.warn("openDish", err);

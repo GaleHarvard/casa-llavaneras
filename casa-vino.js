@@ -48,14 +48,14 @@ function userLocked(wine, field) {
   return !!(wine.provenance && wine.provenance[field] === "usuario");
 }
 function phaseOf(wine) {
-  if (!wine || !wine.aging) return { key: "wait", label: "Sin dato", hint: "" };
+  if (!wine || !wine.aging) return { key: "wait", label: t("phase.nodata"), hint: "" };
   const a = wine.aging;
   const pr = progressOf(wine);
-  if (YEAR < a.drinkFrom || pr.pct < 38) return { key: "wait", label: "Aguardar", hint: "Todavía gana en botella" };
-  if (YEAR > a.holdTo || pr.pct >= 82) return { key: "late", label: "En declive", hint: "Riesgo de fatiga" };
-  if (YEAR >= a.peakEnd - 1 || pr.pct >= 62) return { key: "warn", label: "Beber pronto", hint: "Últimos años de meseta" };
-  if (YEAR < a.peakStart) return { key: "ok", label: "Se puede abrir", hint: "Antes del apogeo" };
-  return { key: "ok", label: "En apogeo", hint: "Ventana ideal" };
+  if (YEAR < a.drinkFrom || pr.pct < 38) return { key: "wait", label: t("phase.wait"), hint: t("phase.waitHint") };
+  if (YEAR > a.holdTo || pr.pct >= 82) return { key: "late", label: t("phase.late"), hint: t("phase.lateHint") };
+  if (YEAR >= a.peakEnd - 1 || pr.pct >= 62) return { key: "warn", label: t("phase.warn"), hint: t("phase.warnHint") };
+  if (YEAR < a.peakStart) return { key: "ok", label: t("phase.open"), hint: t("phase.openHint") };
+  return { key: "ok", label: t("phase.peak"), hint: t("phase.peakHint") };
 }
 function progressOf(wine) {
   const start = wine.vintage;
@@ -70,10 +70,10 @@ function progressOf(wine) {
 function yearsUntilPeakEnd(peakEnd) {
   const left = Number(peakEnd) - YEAR;
   if (!Number.isFinite(left)) return "—";
-  if (left > 1) return "Quedan " + left + " años";
-  if (left === 1) return "Queda 1 año";
-  if (left === 0) return "Último año";
-  return "Pasado de fecha";
+  if (left > 1) return t("years.many", { n: left });
+  if (left === 1) return t("years.one");
+  if (left === 0) return t("years.last");
+  return t("years.past");
 }
 function drinkWindowMarks(pr) {
   const clamp = n => Math.max(0, Math.min(100, n));
@@ -230,15 +230,17 @@ function fieldIsReal(w, key) {
 }
 function rateScore(score, digits) {
   const n = Number(score);
-  if (!n) return "Sin dato";
+  if (!n) return t("nodata");
   return digits ? n.toFixed(digits) : String(n);
 }
 function styleLabel(w) {
-  if (!w) return "Sin dato";
+  if (!w) return t("nodata");
   const kind = w.kindStyle || "";
-  if (w.provenance && (w.style === "internet" || w.style === "escaneo") && !kind) return w.type || "Sin dato";
-  if (kind) return kind + " · " + (w.type || "");
-  return (w.style || "Sin dato") + " · " + (w.type || "");
+  const typ = w.type ? typeLabel(w.type) : "";
+  if (w.provenance && (w.style === "internet" || w.style === "escaneo") && !kind) return typ || t("nodata");
+  if (kind) return kind + (typ ? " · " + typ : "");
+  if (!w.style || w.style === "Sin dato") return typ || t("nodata");
+  return w.style + (typ ? " · " + typ : "");
 }
 function grapeLine(w) {
   const names = (w && w.grapes) || [];
@@ -251,11 +253,11 @@ function grapeLine(w) {
 function elevageLine(w) {
   const e = (w && w.elevage) || {};
   const bits = [];
-  if (Number(e.months) > 0) bits.push(e.months + " meses");
-  if (e.vessel && VESSEL_LABELS[e.vessel]) bits.push(VESSEL_LABELS[e.vessel]);
-  if (e.oak && OAK_LABELS[e.oak]) bits.push("roble " + OAK_LABELS[e.oak].toLowerCase());
+  if (Number(e.months) > 0) bits.push(t("tech.monthsN", { n: e.months }));
+  if (e.vessel && VESSEL_LABELS[e.vessel]) bits.push(t("vessel." + e.vessel));
+  if (e.oak && OAK_LABELS[e.oak]) bits.push(t("tech.oak") + " " + t("oak." + e.oak));
   if (e.newOak != null && e.newOak !== "" && Number(e.newOak) >= 0 && e.oak && e.oak !== "ninguno" && String(e.newOak) !== "") {
-    if (Number(e.newOak) > 0 || e.newOak === 0) bits.push(e.newOak + "% nuevo");
+    if (Number(e.newOak) > 0 || e.newOak === 0) bits.push(t("tech.newN", { n: e.newOak }));
   }
   return bits.join(" · ");
 }
@@ -268,18 +270,18 @@ function adviseCave(w) {
   if (!best) return "";
   const live = best.v.tHigh;
   const high = live > w.conservation.cellarMax + 1;
-  return `<p style="margin-top:8px">Recomendación: <strong>${best.v.name}</strong> (ahora a ${live.toFixed(1)} °C). ${
-    high
-      ? `La lectura actual está por encima de la guarda ideal (${w.conservation.cellarMin}–${w.conservation.cellarMax} °C). Baja SET 1 en La Sommelière.`
-      : best.diff < 1.2 ? "Temperatura idónea." : "Ajusta 1 °C si puedes; la estabilidad importa más."
-  }</p>`;
+  const extra = high
+    ? t("keep.high", { a: w.conservation.cellarMin, b: w.conservation.cellarMax })
+    : (best.diff < 1.2 ? t("keep.ideal") : t("keep.adjust"));
+  return `<p style="margin-top:8px">${t("keep.rec", { name: best.v.name, t: live.toFixed(1) })} ${extra}</p>`;
 }
 function currentAdvice(w, p) {
-  if (p.key === "wait") return `No está en su momento. Guárdalo a ${w.conservation.cellarMin}–${w.conservation.cellarMax} °C hasta ${w.aging.drinkFrom}. Abrirlo ahora pierde complejidad.`;
-  if (p.key === "ok" && YEAR < w.aging.peakStart) return `Ya se puede servir. Decanta según el tipo (${w.type === "tinto" ? "60–120 min" : "no es necesario"}). El apogeo empieza en ${w.aging.peakStart}.`;
-  if (p.key === "ok") return `Está en la meseta. Sirve a ${w.conservation.serveMin}–${w.conservation.serveMax} °C. Es el intervalo que pedías para tomarlo.`;
-  if (p.key === "warn") return `Ha pasado el corazón del apogeo. Sigue noble, pero cada año suma terciarios y resta fruta. Priorízalo en el calendario.`;
-  return `Fuera de ventana prudente. Ábrelo solo si aceptas un perfil muy evolucionado. Revisa corcho y nivel.`;
+  const c = w.conservation || {};
+  if (p.key === "wait") return t("advice.wait", { a: c.cellarMin, b: c.cellarMax, y: w.aging.drinkFrom });
+  if (p.key === "ok" && YEAR < w.aging.peakStart) return t("advice.early", { y: w.aging.peakStart });
+  if (p.key === "ok") return t("advice.peak", { a: c.serveMin, b: c.serveMax });
+  if (p.key === "warn") return t("advice.warn");
+  return t("advice.late");
 }
 function stockOf(wineId) {
   return state.bottles.filter(b => b.wineId === wineId).reduce((n, b) => n + b.qty, 0);
