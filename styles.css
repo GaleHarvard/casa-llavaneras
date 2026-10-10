@@ -18,7 +18,7 @@
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-html, body { height: 100%; }
+html, body { height: 100%; max-width: 100%; overflow-x: hidden; }
 body {
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Arial, sans-serif;
   background: #000;
@@ -26,10 +26,12 @@ body {
   overflow: hidden;
   font-weight: 400;
   letter-spacing: -0.01em;
+  overscroll-behavior-x: none;
 }
 
 .device {
-  width: min(430px, 100vw);
+  width: min(430px, 100%);
+  max-width: 100%;
   height: min(932px, 100dvh);
   margin: 0 auto;
   background: #000;
@@ -67,9 +69,11 @@ body {
   display: flex;
   flex-direction: column;
   position: relative;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
-.screen { display: none; flex: 1; flex-direction: column; overflow: hidden; }
+.screen { display: none; flex: 1; flex-direction: column; overflow: hidden; max-width: 100%; min-width: 0; }
 .screen.active { display: flex; }
 
 .scroll {
@@ -87,6 +91,8 @@ h1 {
   letter-spacing: -0.04em;
   line-height: 1.12;
   color: var(--white);
+  overflow-wrap: anywhere;
+  max-width: 100%;
 }
 h2 {
   font-size: 11px;
@@ -101,6 +107,8 @@ h3 {
   font-weight: 560;
   letter-spacing: -0.02em;
   color: var(--white);
+  overflow-wrap: anywhere;
+  max-width: 100%;
 }
 
 .eyebrow {
@@ -146,7 +154,10 @@ h3 {
   border-radius: var(--radius);
   padding: 14px;
   margin-bottom: 10px;
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
+p, button, .chip { overflow-wrap: anywhere; max-width: 100%; }
 .card[role="button"] { cursor: pointer; }
 
 .bottle-row { display: flex; gap: 12px; align-items: center; }
@@ -598,6 +609,8 @@ label.field span {
   align-items: center;
   gap: 8px;
   margin-bottom: 6px;
+  min-width: 0;
+  max-width: 100%;
 }
 .wine-top .back {
   padding: 10px 14px;
@@ -630,6 +643,9 @@ label.field span {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
 }
 .foil-wrap {
   width: 34%;
@@ -736,12 +752,16 @@ label.field span {
   font-weight: 500;
   letter-spacing: -0.045em;
   line-height: 1.05;
+  overflow-wrap: anywhere;
+  max-width: 100%;
 }
 .wine-cuvee {
   margin-top: 8px;
   font-size: 17px;
   color: #bdbdbd;
   font-weight: 400;
+  overflow-wrap: anywhere;
+  max-width: 100%;
 }
 .peak-pill {
   display: inline-block;
@@ -754,6 +774,11 @@ label.field span {
   letter-spacing: 0.16em;
   text-transform: uppercase;
   font-weight: 560;
+  max-width: 100%;
+  box-sizing: border-box;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: center;
 }
 .sec-head {
   display: flex;
@@ -915,7 +940,8 @@ label.field span {
 @media (max-width: 499px), (display-mode: standalone) {
   body { display: block; background: #000; }
   .device {
-    width: 100vw;
+    width: 100%;
+    max-width: 100%;
     height: 100dvh;
     height: 100svh;
     margin: 0;

@@ -4285,3 +4285,108 @@ window.CATALOG_I18N = {
     }
   }
 };
+
+function catalogLangCode() {
+  const lang = (typeof appLang !== "undefined" && appLang) || "es";
+  if (!lang || lang === "es" || !window.CATALOG_I18N || !window.CATALOG_I18N[lang]) return "";
+  return lang;
+}
+function catalogBag(kind, id) {
+  const lang = catalogLangCode();
+  if (!lang || !id) return null;
+  const bag = window.CATALOG_I18N[lang][kind];
+  return (bag && bag[id]) || null;
+}
+function catalogSourceWine(id) {
+  return (window.WINE_CATALOG || []).find(function (w) { return w.id === id; }) || null;
+}
+function catalogSame(a, b) {
+  return String(a == null ? "" : a) === String(b == null ? "" : b);
+}
+function catalogTasting(w) {
+  if (!w) return "";
+  if (typeof userLocked === "function" && userLocked(w, "tasting")) return w.tasting || "";
+  const row = catalogBag("wines", w.id);
+  const src = catalogSourceWine(w.id);
+  if (row && row.tasting && src && catalogSame(w.tasting, src.tasting)) return row.tasting;
+  return w.tasting || "";
+}
+function catalogNote(w, key) {
+  if (!w || !key) return "";
+  const block = w.ratings && w.ratings[key];
+  const raw = (block && block.note) || "";
+  if (typeof userLocked === "function" && userLocked(w, "ratings")) return raw;
+  const row = catalogBag("wines", w.id);
+  const src = catalogSourceWine(w.id);
+  const srcNote = src && src.ratings && src.ratings[key] && src.ratings[key].note;
+  if (row && row.notes && row.notes[key] && catalogSame(raw, srcNote)) return row.notes[key];
+  return raw;
+}
+function catalogEvolution(w) {
+  const notes = (w && w.evolutionNotes) || [];
+  const row = catalogBag("wines", w && w.id);
+  const src = catalogSourceWine(w && w.id);
+  if (!row || !row.evolution || !src) return notes;
+  return notes.map(function (n, i) {
+    const o = row.evolution[i];
+    const s = (src.evolutionNotes || [])[i];
+    if (!o || !s) return n;
+    return {
+      year: n.year,
+      phase: catalogSame(n.phase, s.phase) ? (o.phase || n.phase) : n.phase,
+      text: catalogSame(n.text, s.text) ? (o.text || n.text) : n.text
+    };
+  });
+}
+function catalogKeep(w, field) {
+  const raw = (w && w.conservation && w.conservation[field]) || "";
+  if (!raw) return "";
+  const row = catalogBag("wines", w.id);
+  const src = catalogSourceWine(w.id);
+  const srcVal = src && src.conservation && src.conservation[field];
+  if (row && row[field] && (!src || catalogSame(raw, srcVal))) return row[field];
+  return raw;
+}
+function catalogPairingList(w) {
+  const raw = (w && w.pairing) || [];
+  const row = catalogBag("wines", w && w.id);
+  const src = catalogSourceWine(w && w.id);
+  if (!row || !row.pairing || !src) return raw;
+  if (raw.join("\n") !== (src.pairing || []).join("\n")) return raw;
+  return row.pairing.slice();
+}
+function localizeDossier(id, merged) {
+  const row = catalogBag("dossiers", id);
+  if (!row || !merged) return merged;
+  const src = window.WINE_DOSSIERS && WINE_DOSSIERS[id];
+  const out = Object.assign({}, merged);
+  ["soils", "vineyard", "vinification", "elevage", "glass", "decant", "oxygen", "history"].forEach(function (k) {
+    if (row[k] && (!src || catalogSame(merged[k], src[k]))) out[k] = row[k];
+  });
+  if (row.trend && merged.market && (!src || !src.market || catalogSame(merged.market.trend, src.market.trend))) {
+    out.market = Object.assign({}, merged.market, { trend: row.trend });
+  }
+  return out;
+}
+function localizePairingPack(id, pack) {
+  if (!pack) return pack;
+  const row = catalogBag("pairings", id);
+  const src = window.WINE_PAIRINGS && WINE_PAIRINGS[id];
+  if (!row || !src || pack !== src) return pack;
+  return {
+    logic: row.logic || pack.logic,
+    serve: row.serve || pack.serve,
+    avoid: (row.avoid && row.avoid.length) ? row.avoid.slice() : (pack.avoid || []).slice(),
+    matches: (pack.matches || []).map(function (m, i) {
+      const why = row.why && row.why[i];
+      return why ? Object.assign({}, m, { why: why }) : m;
+    })
+  };
+}
+window.catalogTasting = catalogTasting;
+window.catalogNote = catalogNote;
+window.catalogEvolution = catalogEvolution;
+window.catalogKeep = catalogKeep;
+window.catalogPairingList = catalogPairingList;
+window.localizeDossier = localizeDossier;
+window.localizePairingPack = localizePairingPack;

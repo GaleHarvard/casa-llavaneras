@@ -80,11 +80,12 @@ function renderPairings() {
 function winesForDish(dishId) {
   const table = window.WINE_PAIRINGS || {};
   return Object.entries(table).map(([id, pack]) => {
-    const m = (pack.matches || []).find(x => x.dishId === dishId);
+    const shown = typeof localizePairingPack === "function" ? localizePairingPack(id, pack) : pack;
+    const m = (shown.matches || []).find(x => x.dishId === dishId);
     if (!m) return null;
     const wine = wineById(id);
     if (!wine || !winePasses(wine, mesaFilters)) return null;
-    return { wine, score: m.score, why: m.why, pack };
+    return { wine, score: m.score, why: m.why, pack: shown };
   }).filter(Boolean).sort((a, b) => b.score - a.score);
 }
 function winePasses(w, opts) {
@@ -177,7 +178,7 @@ function openDish(id) {
     <button type="button" class="back" onclick="goBack()">‹ ${backCaption()}</button>
     <p class="eyebrow">${dishFamily(d) || t("pair.dish")}</p>
     <h1>${title}</h1>
-    <p class="muted">${dishHeat(d) || ""} · ${(d.tags || []).join(" · ")}</p>
+    <p class="muted">${dishHeat(d) || ""} · ${(d.tags || []).map(tag => typeof tagLabel === "function" ? tagLabel(tag) : tag).join(" · ")}</p>
     ${mesaFilterSummary() ? `<p class="tiny" style="margin-top:8px">${escHtml(mesaFilterSummary())}</p>` : ""}
     ${inCava.length ? `<div class="card" style="margin-top:12px"><h2>${t("pair.now")}</h2>
       ${inCava.map(x => `<p role="button" style="margin-top:8px" onclick="openWine('${x.wine.id}')"><strong>${pairLabel(x.wine)} ${x.wine.vintage}</strong> · ${x.score}/100 ›<br><span class="muted">${x.why}</span></p>`).join("")}

@@ -1033,6 +1033,12 @@ function dishHeat(d) {
   const hit = t(key);
   return hit === key ? (d.heat || "") : hit;
 }
+function tagLabel(word) {
+  if (!word) return "";
+  const key = "tag." + word;
+  const hit = t(key);
+  return hit === key ? word : hit;
+}
 function occasionIdFrom(raw) {
   const s = String(raw || "").trim();
   if (!s) return "";
@@ -1169,6 +1175,7 @@ window.countryLabel = countryLabel;
 window.dishName = dishName;
 window.dishFamily = dishFamily;
 window.dishHeat = dishHeat;
+window.tagLabel = tagLabel;
 window.occasionLabel = occasionLabel;
 window.occasionIdFrom = occasionIdFrom;
 window.chipLabel = chipLabel;
@@ -1242,6 +1249,77 @@ addI18n([
   ["csv.score", "Puntuación", "Puntuació", "Score", "Note", "Pontuação"],
   ["csv.state", "Estado", "Estat", "State", "État", "Estado"],
   ["csv.price", "Precio", "Preu", "Price", "Prix", "Preço"]
+]);
+addI18n([
+  ["fact.soilFb", "Suelo de la denominación.", "Sòl de la denominació.", "Soil of the appellation.", "Sol de l'appellation.", "Solo da denominação."],
+  ["fact.makeFb", "Elaboración de la casa.", "Elaboració de la casa.", "The estate's winemaking.", "Vinification de la maison.", "Elaboração da casa."],
+  ["fact.elevFb", "Crianza en bodega.", "Criança al celler.", "Cellar ageing.", "Élevage au chai.", "Estágio na adega."],
+  ["fact.glassFb", "Copa adecuada al tipo", "Copa adequada al tipus", "A glass suited to the style", "Verre adapté au type", "Copo adequado ao tipo"],
+  ["fact.oxyFb", "Servir en su temperatura.", "Servir a la seva temperatura.", "Serve at its temperature.", "Servir à sa température.", "Servir à sua temperatura."],
+  ["fact.noDecant", "No", "No", "No", "Non", "Não"],
+  ["fact.madeIn", "{producer} se elabora en {region} ({app}).", "{producer} s'elabora a {region} ({app}).", "{producer} is made in {region} ({app}).", "{producer} est élaboré en {region} ({app}).", "{producer} elabora-se em {region} ({app})."],
+  ["fact.dossierHouse", "Dossier de la casa", "Dossier de la casa", "House dossier", "Dossier de la maison", "Dossier da casa"],
+  ["fact.bandNote", "Horquilla de la ficha ({hint}). No es cotización.", "Forquilla de la fitxa ({hint}). No és una cotització.", "Sheet range ({hint}). Not a live quote.", "Fourchette de la fiche ({hint}). Ce n'est pas une cote.", "Intervalo da ficha ({hint}). Não é uma cotação."],
+  ["fact.estMark", "est.", "est.", "est.", "est.", "est."],
+  ["scan.capture", "Capturar etiqueta", "Capturar etiqueta", "Capture label", "Capturer l'étiquette", "Capturar rótulo"],
+  ["scan.shopsFor", "Bodega y tiendas para «{q}». Google abre la misma búsqueda.", "Celler i botigues per a «{q}». Google obre la mateixa cerca.", "Estate and shops for «{q}». Google opens the same search.", "Domaine et boutiques pour «{q}». Google ouvre la même recherche.", "Produtor e lojas para «{q}». O Google abre a mesma pesquisa."],
+  ["scan.listFail", "No se pudo leer el listado. Abre Google, Vinissimus o Decántalo, o corrige el texto.", "No s'ha pogut llegir el llistat. Obre Google, Vinissimus o Decántalo, o corregeix el text.", "The list could not be read. Open Google, Vinissimus or Decántalo, or correct the text.", "La liste n'a pas pu être lue. Ouvrez Google, Vinissimus ou Decántalo, ou corrigez le texte.", "Não foi possível ler a lista. Abra o Google, a Vinissimus ou a Decántalo, ou corrija o texto."],
+  ["scan.noClosed", "No hay una ficha cerrada para «{q}». Abre Google o las tiendas, o corrige el texto leído.", "No hi ha una fitxa tancada per a «{q}». Obre Google o les botigues, o corregeix el text llegit.", "There is no finished sheet for «{q}». Open Google or the shops, or correct the text.", "Pas de fiche aboutie pour «{q}». Ouvrez Google ou les boutiques, ou corrigez le texte lu.", "Não há uma ficha fechada para «{q}». Abra o Google ou as lojas, ou corrija o texto lido."],
+  ["scan.notYet", "Aún no se ha buscado en internet.", "Encara no s'ha cercat a internet.", "The web has not been searched yet.", "Internet n'a pas encore été consulté.", "Ainda não se procurou na internet."],
+  ["scan.openLink", "Abrir {source}", "Obrir {source}", "Open {source}", "Ouvrir {source}", "Abrir {source}"],
+  ["scan.useSheet", "Usar esta ficha", "Fer servir aquesta fitxa", "Use this sheet", "Utiliser cette fiche", "Usar esta ficha"],
+  ["scan.noResult", "Sin resultado.", "Sense resultat.", "No result.", "Aucun résultat.", "Sem resultado."],
+  ["scan.searchCount", "Búsqueda: {n} resultado de bodega y tiendas.", "Cerca: {n} resultat de celler i botigues.", "Search: {n} estate and shop result.", "Recherche : {n} résultat de domaine et boutiques.", "Pesquisa: {n} resultado de produtor e lojas."],
+  ["scan.searchCountN", "Búsqueda: {n} resultados de bodega y tiendas.", "Cerca: {n} resultats de celler i botigues.", "Search: {n} estate and shop results.", "Recherche : {n} résultats de domaine et boutiques.", "Pesquisa: {n} resultados de produtor e lojas."],
+  ["scan.checkText", "Revisa el texto leído.", "Revisa el text llegit.", "Check the text that was read.", "Vérifiez le texte lu.", "Revise o texto lido."],
+  ["scan.read", "Texto leído de la etiqueta", "Text llegit de l'etiqueta", "Text read from the label", "Texte lu sur l'étiquette", "Texto lido do rótulo"],
+  ["scan.raw", "Lectura en bruto: {text}", "Lectura en brut: {text}", "Raw reading: {text}", "Lecture brute : {text}", "Leitura em bruto: {text}"],
+  ["scan.fix", "Si la lectura falla, corrige el texto y vuelve a buscar.", "Si la lectura falla, corregeix el text i torna a cercar.", "If the reading fails, correct the text and search again.", "Si la lecture échoue, corrigez le texte et cherchez de nouveau.", "Se a leitura falhar, corrija o texto e volte a procurar."],
+  ["scan.searchBtn", "Buscar este texto", "Cercar aquest text", "Search this text", "Chercher ce texte", "Procurar este texto"],
+  ["scan.thisOne", "Este es", "Aquest és", "This one", "C'est celui-ci", "É este"],
+  ["scan.noLocal", "Ningún vino del catálogo local coincide.", "Cap vi del catàleg local no coincideix.", "No wine in the local catalogue matches.", "Aucun vin du catalogue local ne correspond.", "Nenhum vinho do catálogo local coincide."],
+  ["scan.create", "Crear ficha con lo escrito", "Crear fitxa amb el text escrit", "Create a sheet from this text", "Créer une fiche avec ce texte", "Criar ficha com o texto escrito"],
+  ["scan.choose", "Elige la ficha", "Tria la fitxa", "Choose the sheet", "Choisissez la fiche", "Escolha a ficha"],
+  ["cellar.haveN", "Ya tienes {n} ud", "Ja en tens {n} u.", "You already have {n}", "Vous en avez déjà {n}", "Já tem {n} un."],
+  ["cellar.noSheet", "Sin ficha en el catálogo.", "Sense fitxa al catàleg.", "No sheet in the catalogue.", "Pas de fiche au catalogue.", "Sem ficha no catálogo."],
+  ["space.noneOther", "No hay espacios libres en otras vinotecas", "No hi ha espais lliures en altres vinoteques", "No free slots in the other cellars", "Pas d'emplacements libres dans les autres caves", "Não há lugares livres noutras adegas"],
+  ["map.none", "Sin mapa de esta zona", "Sense mapa d'aquesta zona", "No map for this area", "Pas de carte pour cette zone", "Sem mapa desta zona"],
+  ["map.apple", "Mapas de Apple", "Mapes d'Apple", "Apple Maps", "Plans Apple", "Mapas da Apple"],
+  ["map.noPin", "Sin dato de coordenadas.", "Sense dada de coordenades.", "No coordinates.", "Pas de coordonnées.", "Sem coordenadas."],
+  ["map.webBtn", "Web de la bodega", "Web del celler", "Estate website", "Site du domaine", "Site do produtor"],
+  ["map.webNone", "Web de la bodega: Sin dato", "Web del celler: sense dada", "Estate website: no data", "Site du domaine : sans donnée", "Site do produtor: sem dado"],
+  ["shop.word", "Tienda", "Botiga", "Shop", "Boutique", "Loja"],
+  ["gemini.completing", "Completando la ficha…", "Completant la fitxa…", "Completing the sheet…", "Complétion de la fiche…", "A completar a ficha…"],
+  ["gemini.openingShop", "Abriendo la ficha del vino en la tienda…", "Obrint la fitxa del vi a la botiga…", "Opening the wine's shop sheet…", "Ouverture de la fiche du vin en boutique…", "A abrir a ficha do vinho na loja…"],
+  ["gemini.seeking", "Buscando la bodega y las tiendas…", "Cercant el celler i les botigues…", "Looking up the estate and the shops…", "Recherche du domaine et des boutiques…", "A procurar o produtor e as lojas…"],
+  ["gemini.tuning", "Afinando nombre, bodega y zona…", "Afinant nom, celler i zona…", "Refining name, estate and area…", "Ajustement du nom, du domaine et de la zone…", "A afinar nome, produtor e zona…"],
+  ["gemini.filling", "Completando con Gemini lo que la página no trae…", "Completant amb Gemini el que la pàgina no porta…", "Gemini is filling what the page does not have…", "Gemini complète ce que la page n'apporte pas…", "A completar com o Gemini o que a página não traz…"],
+  ["tag.graso", "graso", "gras", "fatty", "gras", "gordo"],
+  ["tag.asado", "asado", "rostit", "roast", "rôti", "assado"],
+  ["tag.umami", "umami", "umami", "umami", "umami", "umami"],
+  ["tag.intenso", "intenso", "intens", "intense", "intense", "intenso"],
+  ["tag.salvaje", "salvaje", "salvatge", "gamey", "sauvage", "selvagem"],
+  ["tag.a la brasa", "a la brasa", "a la brasa", "grilled", "grillé", "na brasa"],
+  ["tag.proteína", "proteína", "proteïna", "protein", "protéine", "proteína"],
+  ["tag.fino", "fino", "fi", "fine", "fin", "fino"],
+  ["tag.salado", "salado", "salat", "salty", "salé", "salgado"],
+  ["tag.curado", "curado", "curat", "cured", "affiné", "curado"],
+  ["tag.salsa", "salsa", "salsa", "sauce", "sauce", "molho"],
+  ["tag.colágeno", "colágeno", "col·lagen", "collagen", "collagène", "colagénio"],
+  ["tag.yodo", "yodo", "iode", "iodine", "iode", "iodo"],
+  ["tag.salino", "salino", "salí", "saline", "salin", "salino"],
+  ["tag.delicado", "delicado", "delicat", "delicate", "délicat", "delicado"],
+  ["tag.suave", "suave", "suau", "soft", "souple", "suave"],
+  ["tag.graso-bajo", "graso-bajo", "poc greix", "low fat", "peu gras", "pouca gordura"],
+  ["tag.almidón", "almidón", "midó", "starch", "amidon", "amido"],
+  ["tag.tierra", "tierra", "terra", "earth", "terre", "terra"],
+  ["tag.ácido", "ácido", "àcid", "acidic", "acide", "ácido"],
+  ["tag.verde", "verde", "verd", "green", "vert", "verde"],
+  ["tag.láctico", "láctico", "làctic", "lactic", "lactique", "láctico"],
+  ["tag.crema", "crema", "crema", "cream", "crème", "creme"],
+  ["tag.amargo", "amargo", "amarg", "bitter", "amer", "amargo"],
+  ["tag.cacao", "cacao", "cacau", "cocoa", "cacao", "cacau"],
+  ["tag.grasa-fina", "grasa-fina", "greix fi", "fine fat", "gras fin", "gordura fina"]
 ]);
 window.I18N = I18N;
 if (document.body) {

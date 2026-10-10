@@ -347,7 +347,7 @@ function openSpaceSheet(id) {
     });
     select.innerHTML = codes.length
       ? codes.map(c => `<option value="${c}">${c}</option>`).join("")
-      : `<option value="">No hay espacios libres en otras vinotecas</option>`;
+      : `<option value="">${t("space.noneOther")}</option>`;
   }
   showSheet("space-sheet");
 }
@@ -559,7 +559,7 @@ function mapaBlock(w) {
   const mapSrc = art.map ? file(art.map) : "";
   const mapImg = mapSrc
     ? `<img class="map-art" data-map="${mapSrc}" src="${mapSrc}" alt="" onerror="this.style.display='none'">`
-    : `<p class="muted" data-map="" style="text-align:center;margin:8px 0">Sin mapa de esta zona</p>`;
+    : `<p class="muted" data-map="" style="text-align:center;margin:8px 0">${t("map.none")}</p>`;
   const hasPin = g.lat != null && g.lng != null && Number.isFinite(Number(g.lat)) && Number.isFinite(Number(g.lng));
   const osm = hasPin ? `https://www.openstreetmap.org/?mlat=${g.lat}&mlon=${g.lng}#map=16/${g.lat}/${g.lng}` : "";
   const pin = hasPin ? `${g.lat},${g.lng}` : "";
@@ -567,9 +567,9 @@ function mapaBlock(w) {
   const apple = hasPin ? `https://maps.apple.com/?ll=${pin}&q=${pin}` : "";
   const mapLinks = hasPin ? `
     <a class="btn btn-ghost" style="width:100%;margin-top:10px;display:block;text-align:center" href="${gmaps}" target="_blank" rel="noopener noreferrer" onclick="return openExternal(this.href)">Google Maps</a>
-    <a class="btn btn-ghost" style="width:100%;margin-top:8px;display:block;text-align:center" href="${apple}" target="_blank" rel="noopener noreferrer" onclick="return openExternal(this.href)">Mapas de Apple</a>
-    <a class="btn btn-ghost" style="width:100%;margin-top:8px;display:block;text-align:center" href="${osm}" target="_blank" rel="noopener noreferrer" onclick="return openExternal(this.href)">OpenStreetMap</a>` : `<p class="muted" style="margin-top:10px">Sin dato de coordenadas.</p>`;
-  const shops = (w.shops || []).map(s => `<a class="btn btn-ghost" style="width:100%;margin-top:8px;display:block;text-align:center" href="${escHtml(s.url)}" target="_blank" rel="noopener noreferrer" onclick="return openExternal(this.href)">${escHtml(s.source || "Tienda")}${s.price ? " · " + escHtml(s.price) : ""}</a>`).join("");
+    <a class="btn btn-ghost" style="width:100%;margin-top:8px;display:block;text-align:center" href="${apple}" target="_blank" rel="noopener noreferrer" onclick="return openExternal(this.href)">${t("map.apple")}</a>
+    <a class="btn btn-ghost" style="width:100%;margin-top:8px;display:block;text-align:center" href="${osm}" target="_blank" rel="noopener noreferrer" onclick="return openExternal(this.href)">OpenStreetMap</a>` : `<p class="muted" style="margin-top:10px">${t("map.noPin")}</p>`;
+  const shops = (w.shops || []).map(s => `<a class="btn btn-ghost" style="width:100%;margin-top:8px;display:block;text-align:center" href="${escHtml(s.url)}" target="_blank" rel="noopener noreferrer" onclick="return openExternal(this.href)">${escHtml(s.source || t("shop.word"))}${s.price ? " · " + escHtml(s.price) : ""}</a>`).join("");
   return `
     ${mapImg}
     <p class="tiny" style="margin:0 0 10px;text-align:center">${g.zone || w.region}</p>
@@ -577,6 +577,6 @@ function mapaBlock(w) {
     <h3 style="font-size:17px;margin:2px 0 2px;line-height:1.2">${w.producer}</h3>
     <p class="muted" style="margin:0 0 12px;font-size:13px">${placeLine(w, g)}</p>
     ${mapLinks}
-    ${bodegaWeb(g.web) ? `<a class="btn btn-gold" style="width:100%;margin-top:8px;display:block;text-align:center" href="${bodegaWeb(g.web)}" target="_blank" rel="noopener noreferrer" onclick="return openExternal(this.href)">Web de la bodega</a>` : (w.provenance ? `<p class="muted" style="margin-top:8px">Web de la bodega: Sin dato</p>` : "")}
+    ${bodegaWeb(g.web) ? `<a class="btn btn-gold" style="width:100%;margin-top:8px;display:block;text-align:center" href="${bodegaWeb(g.web)}" target="_blank" rel="noopener noreferrer" onclick="return openExternal(this.href)">${t("map.webBtn")}</a>` : (w.provenance ? `<p class="muted" style="margin-top:8px">${t("map.webNone")}</p>` : "")}
     ${shops}`;
 }

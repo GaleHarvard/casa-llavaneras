@@ -2,27 +2,29 @@
 function dossierOf(w) {
   const packed = (window.WINE_DOSSIERS && w && window.WINE_DOSSIERS[w.id]) || {};
   const own = (w && w.dossier) || {};
+  const say = (key, fallback) => (typeof t === "function" ? t(key) : fallback);
   const merged = Object.assign({
-    soils: "Suelo de la denominación.",
+    soils: say("fact.soilFb", "Suelo de la denominación."),
     elevation: "—",
     vineyard: w ? (w.appellation + " · " + (w.grapes || []).join(", ")) : "",
-    vinification: "Elaboración de la casa.",
-    elevage: "Crianza en bodega.",
-    glass: "Copa adecuada al tipo",
-    decant: w && w.type === "espumoso" ? "No" : "30–60 min",
-    oxygen: "Servir en su temperatura.",
-    history: w ? (w.producer + " se elabora en " + w.region + " (" + w.appellation + ").") : "",
+    vinification: say("fact.makeFb", "Elaboración de la casa."),
+    elevage: say("fact.elevFb", "Crianza en bodega."),
+    glass: say("fact.glassFb", "Copa adecuada al tipo"),
+    decant: w && w.type === "espumoso" ? say("fact.noDecant", "No") : "30–60 min",
+    oxygen: say("fact.oxyFb", "Servir en su temperatura."),
+    history: w ? (typeof t === "function" ? t("fact.madeIn", { producer: w.producer || "", region: w.region || "", app: w.appellation || "" }) : ((w.producer || "") + " se elabora en " + (w.region || "") + " (" + (w.appellation || "") + ").")) : "",
     market: { low: 0, mid: 0, high: 0, trend: "—" },
     similar: [],
     awards: []
   }, packed, own);
   if (w && w.provenance && !(window.WINE_DOSSIERS && window.WINE_DOSSIERS[w.id])) {
     ["soils", "elevation", "vineyard", "vinification", "elevage", "glass", "decant", "oxygen", "history"].forEach(k => {
-      if (!own[k]) merged[k] = "Sin dato";
+      if (!own[k]) merged[k] = say("nodata", "Sin dato");
     });
     if (!own.awards) merged.awards = [];
-    if (!own.market) merged.market = { low: null, mid: null, high: null, trend: "Sin dato" };
+    if (!own.market) merged.market = { low: null, mid: null, high: null, trend: say("nodata", "Sin dato") };
   }
+  if (w && typeof localizeDossier === "function") return localizeDossier(w.id, merged);
   return merged;
 }
 function wineById(id) {
@@ -341,7 +343,7 @@ function bodegaGeo(w) {
   return {
     lat: pin ? lat : null,
     lng: pin ? lng : null,
-    zone: g.zone || (w && (w.appellation || w.region || w.country)) || "Sin dato",
+    zone: g.zone || (w && (w.appellation || w.region || w.country)) || (typeof t === "function" ? t("nodata") : "Sin dato"),
     address: g.address || "",
     web: g.web || ""
   };
@@ -350,7 +352,7 @@ function marketBand(w) {
   const d = dossierOf(w);
   const m = (d && d.market) || {};
   if (m.low || m.mid || m.high) {
-    return { low: m.low || null, mid: m.mid || null, high: m.high || null, note: m.trend || "Dossier de la casa", source: "dossier" };
+    return { low: m.low || null, mid: m.mid || null, high: m.high || null, note: m.trend || (typeof t === "function" ? t("fact.dossierHouse") : "Dossier de la casa"), source: "dossier" };
   }
   const nums = String((w && w.priceHint) || "").match(/\d+(?:[.,]\d+)?/g);
   if (nums && nums.length) {
@@ -363,7 +365,7 @@ function marketBand(w) {
         low: vals.length === 1 ? Math.round(vals[0] * 0.9) : low,
         mid: mid,
         high: vals.length === 1 ? Math.round(vals[0] * 1.12) : high,
-        note: "Horquilla de la ficha (" + w.priceHint + "). No es cotización.",
+        note: typeof t === "function" ? t("fact.bandNote", { hint: w.priceHint }) : ("Horquilla de la ficha (" + w.priceHint + "). No es cotización."),
         source: "ficha"
       };
     }
