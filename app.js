@@ -6564,6 +6564,8 @@ function applyRestoredBackup(data) {
     try { localStorage.setItem(PRICE_CFG_KEY, JSON.stringify(data.provider)); } catch (e) {}
   }
   return Promise.all(writes).then(() => migrateStoredLabelBytes()).catch(() => false).then(() => {
+    if (state && state._consumptionDirty) delete state._consumptionDirty;
+    if (state && state._reasonsDirty) delete state._reasonsDirty;
     save();
     return true;
   });
