@@ -1071,6 +1071,38 @@ function applyDom() {
   document.querySelectorAll("[data-i18n-aria]").forEach(el => {
     el.setAttribute("aria-label", t(el.getAttribute("data-i18n-aria")));
   });
+  syncHomeFlag();
+}
+function senyeraSvg() {
+  const reds = [2, 6, 10, 14].map(y => `<rect y="${y}" width="27" height="2" fill="#DA121A"/>`).join("");
+  return `<svg class="flag-svg" viewBox="0 0 27 18" aria-hidden="true"><rect width="27" height="18" fill="#FCDD09"/>${reds}</svg>`;
+}
+function langMark(code) {
+  if (code === "ca") return senyeraSvg();
+  const emoji = { es: "🇪🇸", en: "🇬🇧", fr: "🇫🇷", pt: "🇵🇹" };
+  return `<span class="flag-emoji" aria-hidden="true">${emoji[code] || ""}</span>`;
+}
+function langChoiceBtn(choice, cur) {
+  const on = choice.code === cur ? " on" : "";
+  return `<button type="button" class="chip lang-flag${on}" onclick="setAppLang('${choice.code}')">${langMark(choice.code)}<span>${choice.endonym}</span></button>`;
+}
+function syncHomeFlag() {
+  const code = appLang || "es";
+  const choice = LANG_CHOICES.find(c => c.code === code) || LANG_CHOICES[0];
+  const btn = document.getElementById("home-lang-btn");
+  if (btn) {
+    btn.innerHTML = langMark(code);
+    btn.setAttribute("aria-label", t("lang.kicker") + " · " + choice.endonym);
+  }
+  const pop = document.getElementById("home-lang-pop");
+  if (pop) pop.innerHTML = LANG_CHOICES.map(c => langChoiceBtn(c, code)).join("");
+}
+function toggleHomeLang(ev) {
+  if (ev && ev.stopPropagation) ev.stopPropagation();
+  const pop = document.getElementById("home-lang-pop");
+  if (!pop) return;
+  syncHomeFlag();
+  pop.hidden = !pop.hidden;
 }
 function refreshVisible() {
   applyDom();
@@ -1112,6 +1144,8 @@ function setAppLang(code) {
       if (typeof save === "function") save();
     }
   } catch (e) {}
+  const pop = document.getElementById("home-lang-pop");
+  if (pop) pop.hidden = true;
   refreshVisible();
 }
 function bootLang() {
@@ -1120,8 +1154,8 @@ function bootLang() {
 }
 function langPickerHtml() {
   const cur = appLang || "es";
-  const chips = LANG_CHOICES.map(c => `<button type="button" class="chip ${c.code === cur ? "on" : ""}" onclick="setAppLang('${c.code}')">${c.endonym}</button>`).join("");
-  return `<div class="card" id="lang-picker"><p class="tiny">${t("lang.kicker")}</p><h3 style="margin-top:4px">${t("lang.title")}</h3><p class="muted" style="margin-top:6px">${t("lang.hint")}</p><div class="chip-row" style="margin-top:10px">${chips}</div></div>`;
+  const chips = LANG_CHOICES.map(c => langChoiceBtn(c, cur)).join("");
+  return `<div class="card" id="lang-picker"><p class="tiny">${t("lang.kicker")}</p><h3 style="margin-top:4px">${t("lang.title")}</h3><p class="muted" style="margin-top:6px">${t("lang.hint")}</p><div class="lang-list">${chips}</div></div>`;
 }
 window.t = t;
 window.setAppLang = setAppLang;
