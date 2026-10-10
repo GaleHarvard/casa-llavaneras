@@ -9,14 +9,14 @@
   <meta name="apple-mobile-web-app-title" content="Casa Llavaneras" />
   <meta name="application-name" content="Casa Llavaneras" />
   <meta name="theme-color" content="#000000" />
-  <meta name="app-version" content="v78" />
+  <meta name="app-version" content="v79" />
   <title>Casa Llavaneras</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="apple-touch-icon" href="apple-touch-icon.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
   <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png" />
-  <link rel="stylesheet" href="styles.css?v=78" />
+  <link rel="stylesheet" href="styles.css?v=79" />
 </head>
 <body>
   <div class="device">
@@ -157,35 +157,38 @@
       </section>
 
       <section id="scan" class="screen">
-        <div class="scroll">
-          <button class="back" onclick="goBack()">‹ <span data-i18n="nav.home">Inicio</span></button>
-          <p class="eyebrow" data-i18n="kicker.scan">Un toque</p>
-          <h1 data-i18n="scan.h1">Escanear</h1>
-          <div class="card" role="button" onclick="captureOrOpenCamera()">
-            <h3 data-i18n="scan.label">Etiqueta</h3>
-            <p class="muted" data-i18n="scan.labelSub">Cámara. Lee la etiqueta, crea la ficha y reserva el hueco en altas pendientes.</p>
+        <div class="scroll scan-scroll">
+          <div class="scan-top">
+            <button class="back" onclick="goBack()">‹ <span data-i18n="nav.home">Inicio</span></button>
+            <h1 data-i18n="scan.h1">Escanear</h1>
           </div>
-          <div class="card" role="button" onclick="pickFromRoll()">
-            <h3 data-i18n="scan.roll">Carta o lineal</h3>
-            <p class="muted" data-i18n="scan.rollSub">Foto del carrete. Lee la etiqueta, busca el vino en internet y puedes confirmar la ficha.</p>
+          <div class="scan-tools">
+            <button id="scan-cam-btn" class="btn btn-gold" onclick="captureOrOpenCamera()" data-i18n="scan.open">Abrir cámara</button>
+            <div class="scan-tool-row">
+              <button class="btn btn-ghost" onclick="pickFromRoll()" data-i18n="scan.photos">Elegir de fotos</button>
+              <button class="btn btn-ghost" onclick="manualIntake()" data-i18n="scan.manual">Alta manual</button>
+            </div>
+            <div class="search">
+              <span>⌕</span>
+              <input id="scan-q" data-i18n-placeholder="search.scan" placeholder="O escribe bodega / añada" oninput="previewScanQuery()" onkeydown="if(event.key==='Enter')runIdentify()" />
+            </div>
           </div>
-          <button id="scan-cam-btn" class="btn btn-gold" style="width:100%" onclick="captureOrOpenCamera()" data-i18n="scan.open">Abrir cámara</button>
-          <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="pickFromRoll()" data-i18n="scan.photos">Elegir de fotos</button>
-          <div class="search" style="margin-top:12px">
-            <span>⌕</span>
-            <input id="scan-q" data-i18n-placeholder="search.scan" placeholder="O escribe bodega / añada" oninput="previewScanQuery()" onkeydown="if(event.key==='Enter')runIdentify()" />
-          </div>
-          <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="manualIntake()" data-i18n="scan.manual">Alta manual</button>
-          <div id="scan-status" class="tiny" style="margin-top:10px"></div>
-          <div id="scan-results" style="margin-top:14px"></div>
-          <div class="scan-stage scan-stage-vert" onclick="onScanStage()">
-            <video id="cam" playsinline muted hidden></video>
+          <div id="scan-status" class="tiny"></div>
+          <div class="scan-stage scan-stage-vert" onclick="onScanStage(event)">
+            <video id="cam" playsinline webkit-playsinline autoplay muted hidden></video>
             <img id="scan-preview" data-i18n-aria="scan.alt" alt="Etiqueta capturada" hidden />
             <canvas id="scan-canvas" hidden></canvas>
             <div class="viewfinder viewfinder-vert" id="scan-finder">
               <span data-i18n="scan.finder">Cámara · etiqueta en vertical</span>
             </div>
+            <p class="scan-hint" id="scan-hint" data-i18n="scan.tap">Toca para abrir la cámara</p>
+            <div class="scan-hud">
+              <button type="button" class="scan-lib" onclick="event.stopPropagation(); pickFromRoll()" data-i18n="scan.library">Fototeca</button>
+              <button type="button" class="scan-shutter" id="scan-shutter" onclick="event.stopPropagation(); captureOrOpenCamera()" data-i18n-aria="scan.shutterAria" aria-label="Capturar"><i></i></button>
+              <span class="scan-hud-gap" aria-hidden="true"></span>
+            </div>
           </div>
+          <div id="scan-results"></div>
           <input id="scan-file-cam" type="file" accept="image/*" capture="environment" hidden />
           <input id="scan-file-lib" type="file" accept="image/*" hidden />
           <input id="scan-file" type="file" accept="image/*" hidden />
@@ -483,25 +486,25 @@
       if (!window.__casaReady) casaShowBootError();
     }, 8000);
   </script>
-  <script src="wines.js?v=78"></script>
-  <script src="bodegas.js?v=78"></script>
-  <script src="dossiers.js?v=78"></script>
-  <script src="providers/wineProvider.js?v=78"></script>
-  <script src="pairings.js?v=78"></script>
-  <script src="catalog-i18n.js?v=78"></script>
-  <script src="i18n.js?v=78"></script>
-  <script src="casa-util.js?v=78"></script>
-  <script src="casa-vino.js?v=78"></script>
-  <script src="casa-estado.js?v=78"></script>
-  <script src="casa-inicio.js?v=78"></script>
-  <script src="casa-vinoteca.js?v=78"></script>
-  <script src="casa-bodega.js?v=78"></script>
-  <script src="casa-ficha.js?v=78"></script>
-  <script src="casa-mesa.js?v=78"></script>
-  <script src="casa-bebidas.js?v=78"></script>
-  <script src="casa-gemini.js?v=78"></script>
-  <script src="casa-ajustes.js?v=78"></script>
-  <script src="app.js?v=78"></script>
+  <script src="wines.js?v=79"></script>
+  <script src="bodegas.js?v=79"></script>
+  <script src="dossiers.js?v=79"></script>
+  <script src="providers/wineProvider.js?v=79"></script>
+  <script src="pairings.js?v=79"></script>
+  <script src="catalog-i18n.js?v=79"></script>
+  <script src="i18n.js?v=79"></script>
+  <script src="casa-util.js?v=79"></script>
+  <script src="casa-vino.js?v=79"></script>
+  <script src="casa-estado.js?v=79"></script>
+  <script src="casa-inicio.js?v=79"></script>
+  <script src="casa-vinoteca.js?v=79"></script>
+  <script src="casa-bodega.js?v=79"></script>
+  <script src="casa-ficha.js?v=79"></script>
+  <script src="casa-mesa.js?v=79"></script>
+  <script src="casa-bebidas.js?v=79"></script>
+  <script src="casa-gemini.js?v=79"></script>
+  <script src="casa-ajustes.js?v=79"></script>
+  <script src="app.js?v=79"></script>
   <script>
     document.querySelectorAll(".tab").forEach((t, i) => {
       const icons = [
@@ -540,7 +543,7 @@
         const current = (document.querySelector('meta[name="app-version"]') || {}).content || "";
         if (data.version && current && data.version !== current) reloadForSw();
       });
-      navigator.serviceWorker.register("sw.js?v=78").catch(() => {});
+      navigator.serviceWorker.register("sw.js?v=79").catch(() => {});
     }
   </script>
 </body>

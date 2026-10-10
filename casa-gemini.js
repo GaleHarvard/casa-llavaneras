@@ -244,9 +244,31 @@ function applyGeminiIdentity(wine, raw) {
     }
   }
 }
-function setCamButton(label) {
+let camFailed = false;
+function setCamButtonKey(key) {
   const b = $("#scan-cam-btn");
-  if (b) b.textContent = label;
+  if (!b) return;
+  b.dataset.i18n = key;
+  b.textContent = t(key);
+}
+function setScanHint(live) {
+  const el = $("#scan-hint");
+  if (!el) return;
+  const key = live ? "scan.hit" : "scan.tap";
+  el.dataset.i18n = key;
+  el.textContent = t(key);
+  el.hidden = false;
+}
+function setCamLive(on) {
+  const app = document.querySelector(".app");
+  if (app) app.classList.toggle("cam-live", !!on);
+  setScanHint(!!on);
+  const hud = $(".scan-hud");
+  if (hud) hud.hidden = false;
+}
+function revealScanStage() {
+  const stage = $(".scan-stage");
+  if (stage && stage.scrollIntoView) stage.scrollIntoView({ block: "nearest", inline: "nearest" });
 }
 function resetScanPreview() {
   const preview = $("#scan-preview");
@@ -255,12 +277,17 @@ function resetScanPreview() {
   if (finder) finder.style.display = "";
   const video = $("#cam");
   if (video) video.hidden = true;
+  const hud = $(".scan-hud");
+  if (hud) hud.hidden = false;
+  const hint = $("#scan-hint");
+  if (hint) hint.hidden = false;
 }
 async function startLiveCamera() {
   stopCam();
   const video = $("#cam");
   if (!video || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    setCamButton(t("scan.open"));
+    camFailed = true;
+    setCamButtonKey("scan.open");
     return false;
   }
   try {
@@ -269,16 +296,24 @@ async function startLiveCamera() {
       audio: false
     });
     video.srcObject = stream;
+    video.muted = true;
+    video.autoplay = true;
+    video.setAttribute("playsinline", "");
     video.hidden = false;
     const finder = $("#scan-finder");
-    if (finder) finder.style.display = "none";
-    await video.play();
-    setCamButton(t("scan.capture"));
+    if (finder) finder.style.display = "";
+    try { await video.play(); } catch (err) {}
+    camFailed = false;
+    setCamButtonKey("scan.capture");
+    setCamLive(true);
     setScanStatus(t("scan.frame"));
+    revealScanStage();
     return true;
   } catch (e) {
+    camFailed = true;
     if (video) video.hidden = true;
-    setCamButton(t("scan.open"));
+    setCamButtonKey("scan.open");
+    setCamLive(false);
     return false;
   }
 }
@@ -288,6 +323,7 @@ async function startScan() {
   intakeSource = "camara";
   resetScanPreview();
   if ($("#scan-results")) $("#scan-results").innerHTML = "";
+  revealScanStage();
   const ok = await startLiveCamera();
   if (!ok) setScanStatus(t("scan.noCam"));
 }
@@ -297,27 +333,45 @@ async function captureOrOpenCamera() {
     lastList = "scan";
   }
   intakeSource = "camara";
+  revealScanStage();
   const video = $("#cam");
   if (video && video.srcObject && video.videoWidth) {
     captureLabel();
     return;
   }
+  if (camFailed || (video && video.srcObject && !video.videoWidth)) {
+    pickLabelPhoto();
+    return;
+  }
   const ok = await startLiveCamera();
-  if (!ok) pickLabelPhoto();
+  if (!ok) setScanStatus(t("scan.noCam"));
 }
-function onScanStage() {
+function onScanStage(ev) {
+  if (ev && ev.target && ev.target.closest && ev.target.closest(".scan-hud")) return;
   const video = $("#cam");
-  if (video && video.srcObject && video.videoWidth) captureLabel();
-  else captureOrOpenCamera();
+  if (video && video.srcObject && video.videoWidth) {
+    captureLabel();
+    return;
+  }
+  captureOrOpenCamera();
 }
 function stopCam() {
   if (stream) {
-    stream.getTracks().forEach(t => t.stop());
+    stream.getTracks().forEach(track => track.stop());
     stream = null;
   }
   const video = $("#cam");
-  if (video) video.srcObject = null;
+  if (video) {
+    video.srcObject = null;
+    video.hidden = true;
+  }
+  setCamLive(false);
+  setCamButtonKey("scan.open");
 }
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) stopCam();
+});
+window.addEventListener("pagehide", () => stopCam());
 function setScanStatus(msg) {
   const el = $("#scan-status");
   if (el) el.textContent = msg;
@@ -377,6 +431,10 @@ function showLabelPreview(dataUrl) {
   if (video) video.hidden = true;
   if (finder) finder.style.display = "none";
   stopCam();
+  const hud = $(".scan-hud");
+  const hint = $("#scan-hint");
+  if (hud) hud.hidden = true;
+  if (hint) hint.hidden = true;
 }
 function compressDataUrl(dataUrl, maxW = 900, quality = 0.8) {
   return new Promise(resolve => {
