@@ -28,7 +28,7 @@ function dossierOf(w) {
 const NOW = new Date(2026, 8, 22);
 const YEAR = NOW.getFullYear();
 const STORE = "vinoteca.pro.max.v3";
-const APP_VERSION = "v72";
+const APP_VERSION = "v73";
 const PRICE_CFG_KEY = "vinoteca-jgc-provider";
 
 const ICONS = {
@@ -88,10 +88,6 @@ const defaultState = () => ({
 });
 
 let state = load();
-if (state && state._consumptionDirty) {
-  delete state._consumptionDirty;
-  save();
-}
 let currentWine = null;
 let currentBottle = null;
 let stream = null;
@@ -140,12 +136,16 @@ function save() {
   try {
     localStorage.setItem(STORE, JSON.stringify(state));
   } catch (err) {
-    state.bottles.forEach(b => {
-      if (b.labelPhoto && String(b.labelPhoto).length > 4000) b.labelPhoto = "";
-      if (b.photo && String(b.photo).length > 4000) b.photo = "";
-    });
-    try { localStorage.setItem(STORE, JSON.stringify(state)); }
-    catch (err2) { console.warn("save quota", err2); }
+    const pending = [];
+    releaseConfirmedLabelBytes(pending);
+    try {
+      localStorage.setItem(STORE, JSON.stringify(state));
+      if (pending.length) rescuePendingLabels(pending);
+    } catch (err2) {
+      console.warn("save quota", err2);
+      if (pending.length) rescuePendingLabels(pending);
+      else notifySaveFailed();
+    }
   }
 }
 
@@ -1395,7 +1395,7 @@ function renderCellar() {
   } else if (cellarView === "lotes") {
     body = list.map(b => {
       const w = wineById(b.wineId);
-      return `<div class="card" role="button" onclick="openBottle('${b.uid}')"><div class="label-row">${labelThumbHtml(w)}<div class="label-copy"><div class="row"><h3>${w.producer}</h3><span class="tiny">×${b.qty}</span></div><p class="muted">${w.name} ${w.vintage}</p><p class="tiny">${cellarName(b.cellarId)} · ${state.prefs.hideBin ? "hueco oculto" : (b.bin || "sin hueco")}</p></div></div><button class="btn btn-ghost" style="margin-top:8px" onclick="event.stopPropagation();removeLot('${b.uid}')">Quitar lote</button></div>`;
+      return `<div class="card" role="button" onclick="openBottle('${b.uid}')"><div class="label-row">${labelThumbHtml(w, "label-thumb", b)}<div class="label-copy"><div class="row"><h3>${w.producer}</h3><span class="tiny">×${b.qty}</span></div><p class="muted">${w.name} ${w.vintage}</p><p class="tiny">${cellarName(b.cellarId)} · ${state.prefs.hideBin ? "hueco oculto" : (b.bin || "sin hueco")}</p></div></div><button class="btn btn-ghost" style="margin-top:8px" onclick="event.stopPropagation();removeLot('${b.uid}')">Quitar lote</button></div>`;
     }).join("");
   } else if (cellarView === "ubicaciones") {
     const by = {};
@@ -1675,32 +1675,64 @@ function bottleSrcFromTone(tone) {
   if (tone === "photo-rosado") return BOTTLE_PHOTOS.rosado || BOTTLE_PHOTOS.blanco;
   return BOTTLE_PHOTOS.tinto;
 }
-function openLabelDb() {
+function waitMs(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+function isDataImage(value) {
+  return typeof value === "string" && value.indexOf("data:image") === 0;
+}
+function isLabelMarker(value) {
+  return typeof value === "string" && value.indexOf("idb:") === 0;
+}
+function lotLabelKey(uid) {
+  return "lot:" + uid;
+}
+function labelMarker(key) {
+  return "idb:" + key;
+}
+function resolveLabelRef(ref) {
+  if (!ref || typeof ref !== "string") return "";
+  if (isDataImage(ref)) return ref;
+  if (isLabelMarker(ref)) return labelPhotoCache[ref.slice(4)] || "";
+  return "";
+}
+function isOwnLabelRef(ref) {
+  return isDataImage(ref) || isLabelMarker(ref);
+}
+function openLabelDbOnce() {
   return new Promise((resolve, reject) => {
     if (!window.indexedDB) { reject(new Error("no-idb")); return; }
-    const req = indexedDB.open("casa-llavaneras-labels", 1);
-    req.onupgradeneeded = () => {
-      if (!req.result.objectStoreNames.contains("thumbs")) req.result.createObjectStore("thumbs");
+    let settled = false;
+    const finish = (fn, value) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      fn(value);
     };
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
+    let req;
+    try { req = indexedDB.open("casa-llavaneras-labels", 1); }
+    catch (err) { reject(err); return; }
+    const timer = setTimeout(() => finish(reject, new Error("idb-timeout")), 1200);
+    req.onupgradeneeded = () => {
+      try {
+        if (!req.result.objectStoreNames.contains("thumbs")) req.result.createObjectStore("thumbs");
+      } catch (err) {}
+    };
+    req.onsuccess = () => finish(resolve, req.result);
+    req.onerror = () => finish(reject, req.error || new Error("idb-open"));
+    req.onblocked = () => finish(reject, new Error("idb-blocked"));
   });
 }
-function loadLabelPhotos() {
-  return openLabelDb().then(db => new Promise((resolve, reject) => {
-    const tx = db.transaction("thumbs", "readonly");
-    const req = tx.objectStore("thumbs").openCursor();
-    req.onsuccess = () => {
-      const cur = req.result;
-      if (!cur) { resolve(); return; }
-      if (cur.key && cur.value) labelPhotoCache[cur.key] = cur.value;
-      cur.continue();
-    };
-    req.onerror = () => reject(req.error);
-  })).catch(() => {});
+function openLabelDb() {
+  const delays = [0, 160, 420];
+  const attempt = (i) => openLabelDbOnce().catch(err => {
+    if (i + 1 >= delays.length) throw err;
+    return waitMs(delays[i + 1]).then(() => attempt(i + 1));
+  });
+  return attempt(0);
 }
-function readLabelPhotos() {
-  return openLabelDb().then(db => new Promise((resolve, reject) => {
+function readThumbs(db) {
+  return new Promise((resolve, reject) => {
     const out = {};
     const tx = db.transaction("thumbs", "readonly");
     const req = tx.objectStore("thumbs").openCursor();
@@ -1711,58 +1743,198 @@ function readLabelPhotos() {
       cur.continue();
     };
     req.onerror = () => reject(req.error);
-  })).catch(() => ({}));
+  });
+}
+function loadLabelPhotos() {
+  return openLabelDb().then(readThumbs).then(map => {
+    Object.keys(map).forEach(k => { if (map[k]) labelPhotoCache[k] = map[k]; });
+    return true;
+  }).catch(() => false);
+}
+function readLabelPhotos() {
+  return openLabelDb().then(readThumbs).catch(() => ({}));
 }
 function writeLabelPhotos(map) {
   const photos = map && typeof map === "object" ? map : {};
+  const entries = Object.keys(photos).filter(id => isDataImage(photos[id]));
+  if (!entries.length) return Promise.resolve(true);
   return openLabelDb().then(db => new Promise((resolve, reject) => {
     const tx = db.transaction("thumbs", "readwrite");
     const store = tx.objectStore("thumbs");
-    store.clear();
-    Object.keys(photos).forEach(id => {
-      if (photos[id]) store.put(photos[id], id);
-    });
+    entries.forEach(id => store.put(photos[id], id));
     tx.oncomplete = () => {
-      Object.keys(labelPhotoCache).forEach(k => { delete labelPhotoCache[k]; });
-      Object.keys(photos).forEach(id => { if (photos[id]) labelPhotoCache[id] = photos[id]; });
+      entries.forEach(id => { labelPhotoCache[id] = photos[id]; });
       resolve(true);
     };
     tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error || new Error("idb-abort"));
+  })).catch(() => false);
+}
+function putLabelVerified(key, dataUrl) {
+  if (!key || !isDataImage(dataUrl)) return Promise.resolve(false);
+  return openLabelDb().then(db => new Promise((resolve, reject) => {
+    const tx = db.transaction("thumbs", "readwrite");
+    tx.objectStore("thumbs").put(dataUrl, key);
+    tx.oncomplete = () => resolve(db);
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error || new Error("idb-abort"));
+  })).then(db => new Promise(resolve => {
+    const tx = db.transaction("thumbs", "readonly");
+    const req = tx.objectStore("thumbs").get(key);
+    req.onsuccess = () => {
+      const ok = req.result === dataUrl;
+      if (ok) labelPhotoCache[key] = dataUrl;
+      resolve(ok);
+    };
+    req.onerror = () => resolve(false);
   })).catch(() => false);
 }
 function saveWineLabelPhoto(id, dataUrl) {
-  if (!id || !dataUrl) return Promise.resolve(false);
-  labelPhotoCache[id] = dataUrl;
-  return openLabelDb().then(db => new Promise((resolve, reject) => {
-    const tx = db.transaction("thumbs", "readwrite");
-    tx.objectStore("thumbs").put(dataUrl, id);
-    tx.oncomplete = () => resolve(true);
-    tx.onerror = () => reject(tx.error);
-  })).catch(() => {
+  if (!id || !isDataImage(dataUrl)) return Promise.resolve(false);
+  return putLabelVerified(id, dataUrl).then(ok => {
+    if (ok) return true;
     const wine = wineById(id);
     if (wine && !isCatalogWineId(id) && dataUrl.length < 90000) wine.labelThumb = dataUrl;
     return false;
   });
 }
-function ownLabel(w) {
+function assignLabelKey(wineId, uid, bytes, claimed) {
+  const wineKey = wineId || (uid ? lotLabelKey(uid) : "");
+  const lotKey = uid ? lotLabelKey(uid) : wineKey;
+  if (lotKey && labelPhotoCache[lotKey] === bytes) return lotKey;
+  if (wineKey && labelPhotoCache[wineKey] === bytes) return wineKey;
+  if (claimed && claimed[wineKey] === bytes) return wineKey;
+  const wineTaken = (wineKey && labelPhotoCache[wineKey] && labelPhotoCache[wineKey] !== bytes)
+    || (claimed && claimed[wineKey] && claimed[wineKey] !== bytes);
+  if (wineTaken) return lotKey;
+  if (claimed && wineKey) claimed[wineKey] = bytes;
+  return wineKey || lotKey;
+}
+function assignThumbKey(wineId, bytes, claimed) {
+  const alt = "thumb:" + wineId;
+  if (labelPhotoCache[alt] === bytes) return alt;
+  if (labelPhotoCache[wineId] === bytes) return wineId;
+  if (claimed && claimed[wineId] === bytes) return wineId;
+  const taken = (labelPhotoCache[wineId] && labelPhotoCache[wineId] !== bytes)
+    || (claimed && claimed[wineId] && claimed[wineId] !== bytes);
+  if (taken) {
+    if (claimed) claimed[alt] = bytes;
+    return alt;
+  }
+  if (claimed) claimed[wineId] = bytes;
+  return wineId;
+}
+function collectLabelJobs(pending, applyIfCached) {
+  const claimed = Object.create(null);
+  let applied = false;
+  (state.bottles || []).forEach(b => {
+    if (!b || !isDataImage(b.labelPhoto)) return;
+    const key = assignLabelKey(b.wineId, b.uid, b.labelPhoto, claimed);
+    const job = { key: key, bytes: b.labelPhoto, apply: () => { b.labelPhoto = labelMarker(key); } };
+    if (applyIfCached && labelPhotoCache[key] === b.labelPhoto) { job.apply(); applied = true; }
+    else pending.push(job);
+  });
+  (state.customWines || []).forEach(w => {
+    if (!w || !w.id || !isDataImage(w.labelThumb)) return;
+    const key = assignThumbKey(w.id, w.labelThumb, claimed);
+    const job = { key: key, bytes: w.labelThumb, apply: () => { w.labelThumb = labelMarker(key); } };
+    if (applyIfCached && labelPhotoCache[key] === w.labelThumb) { job.apply(); applied = true; }
+    else pending.push(job);
+  });
+  return applied;
+}
+function releaseConfirmedLabelBytes(pending) {
+  collectLabelJobs(pending, true);
+}
+function rescuePendingLabels(pending) {
+  Promise.all(pending.map(job => putLabelVerified(job.key, job.bytes).then(ok => {
+    if (ok) job.apply();
+    return ok;
+  }))).then(results => {
+    const any = results.some(Boolean);
+    if (!any) { notifySaveFailed(); return; }
+    try { localStorage.setItem(STORE, JSON.stringify(state)); }
+    catch (err) { notifySaveFailed(); }
+  }).catch(() => notifySaveFailed());
+}
+function notifySaveFailed() {
+  const now = Date.now();
+  if (now - (notifySaveFailed.at || 0) < 5000) return;
+  notifySaveFailed.at = now;
+  try { toast("No cabe en el iPhone. Las etiquetas siguen guardadas."); }
+  catch (err) { console.warn("save quota", err); }
+}
+function migrateStoredLabelBytes() {
+  const pending = [];
+  const already = collectLabelJobs(pending, false);
+  return pending.reduce((chain, job) => chain.then(changed => {
+    return putLabelVerified(job.key, job.bytes).then(ok => {
+      if (ok) { job.apply(); return true; }
+      return changed;
+    });
+  }), Promise.resolve(already));
+}
+function countOwnLabels(map) {
+  const source = map || labelPhotoCache;
+  return Object.keys(source).filter(k => isDataImage(source[k])).length;
+}
+function prepareOwnLabels() {
+  return loadLabelPhotos().then(ok => migrateStoredLabelBytes().then(changed => {
+    const dirty = !!(state && state._consumptionDirty);
+    if (dirty) delete state._consumptionDirty;
+    if (dirty || changed) save();
+    if (!ok) {
+      setTimeout(() => {
+        loadLabelPhotos().then(again => { if (again) repaintAfterLabels(); });
+      }, 800);
+    }
+    return true;
+  }));
+}
+function repaintAfterLabels() {
+  try {
+    if (screenId === "cellar") renderCellar();
+    else if (screenId === "calendar") renderCalendar();
+    else if (screenId === "pairings") renderPairings();
+    else if (screenId === "wine" && currentWine) openWine(currentWine.id, currentBottle);
+    else if (screenId === "bebidas") renderBebidas();
+    else if (screenId === "home") renderHome();
+  } catch (err) {}
+}
+function ownLabel(w, bottle) {
+  if (bottle && bottle.wineId && (!w || bottle.wineId === w.id)) {
+    const lot = resolveLabelRef(bottle.labelPhoto);
+    if (lot) return lot;
+  }
   if (!w) return "";
   if (labelPhotoCache[w.id]) return labelPhotoCache[w.id];
-  if (w.labelThumb && String(w.labelThumb).indexOf("data:image") === 0) return w.labelThumb;
-  const bottle = (state.bottles || []).find(b => b.wineId === w.id && b.labelPhoto && String(b.labelPhoto).indexOf("data:image") === 0);
-  if (bottle) return bottle.labelPhoto;
-  const row = (state.inbox || []).find(b => b.wineId === w.id && b.photo && String(b.photo).indexOf("data:image") === 0);
-  return row ? row.photo : "";
+  const thumb = resolveLabelRef(w.labelThumb);
+  if (thumb) return thumb;
+  const hit = (state.bottles || []).find(b => b.wineId === w.id && resolveLabelRef(b.labelPhoto));
+  if (hit) return resolveLabelRef(hit.labelPhoto);
+  const row = (state.inbox || []).find(b => b.wineId === w.id && resolveLabelRef(b.photo));
+  return row ? resolveLabelRef(row.photo) : "";
 }
-function labelSrc(w) {
-  const own = ownLabel(w);
+function hasOwnLabel(w, bottle) {
+  if (bottle && isOwnLabelRef(bottle.labelPhoto)) return true;
+  if (!w) return false;
+  if (labelPhotoCache[w.id]) return true;
+  if (isOwnLabelRef(w.labelThumb)) return true;
+  if ((state.bottles || []).some(b => b.wineId === w.id && (isOwnLabelRef(b.labelPhoto) || labelPhotoCache[lotLabelKey(b.uid)]))) return true;
+  if ((state.inbox || []).some(b => b.wineId === w.id && (isOwnLabelRef(b.photo) || labelPhotoCache[w.id]))) return true;
+  return false;
+}
+function labelSrc(w, bottle) {
+  const own = ownLabel(w, bottle);
   if (own) return own;
+  if (hasOwnLabel(w, bottle)) return "";
   if (w && w.labelUrl && /^https?:\/\//i.test(w.labelUrl)) return w.labelUrl;
   if (w && CATALOG_LABELS[w.id]) return CATALOG_LABELS[w.id];
   return "";
 }
-function labelThumbHtml(w, cls) {
+function labelThumbHtml(w, cls, bottle) {
   const tone = bottleTone(w);
-  const src = labelSrc(w);
+  const src = labelSrc(w, bottle);
   const clsName = (cls || "label-thumb") + (src ? "" : " label-fallback");
   const alt = escHtml(((w && w.producer) || "") + " " + ((w && w.name) || "") + " " + ((w && w.vintage) || "")).trim();
   if (src) return `<img class="${clsName}" alt="${alt}" src="${escHtml(src)}" data-fallback="${tone}" onerror="labelFallback(this)">`;
@@ -1776,6 +1948,8 @@ function mountLabelThumbs(root) {
 }
 function labelFallback(img) {
   if (!img || img.dataset.fellback === "1") return;
+  const src = img.getAttribute("src") || "";
+  if (isDataImage(src) || isLabelMarker(src)) return;
   img.dataset.fellback = "1";
   img.onerror = null;
   img.classList.add("label-fallback");
@@ -1813,9 +1987,30 @@ function compressLabelThumb(dataUrl) {
     img.src = dataUrl;
   });
 }
-function rememberLabelPhoto(wineId, dataUrl) {
-  if (!wineId || !dataUrl) return;
-  compressLabelThumb(dataUrl).then(thumb => { if (thumb) saveWineLabelPhoto(wineId, thumb); });
+function rememberLabelPhoto(wineId, dataUrl, bottle, inboxRow) {
+  if (!wineId || !dataUrl) return Promise.resolve(false);
+  return compressLabelThumb(dataUrl).then(async thumb => {
+    if (!thumb) return false;
+    const wineOk = await saveWineLabelPhoto(wineId, thumb);
+    if (bottle && bottle.uid) {
+      const lotKey = lotLabelKey(bottle.uid);
+      const lotOk = await saveWineLabelPhoto(lotKey, thumb);
+      if (lotOk) bottle.labelPhoto = labelMarker(lotKey);
+      else if (wineOk) bottle.labelPhoto = labelMarker(wineId);
+      else bottle.labelPhoto = thumb;
+    }
+    if (inboxRow) {
+      if (wineOk) inboxRow.photo = labelMarker(wineId);
+      else if (thumb.length < 90000) inboxRow.photo = thumb;
+    }
+    const stored = wineById(wineId);
+    if (stored && !isCatalogWineId(wineId) && wineOk) stored.labelThumb = labelMarker(wineId);
+    save();
+    try {
+      if (inboxRow && screenId === "inbox") renderInbox();
+    } catch (err) {}
+    return wineOk;
+  });
 }
 function changeWineLabel() {
   const wine = currentWine;
@@ -1832,8 +2027,16 @@ function changeWineLabel() {
     reader.onload = async () => {
       const thumb = await compressLabelThumb(reader.result);
       if (!thumb) { toast("No se pudo leer la foto"); return; }
-      await saveWineLabelPhoto(wine.id, thumb);
-      if (currentBottle && currentBottle.wineId === wine.id) currentBottle.labelPhoto = thumb;
+      const wineOk = await saveWineLabelPhoto(wine.id, thumb);
+      if (currentBottle && currentBottle.wineId === wine.id) {
+        const lotKey = lotLabelKey(currentBottle.uid);
+        const lotOk = await saveWineLabelPhoto(lotKey, thumb);
+        if (lotOk) currentBottle.labelPhoto = labelMarker(lotKey);
+        else if (wineOk) currentBottle.labelPhoto = labelMarker(wine.id);
+        else currentBottle.labelPhoto = thumb;
+      }
+      const stored = wineById(wine.id);
+      if (stored && !isCatalogWineId(wine.id) && wineOk) stored.labelThumb = labelMarker(wine.id);
       save();
       toast("Etiqueta actualizada");
       openWine(wine.id, currentBottle);
@@ -1845,8 +2048,9 @@ function changeWineLabel() {
 function estateSVG(w) {
   const art = estateArt(w);
   const land = art.land ? `<img class="estate-photo" src="${art.land}" alt="" onerror="this.style.display='none'">` : "";
-  const visual = labelSrc(w)
-    ? labelThumbHtml(w, "label-thumb label-thumb-hero")
+  const bottle = currentBottle && w && currentBottle.wineId === w.id ? currentBottle : null;
+  const visual = labelSrc(w, bottle)
+    ? labelThumbHtml(w, "label-thumb label-thumb-hero", bottle)
     : bottleMarkup(w);
   return `
     ${land}
@@ -2372,7 +2576,7 @@ function openWineSub(kind) {
       <div class="fact"><span>Entrada</span><b>${currentBottle.bought || "—"}</b></div>
       ${!state.prefs.hidePrices && currentBottle.price ? `<div class="fact"><span>Precio</span><b>${currentBottle.price} €</b></div>` : ""}
       ${currentBottle.note ? `<div class="card"><p>${currentBottle.note}</p></div>` : ""}
-      ${currentBottle.labelPhoto ? `<img class="cave-photo" src="${currentBottle.labelPhoto}" alt="Etiqueta escaneada" />` : ""}
+      ${resolveLabelRef(currentBottle.labelPhoto) ? `<img class="cave-photo" src="${resolveLabelRef(currentBottle.labelPhoto)}" alt="Etiqueta escaneada" />` : ""}
       <div class="btn-row">
         <button class="btn btn-ghost" onclick="addToLot(1)">+1</button>
         <button class="btn btn-gold" onclick="askServe(1)">Servir 1</button>
@@ -2843,9 +3047,9 @@ function addCurrentToCellar() {
   const price = parseFloat($("#add-price").value || "0");
   const note = $("#add-note").value.trim();
   currentBottle = mergeOrCreateLot({
-    wineId: currentWine.id, cellarId, bin, qty, price, note, photo: lastLabelData || ""
+    wineId: currentWine.id, cellarId, bin, qty, price, note, photo: ""
   });
-  if (lastLabelData) rememberLabelPhoto(currentWine.id, lastLabelData);
+  if (lastLabelData) rememberLabelPhoto(currentWine.id, lastLabelData, currentBottle);
   const inboxUid = $("#add-inbox-uid") && $("#add-inbox-uid").value;
   if (inboxUid) {
     const row = (state.inbox || []).find(x => x.uid === inboxUid);
@@ -4868,14 +5072,14 @@ function parkScanInInbox(wine, text, source) {
     wineId: wine.id,
     created: new Date().toISOString(),
     text: String(text || "").replace(/\s+/g, " ").slice(0, 180),
-    photo: (via !== "manual" && lastLabelData && lastLabelData.length < 140000) ? lastLabelData : "",
+    photo: "",
     entered: false,
     cellarId,
     bin,
     source: via
   };
   state.inbox.unshift(row);
-  if (row.photo) rememberLabelPhoto(wine.id, row.photo);
+  if (via !== "manual" && lastLabelData) rememberLabelPhoto(wine.id, lastLabelData, null, row);
   save();
   if ($("#scan-q")) $("#scan-q").value = "";
   setScanStatus("Ficha lista. Hueco " + bin + " reservado en altas pendientes.");
@@ -5109,12 +5313,12 @@ function quickAdd(wineId) {
   }
   currentWine = w;
   const cellarId = preferredCellar(w, 0) || "v1";
-  const thumb = lastLabelData && lastLabelData.length < 120000 ? lastLabelData : "";
+  const thumb = lastLabelData || "";
   currentBottle = mergeOrCreateLot({
     wineId: w.id, cellarId, bin: nextBin(cellarId), qty: 1, price: 0,
-    note: "Alta por etiqueta", photo: thumb
+    note: "Alta por etiqueta", photo: ""
   });
-  if (thumb) rememberLabelPhoto(w.id, thumb);
+  if (thumb) rememberLabelPhoto(w.id, thumb, currentBottle);
   try { logAct(`Alta rápida ${w.producer} ${w.name} → ${cellarName(cellarId)}`); } catch (e) {}
   save();
   const tmin = w.conservation && w.conservation.cellarMin;
@@ -5793,6 +5997,7 @@ function openPerfilSub(kind) {
     body = `
       <div class="card"><h3>Mi Vinoteca</h3><p class="muted" style="margin-top:6px">Versión ${APP_VERSION}</p>
         <p class="tiny" style="margin-top:10px">Esquema vinoteca.pro.max.v3 · ${totalBottles()} botellas · ${uniqueWines()} vinos · ${state.vinotecas.length} vinotecas</p>
+        <p class="tiny" id="about-labels">Etiquetas propias guardadas: ${countOwnLabels()}</p>
         <p class="tiny">Última copia: ${fmtBackup(p.lastBackup)}</p>
         <div id="about-storage"><p class="tiny" style="margin-top:10px">Consultando el almacenamiento…</p></div>
       </div>
@@ -5860,6 +6065,10 @@ function fillAboutStorage() {
     if (!box) return;
     box.innerHTML = `<p class="tiny" style="margin-top:10px">Almacenamiento persistente</p><p>${persistent}</p><p class="tiny" style="margin-top:8px">Espacio usado</p><p>${space}</p>`;
   };
+  const paintLabels = (n) => {
+    const line = document.getElementById("about-labels");
+    if (line) line.textContent = "Etiquetas propias guardadas: " + n;
+  };
   Promise.resolve().then(async () => {
     let persistent = "No se puede consultar en este navegador.";
     let space = "Sin dato";
@@ -5879,6 +6088,11 @@ function fillAboutStorage() {
       }
     } catch (e) {}
     paint(persistent, space);
+    try {
+      const labels = await readLabelPhotos();
+      const fromDb = labels && typeof labels === "object" ? countOwnLabels(labels) : 0;
+      paintLabels(fromDb || countOwnLabels());
+    } catch (e) { paintLabels(countOwnLabels()); }
   });
 }
 function ensureStateShape(target) {
@@ -5962,7 +6176,6 @@ function applyRestoredBackup(data) {
     state = ensureStateShape(data.state);
     if (!state.prefs) state.prefs = {};
     state.prefs.lastBackup = keptStamp;
-    save();
   } else {
     if (!data.bottles || !data.vinotecas) throw new Error("invalid");
     if (data.houses) state.houses = data.houses;
@@ -5981,14 +6194,16 @@ function applyRestoredBackup(data) {
       state.prefs.lastBackup = keptStamp;
     }
     ensureStateShape(state);
-    save();
   }
   const writes = [];
   if (data.labels && typeof data.labels === "object") writes.push(writeLabelPhotos(data.labels));
   if (data.provider && typeof data.provider === "object") {
     try { localStorage.setItem(PRICE_CFG_KEY, JSON.stringify(data.provider)); } catch (e) {}
   }
-  return Promise.all(writes);
+  return Promise.all(writes).then(() => migrateStoredLabelBytes()).catch(() => false).then(() => {
+    save();
+    return true;
+  });
 }
 function exportCsv() {
   const head = ["Nombre","Bodega","Añada","Región","País","Tipo","Cantidad","Ubicación","Puntuación","Estado","Precio"];
@@ -6158,26 +6373,39 @@ document.addEventListener("DOMContentLoaded", () => {
     const el = document.getElementById("splash");
     if (el) el.classList.add("hide");
   };
-  try {
-    clock();
-    setInterval(() => { try { clock(); } catch (e) {} }, 30000);
-    try { askPersistentStorage(); } catch (e) {}
-    try { refreshDirtyInternetWines(); } catch (e) { console.warn("limpieza", e); }
-    try { renderHome(); } catch (e) { console.warn("inicio", e); throw e; }
-    if (window.casaMarkReady) window.casaMarkReady();
-    else hideSplash();
-    loadLabelPhotos().then(() => {
-      try {
-        if (screenId === "cellar") renderCellar();
-        else if (screenId === "calendar") renderCalendar();
-        else if (screenId === "pairings") renderPairings();
-        else if (screenId === "wine" && currentWine) openWine(currentWine.id, currentBottle);
-        else if (screenId === "home") renderHome();
-      } catch (e) {}
-    });
-  } catch (e) {
-    console.warn("arranque", e);
-    if (window.casaShowBootError) window.casaShowBootError();
-  }
+  let booted = false;
+  let painted = false;
+  const paint = (allowSave) => {
+    try {
+      if (!booted) {
+        booted = true;
+        clock();
+        setInterval(() => { try { clock(); } catch (e) {} }, 30000);
+        try { askPersistentStorage(); } catch (e) {}
+      }
+      if (allowSave) {
+        try { refreshDirtyInternetWines(); } catch (e) { console.warn("limpieza", e); }
+      }
+      if (!painted) {
+        try { renderHome(); } catch (e) { console.warn("inicio", e); throw e; }
+        painted = true;
+        if (window.casaMarkReady) window.casaMarkReady();
+        else hideSplash();
+      } else {
+        repaintAfterLabels();
+      }
+    } catch (e) {
+      console.warn("arranque", e);
+      if (window.casaShowBootError) window.casaShowBootError();
+    }
+  };
+  const slow = setTimeout(() => paint(false), 900);
+  prepareOwnLabels().then(() => {
+    clearTimeout(slow);
+    paint(true);
+  }).catch(() => {
+    clearTimeout(slow);
+    paint(true);
+  });
   setTimeout(() => { try { runNotifyCheck(false); } catch (e) {} }, 1600);
 });
