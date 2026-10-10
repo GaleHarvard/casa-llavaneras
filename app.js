@@ -28,7 +28,7 @@ function dossierOf(w) {
 const NOW = new Date(2026, 8, 22);
 const YEAR = NOW.getFullYear();
 const STORE = "vinoteca.pro.max.v3";
-const APP_VERSION = "v70";
+const APP_VERSION = "v71";
 const PRICE_CFG_KEY = "vinoteca-jgc-provider";
 
 const ICONS = {
@@ -1372,32 +1372,13 @@ function starsRow(score5) {
 }
 
 function estateArt(w) {
-  const byProducer = {
-    "Château Margaux": { land: "vinedo-chateau-margaux.jpg", cap: "capsula-margaux.jpg", map: "mapa-medoc.jpg" },
-    "Vega Sicilia": { land: "vinedo-ribera.jpg", cap: "capsula.jpg", map: "mapa-ribera.jpg" },
-    "Dominio de Pingus": { land: "vinedo-ribera.jpg", cap: "capsula.jpg", map: "mapa-ribera.jpg" },
-    "R. López de Heredia": { land: "vinedo-rioja.jpg", cap: "capsula.jpg", map: "mapa-rioja.jpg" },
-    "Marqués de Riscal": { land: "vinedo-rioja.jpg", cap: "capsula.jpg", map: "mapa-rioja.jpg" },
-    "CVNE": { land: "vinedo-rioja.jpg", cap: "capsula.jpg", map: "mapa-rioja.jpg" },
-    "Bodegas Muga": { land: "vinedo-rioja.jpg", cap: "capsula.jpg", map: "mapa-rioja.jpg" },
-    "Marqués de Murrieta": { land: "vinedo-rioja.jpg", cap: "capsula.jpg", map: "mapa-rioja.jpg" },
-    "Pazo de Señoráns": { land: "vinedo-rias.jpg", cap: "capsula.jpg", map: "mapa-rias.jpg" },
-    "Álvaro Palacios": { land: "vinedo-priorat.jpg", cap: "capsula.jpg", map: "mapa-priorat.jpg" },
-    "Scala Dei": { land: "vinedo-priorat.jpg", cap: "capsula.jpg", map: "mapa-priorat.jpg" },
-    "Moët & Chandon": { land: "vinedo-champagne.jpg", cap: "capsula.jpg", map: "mapa-champagne.jpg" },
-    "Gramona": { land: "vinedo-champagne.jpg", cap: "capsula.jpg", map: "mapa-penedes.jpg" },
-    "Tenuta San Guido": { land: "vinedo-bolgheri.jpg", cap: "capsula.jpg", map: "mapa-bolgheri.jpg" },
-    "Penfolds": { land: "vinedo-margaux.jpg", cap: "capsula.jpg", map: "mapa-barossa.jpg" },
-    "Enrique Mendoza": { land: "vinedo.jpg", cap: "capsula.jpg", map: "mapa-alicante.jpg" },
-    "Numanthia": { land: "vinedo-ribera.jpg", cap: "capsula.jpg", map: "mapa-toro.jpg" }
-  };
-  const hit = byProducer[w.producer];
-  if (hit) return hit;
+  w = w || {};
+  const land = (typeof wineryImageFor === "function") ? wineryImageFor(w) : (typeof GENERIC_ESTATE !== "undefined" ? GENERIC_ESTATE : "vinedo.jpg");
   const place = [w.region, w.appellation, w.country].filter(Boolean).join(" ");
   let hitZone = detectZone(place);
   if (!hitZone) hitZone = detectZone([w.name, w.producer].filter(Boolean).join(" "));
-  if (hitZone && hitZone.map) return { land: hitZone.map, cap: "capsula.jpg", map: hitZone.map };
-  return { land: "", cap: "capsula.jpg", map: "" };
+  const cap = land === "vinedo-chateau-margaux.jpg" ? "capsula-margaux.jpg" : "capsula.jpg";
+  return { land: land, cap: cap, map: hitZone && hitZone.map ? hitZone.map : "" };
 }
 
 function capsuleLines(w) {

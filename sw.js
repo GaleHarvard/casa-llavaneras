@@ -1,7 +1,7 @@
-const CACHE = "casa-llavaneras-ios-v70";
-const VERSION = "v70";
+const CACHE = "casa-llavaneras-ios-v71";
+const VERSION = "v71";
 const NEXT = CACHE + "-next";
-const ASSETS = ["./", "./index.html", "./styles.css", "./app.js", "./wines.js", "./dossiers.js", "./providers/wineProvider.js", "./pairings.js", "./manifest.json", "./icon.svg", "./apple-touch-icon.png", "./icon-192.png", "./icon-512.png", "./cave-principal.jpg", "./capsula.jpg", "./botella-tinto.jpg", "./botella-blanco.jpg", "./botella-espumoso.jpg", "./vinedo-chateau-margaux.jpg"];
+const ASSETS = ["./", "./index.html", "./styles.css", "./app.js", "./wines.js", "./bodegas.js", "./dossiers.js", "./providers/wineProvider.js", "./pairings.js", "./manifest.json", "./icon.svg", "./apple-touch-icon.png", "./icon-192.png", "./icon-512.png", "./cave-principal.jpg", "./capsula.jpg", "./botella-tinto.jpg", "./botella-blanco.jpg", "./botella-espumoso.jpg", "./vinedo-chateau-margaux.jpg"];
 
 function fetchWithTimeout(request, ms) {
   const controller = new AbortController();
