@@ -189,18 +189,18 @@ function renderZonas(q) {
       const plate = ZONE_PLATE[z.name] || z.map;
       return `<button class="zone-tile" onclick="openZona('${z.name.replace(/'/g, "\\'")}')">
         <img src="${plate}" alt="${z.name}">
-        <span><b>${z.name}</b><small>${z.country} · ${n} vino${n === 1 ? "" : "s"}</small></span>
+        <span><b>${z.name}</b><small>${countryLabel(z.country)} · ${wineCountLabel(n)}</small></span>
       </button>`;
     }).join("");
-    return `<p class="cal-h">${g.country} · ${g.items.length}</p><div class="zone-grid">${tiles}</div>`;
+    return `<p class="cal-h">${countryLabel(g.country)} · ${g.items.length}</p><div class="zone-grid">${tiles}</div>`;
   }).join("");
   $("#zonas-body").innerHTML = `
     <button class="back" onclick="goBack()">‹ ${backCaption()}</button>
-    <p class="eyebrow">Mi Vinoteca</p>
-    <h1>Zonas vinícolas</h1>
-    <div class="search" style="margin:12px 0"><input id="zona-q" type="search" placeholder="Rioja, Douro, Champagne, Napa…" value="${(q || "").replace(/"/g, "")}" oninput="renderZonas(this.value)"></div>
-    <p class="muted">Placa grabada de cada zona. El nombre va debajo del mapa.</p>
-    ${html || "<p class='empty'>Ninguna zona con ese nombre.</p>"}`;
+    <p class="eyebrow">${t("eyebrow.cellar")}</p>
+    <h1>${t("zones.h1")}</h1>
+    <div class="search" style="margin:12px 0"><input id="zona-q" type="search" data-i18n-placeholder="search.zone" placeholder="${t("search.zone")}" value="${(q || "").replace(/"/g, "")}" oninput="renderZonas(this.value)"></div>
+    <p class="muted">${t("zones.hint")}</p>
+    ${html || `<p class="empty">${t("zones.none")}</p>`}`;
   const box = $("#zona-q");
   if (box && query) { box.focus(); box.setSelectionRange(query.length, query.length); }
 }
@@ -209,16 +209,16 @@ function openZona(name) {
   if (!z) return renderZonas();
   const wines = winesInZone(z);
   $("#zonas-body").innerHTML = `
-    <button class="back" onclick="renderZonas()">‹ Zonas</button>
+    <button class="back" onclick="renderZonas()">‹ ${t("zones.back")}</button>
     ${z.map ? `<img class="map-art" src="${z.map}" alt="Mapa ${z.name}">` : ""}
-    <p class="eyebrow" style="font-size:10px;letter-spacing:.14em;margin:2px 0 0">${z.country}</p>
+    <p class="eyebrow" style="font-size:10px;letter-spacing:.14em;margin:2px 0 0">${countryLabel(z.country)}</p>
     <h1 style="font-size:20px;margin:2px 0 4px;line-height:1.2">${z.name}</h1>
-    <p class="muted" style="margin:0 0 12px;font-size:13px">${wines.length} vino${wines.length === 1 ? "" : "s"} en catálogo</p>
+    <p class="muted" style="margin:0 0 12px;font-size:13px">${wines.length === 1 ? t("zones.inCatalog1") : t("zones.inCatalog", { n: wines.length })}</p>
     ${wines.map(w => `<div class="card" role="button" onclick="openWine('${w.id}')">
       <div class="label-row">${labelThumbHtml(w)}<div class="label-copy"><div class="row"><h3>${w.producer}</h3><span class="tiny">${w.vintage}</span></div>
       <p class="muted">${w.name} · ${w.appellation}</p></div></div>
-    </div>`).join("") || "<p class='empty'>Aún no hay botellas de esta zona.</p>"}
-    ${wines[0] ? `<button class="btn btn-ghost" style="width:100%;margin-top:12px" onclick="openWine('${wines[0].id}');setTimeout(()=>openWineSub('mapa'),80)">Mapa de bodega ›</button>` : ""}`;
+    </div>`).join("") || `<p class="empty">${t("zones.empty")}</p>`}
+    ${wines[0] ? `<button class="btn btn-ghost" style="width:100%;margin-top:12px" onclick="openWine('${wines[0].id}');setTimeout(()=>openWineSub('mapa'),80)">${t("zones.estateMap")}</button>` : ""}`;
   mountLabelThumbs($("#zonas-body"));
 }
 function cellarName(id) {
@@ -230,7 +230,7 @@ function renderCaves() {
   const icoTemp = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 3v10.2A3.2 3.2 0 1 1 9.6 16"/><path d="M12 3h2M12 7h1.6"/></svg>`;
   $("#caves-list").innerHTML = state.vinotecas.map(v => {
     const shot = v.photo || (v.role === "prestige" ? "cave-render-sommeliere.jpg" : "cave-render-eurocave.jpg");
-    const role = v.role === "prestige" ? "Prestigiosas" : "De guarda";
+    const role = v.role === "prestige" ? t("caves.prestige") : t("caves.keeping");
     return `<article class="cave-lux" role="button" tabindex="0" onclick="openCave('${v.id}')">
       <img src="${shot}" alt="${v.name}" onerror="this.src='cave-principal.jpg'">
       <div class="cave-lux-copy">
@@ -256,19 +256,19 @@ function openCave(id, highlightBin) {
   $("#cave-house").textContent = v.house || v.brand || "Casa Llavaneras";
   $("#cave-title").textContent = v.name;
   $("#cave-detail").innerHTML = `
-    <p class="muted">${v.brand}${v.role === "prestige" ? " · reserva de las botellas más caras" : ""}</p>
+    <p class="muted">${v.brand}${v.role === "prestige" ? t("caves.reserve") : ""}</p>
     <img class="cave-photo" src="${v.photo || "cave-render-sommeliere.jpg"}" alt="${v.name}" onerror="this.src='cave-principal.jpg'" />
-    <h2>Temperatura</h2>
+    <h2>${t("caves.temp")}</h2>
     <div class="temp-grid" style="margin:12px 0">
-      <label class="temp"><span class="tiny">Zona alta °C</span><input id="cave-thigh" type="number" step="0.1" value="${Number(v.tHigh).toFixed(1)}" style="width:100%;background:transparent;border:0;color:#c9a227;font:700 22px inherit" /></label>
-      <label class="temp"><span class="tiny">Zona baja °C</span><input id="cave-tlow" type="number" step="0.1" value="${Number(v.tLow || v.tHigh).toFixed(1)}" style="width:100%;background:transparent;border:0;color:#c9a227;font:700 22px inherit" /></label>
+      <label class="temp"><span class="tiny">${t("caves.high")}</span><input id="cave-thigh" type="number" step="0.1" value="${Number(v.tHigh).toFixed(1)}" style="width:100%;background:transparent;border:0;color:#c9a227;font:700 22px inherit" /></label>
+      <label class="temp"><span class="tiny">${t("caves.low")}</span><input id="cave-tlow" type="number" step="0.1" value="${Number(v.tLow || v.tHigh).toFixed(1)}" style="width:100%;background:transparent;border:0;color:#c9a227;font:700 22px inherit" /></label>
     </div>
-    <label class="field"><span>Humedad %</span><input id="cave-hr" type="number" value="${v.humidity || 65}" /></label>
-    <button class="btn btn-gold" style="width:100%;margin:8px 0" onclick="saveCaveTemp('${v.id}')">Modificar temperatura</button>
-    <h2>Mapa de huecos</h2>
+    <label class="field"><span>${t("caves.humidity")}</span><input id="cave-hr" type="number" value="${v.humidity || 65}" /></label>
+    <button class="btn btn-gold" style="width:100%;margin:8px 0" onclick="saveCaveTemp('${v.id}')">${t("caves.saveTemp")}</button>
+    <h2>${t("caves.map")}</h2>
     ${rackGrid(id, highlightBin || "")}
-    <button class="btn btn-ghost" style="width:100%;margin:8px 0" onclick="openSpaceSheet('${v.id}')">Añadir espacios</button>
-    <button class="btn btn-ghost" style="width:100%;margin:8px 0" onclick="deleteCave('${v.id}')">Dar de baja esta vinoteca</button>`;
+    <button class="btn btn-ghost" style="width:100%;margin:8px 0" onclick="openSpaceSheet('${v.id}')">${t("caves.addSlots")}</button>
+    <button class="btn btn-ghost" style="width:100%;margin:8px 0" onclick="deleteCave('${v.id}')">${t("caves.retire")}</button>`;
   show("cave-detail-screen");
   if (highlightBin) {
     setTimeout(() => {
@@ -279,7 +279,7 @@ function openCave(id, highlightBin) {
 }
 function showLotInCave() {
   const b = currentBottle;
-  if (!b || !b.cellarId) return toast("Este vino no está en una vinoteca");
+  if (!b || !b.cellarId) return toast(t("caves.notIn"));
   openCave(b.cellarId, b.bin || "");
 }
 function saveCaveTemp(id) {
@@ -288,12 +288,12 @@ function saveCaveTemp(id) {
   const hi = parseFloat($("#cave-thigh").value);
   const lo = parseFloat($("#cave-tlow").value);
   const hr = parseInt($("#cave-hr").value, 10);
-  if (!Number.isFinite(hi) || hi < 0 || hi > 25) return toast("Temperatura no válida");
+  if (!Number.isFinite(hi) || hi < 0 || hi > 25) return toast(t("caves.badTemp"));
   v.tHigh = Math.round(hi * 10) / 10;
   v.tLow = Number.isFinite(lo) ? Math.round(lo * 10) / 10 : v.tHigh;
   if (Number.isFinite(hr)) v.humidity = hr;
   save();
-  toast("Temperatura guardada · " + v.tHigh.toFixed(1) + " °C");
+  toast(t("caves.savedTemp", { t: v.tHigh.toFixed(1) }));
   openCave(id);
 }
 function slotCode(n) {
@@ -336,7 +336,7 @@ function openSpaceSheet(id) {
   if (!v) return;
   ensureCaveSlots(v);
   const hint = $("#space-hint");
-  if (hint) hint.textContent = v.name + " · " + v.slots.length + " espacios. El siguiente sigue el orden E-01, E-02…";
+  if (hint) hint.textContent = t("caves.slotHint", { name: v.name, n: v.slots.length });
   const select = $("#space-existing");
   if (select) {
     const mine = new Set(v.slots);
@@ -362,21 +362,21 @@ function addSequentialSpaces() {
   v.capacity = Math.max(v.capacity || 0, v.slots.length);
   save();
   hideSheets();
-  toast(fresh.length + " espacios añadidos");
+  toast(t("caves.slotsAdded", { n: fresh.length }));
   openCave(v.id);
 }
 function assignExistingSpace() {
   const v = state.vinotecas.find(x => x.id === currentCaveId);
   const code = $("#space-existing") && $("#space-existing").value;
-  if (!v || !code) return toast("No hay espacio para asignar");
+  if (!v || !code) return toast(t("caves.noSlot"));
   ensureCaveSlots(v);
-  if (v.slots.includes(code)) return toast("Ese espacio ya está en esta vinoteca");
+  if (v.slots.includes(code)) return toast(t("caves.slotExists"));
   v.slots.push(code);
   v.slots.sort((a, b) => slotNumber(a) - slotNumber(b) || a.localeCompare(b));
   v.capacity = Math.max(v.capacity || 0, v.slots.length);
   save();
   hideSheets();
-  toast("Espacio " + code + " asignado");
+  toast(t("caves.slotAssigned", { code: code }));
   openCave(v.id);
 }
 function previewNewSlots() {
@@ -488,12 +488,12 @@ function addCave() {
   save();
   hideSheets();
   renderCaves();
-  toast("Vinoteca creada");
+  toast(t("caves.created"));
 }
 function deleteCave(id) {
   const v = state.vinotecas.find(x => x.id === id);
   if (!v) return;
-  if (state.vinotecas.length < 2) return toast("Deja al menos una vinoteca");
+  if (state.vinotecas.length < 2) return toast(t("caves.keepOne"));
   const used = state.bottles.filter(b => b.cellarId === id);
   const dest = state.vinotecas.find(x => x.id !== id);
   if (used.length && !confirm(`${v.name} tiene ${used.reduce((n,b)=>n+b.qty,0)} botellas. ¿Pasarlas a ${dest.name} y dar de baja?`)) return;
@@ -501,7 +501,7 @@ function deleteCave(id) {
   state.vinotecas = state.vinotecas.filter(x => x.id !== id);
   logAct("Baja vinoteca " + v.name);
   save();
-  toast("Vinoteca dada de baja");
+  toast(t("caves.retired"));
   show("caves");
 }
 function bodegaWeb(url) {
@@ -530,18 +530,18 @@ function zoneStrip(w) {
   const g = bodegaGeo(w);
   return `<div class="zone-card" role="button" onclick="openWineSub('mapa')">
     <div>
-      <p class="tiny">Zona de la bodega</p>
+      <p class="tiny">${t("map.zone")}</p>
       <strong>${g.zone}</strong>
       <p class="muted">${w.appellation}</p>
     </div>
-    <span class="tiny">Mapa y web ›</span>
+    <span class="tiny">${t("map.web")}</span>
   </div>`;
 }
 function mapTabs(on) {
   return `<div class="wine-tabs" style="margin-top:12px">
-    <button type="button" class="${on === "mapa" ? "on" : ""}" onclick="openWineSub('mapa')">Mapa</button>
-    <button type="button" class="${on === "historia" ? "on" : ""}" onclick="openWineSub('historia')">Historia</button>
-    <button type="button" class="${on === "vinos" ? "on" : ""}" onclick="openWineSub('vinos')">Vinos</button>
+    <button type="button" class="${on === "mapa" ? "on" : ""}" onclick="openWineSub('mapa')">${t("map.tab")}</button>
+    <button type="button" class="${on === "historia" ? "on" : ""}" onclick="openWineSub('historia')">${t("wine.historyBtn")}</button>
+    <button type="button" class="${on === "vinos" ? "on" : ""}" onclick="openWineSub('vinos')">${t("map.wines")}</button>
   </div>`;
 }
 function placeLine(w, g) {

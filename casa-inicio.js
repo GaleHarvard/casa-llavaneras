@@ -5,14 +5,14 @@ function renderHome() {
   syncUsed();
   const cap = state.vinotecas.reduce((n, v) => n + (v.capacity || 0), 0);
   $("#home-kpis").innerHTML = `
-    <div class="kpi"><b>${totalBottles()}/${cap}</b><span>En cava</span></div>
-    <div class="kpi" role="button" onclick="show('balance')"><b>${state.prefs.hideValue ? "—" : euro(cellarValue())}</b><span>${state.prefs.hideValue ? "Valor" : ("Coste · " + euro(cellarMarketValue()) + " mercado")}</span></div>
-    <div class="kpi"><b>${ready.reduce((n,b)=>n+b.qty,0)}</b><span>Para servir</span></div>
+    <div class="kpi"><b>${totalBottles()}/${cap}</b><span>${t("home.inCellar")}</span></div>
+    <div class="kpi" role="button" onclick="show('balance')"><b>${state.prefs.hideValue ? "—" : euro(cellarValue())}</b><span>${state.prefs.hideValue ? t("home.value") : t("home.costMarket", { m: euro(cellarMarketValue()) })}</span></div>
+    <div class="kpi"><b>${ready.reduce((n,b)=>n+b.qty,0)}</b><span>${t("home.toServe")}</span></div>
     <div class="kpi"><b>${main && Number.isFinite(Number(main.tHigh)) ? Number(main.tHigh).toFixed(1) + "°" : "—"}</b><span>VIP 185</span></div>`;
 
   const featured = pickFeaturedWine();
   $("#home-featured").innerHTML = featured ? `
-    <h2 style="margin-top:8px">Vino destacado</h2>
+    <h2 style="margin-top:8px">${t("home.featured")}</h2>
     <div class="card" role="button" onclick="openWine('${featured.id}')" style="margin-top:10px">
       <div class="feat-row">
         <img src="${featured.id.indexOf('margaux')>=0?'capsula-margaux.jpg':'capsula.jpg'}" alt="${featured.name}">
@@ -28,56 +28,56 @@ function renderHome() {
   const drinkNow = ready.slice(0, 4);
   if ($("#home-open")) $("#home-open").innerHTML = monthOpenHtml();
   $("#home-ready").innerHTML = `
-    <h2 style="margin-top:16px">Para beber ahora</h2>
+    <h2 style="margin-top:16px">${t("home.drinkNow")}</h2>
     ${drinkNow.length
       ? `<div class="tile-row" style="margin-top:10px">${drinkNow.map(b => homeWineTile(wineById(b.wineId))).join("")}</div>`
-      : `<p class="empty">Nada en ventana de consumo.</p>`}`;
+      : `<p class="empty">${t("home.noneWindow")}</p>`}`;
 
   const lastT = lastTastings(3);
   $("#home-tasting").innerHTML = `
-    <h2 style="margin-top:16px" role="button" onclick="show('catas')">Últimas catas</h2>
-    ${lastT.length ? lastT.map(t => `
-      <div class="card" role="button" onclick="openWineThenTaste('${t.wine.id}')" style="margin-top:10px">
-        <div class="row"><h3>${t.wine.producer}</h3><span class="tiny">${t.when}</span></div>
-        <p class="muted">${t.wine.name} ${t.wine.vintage}</p>
-        <p class="tiny" style="margin-top:4px">${t.note || "Sin recuerdo escrito"}</p>
-      </div>`).join("") : `<p class="empty">Aún no hay cata personal.</p>`}`;
+    <h2 style="margin-top:16px" role="button" onclick="show('catas')">${t("home.lastTastings")}</h2>
+    ${lastT.length ? lastT.map(row => `
+      <div class="card" role="button" onclick="openWineThenTaste('${row.wine.id}')" style="margin-top:10px">
+        <div class="row"><h3>${row.wine.producer}</h3><span class="tiny">${formatDate(row.when)}</span></div>
+        <p class="muted">${row.wine.name} ${row.wine.vintage}</p>
+        <p class="tiny" style="margin-top:4px">${row.note || t("home.noNote")}</p>
+      </div>`).join("") : `<p class="empty">${t("home.noTasting")}</p>`}`;
 
   $("#home-alerts").innerHTML = homeAlertsHtml(main);
   const perm = typeof Notification !== "undefined" ? Notification.permission : "denied";
   const on = state.notify && state.notify.on && perm === "granted";
   $("#home-notify").innerHTML = `
-    <h2 style="margin-top:18px">Páginas</h2>
-    <div class="card" role="button" onclick="show('inbox')" style="margin-top:10px"><div class="row"><h3>Entradas del escáner</h3><span class="tiny">${(state.inbox||[]).filter(x=>!x.entered).length || "›"}</span></div><p class="muted">Fotos leídas pendientes de stock y hueco</p></div>
-    <div class="card" role="button" onclick="show('caves',{tab:true})" style="margin-top:8px"><div class="row"><h3>Vinotecas</h3><span class="tiny">›</span></div><p class="muted">VIP 185 y el resto de cavas</p></div>
-    <div class="card" role="button" onclick="openCave('v1')" style="margin-top:8px"><div class="row"><h3>Detalle VIP 185</h3><span class="tiny">›</span></div><p class="muted">Foto, huecos, temperatura</p></div>
-    <div class="card" role="button" onclick="show('cellar',{tab:true})" style="margin-top:8px"><div class="row"><h3>Botellas</h3><span class="tiny">›</span></div><p class="muted">Inventario, lotes y ubicación</p></div>
-    <div class="card" role="button" onclick="show('pairings',{tab:true})" style="margin-top:8px"><div class="row"><h3>Mesa</h3><span class="tiny">›</span></div><p class="muted">Maridajes por plato y por vino</p></div>
-    <div class="card" role="button" onclick="show('calendar',{tab:true})" style="margin-top:8px"><div class="row"><h3>Fechas</h3><span class="tiny">›</span></div><p class="muted">Beber ahora, pronto, aguardar</p></div>
-    <div class="card" role="button" onclick="openHomeMap()" style="margin-top:8px"><div class="row"><h3>Zonas vinícolas</h3><span class="tiny">›</span></div><p class="muted">Mapa por región y vinos</p></div>
-    <div class="card" role="button" onclick="show('bebidas')" style="margin-top:8px"><div class="row"><h3>Bebidas</h3><span class="tiny">${(state.consumption || []).reduce((n, c) => n + (Number(c.qty) || 1), 0) || "›"}</span></div><p class="muted">Lo que ya se ha servido</p></div>
-    <div class="card" role="button" onclick="show('catas')" style="margin-top:8px"><div class="row"><h3>Cuaderno de cata</h3><span class="tiny">›</span></div><p class="muted">Ejes y recuerdo</p></div>
-    <div class="card" role="button" onclick="show('perfil')" style="margin-top:8px"><div class="row"><h3>Perfil</h3><span class="tiny">›</span></div><p class="muted">Casas, copias y privacidad</p></div>
-    <div class="card" role="button" onclick="setCellarView('ubicaciones');show('cellar',{tab:true})" style="margin-top:8px"><div class="row"><h3>Ubicación física</h3><span class="tiny">›</span></div><p class="muted">Hueco, lote, servir y mover</p></div>
+    <h2 style="margin-top:18px">${t("home.pages")}</h2>
+    <div class="card" role="button" onclick="show('inbox')" style="margin-top:10px"><div class="row"><h3>${t("home.inboxTitle")}</h3><span class="tiny">${(state.inbox||[]).filter(x=>!x.entered).length || "›"}</span></div><p class="muted">${t("home.inboxSub")}</p></div>
+    <div class="card" role="button" onclick="show('caves',{tab:true})" style="margin-top:8px"><div class="row"><h3>${t("tab.caves")}</h3><span class="tiny">›</span></div><p class="muted">${t("home.cavesSub")}</p></div>
+    <div class="card" role="button" onclick="openCave('v1')" style="margin-top:8px"><div class="row"><h3>${t("home.vip")}</h3><span class="tiny">›</span></div><p class="muted">${t("home.vipSub")}</p></div>
+    <div class="card" role="button" onclick="show('cellar',{tab:true})" style="margin-top:8px"><div class="row"><h3>${t("tab.bottles")}</h3><span class="tiny">›</span></div><p class="muted">${t("home.bottlesSub")}</p></div>
+    <div class="card" role="button" onclick="show('pairings',{tab:true})" style="margin-top:8px"><div class="row"><h3>${t("tab.table")}</h3><span class="tiny">›</span></div><p class="muted">${t("home.tableSub")}</p></div>
+    <div class="card" role="button" onclick="show('calendar',{tab:true})" style="margin-top:8px"><div class="row"><h3>${t("tab.dates")}</h3><span class="tiny">›</span></div><p class="muted">${t("home.datesSub")}</p></div>
+    <div class="card" role="button" onclick="openHomeMap()" style="margin-top:8px"><div class="row"><h3>${t("home.zones")}</h3><span class="tiny">›</span></div><p class="muted">${t("home.zonesSub")}</p></div>
+    <div class="card" role="button" onclick="show('bebidas')" style="margin-top:8px"><div class="row"><h3>${t("home.drinks")}</h3><span class="tiny">${(state.consumption || []).reduce((n, c) => n + (Number(c.qty) || 1), 0) || "›"}</span></div><p class="muted">${t("home.drinksSub")}</p></div>
+    <div class="card" role="button" onclick="show('catas')" style="margin-top:8px"><div class="row"><h3>${t("home.notebook")}</h3><span class="tiny">›</span></div><p class="muted">${t("home.notebookSub")}</p></div>
+    <div class="card" role="button" onclick="show('perfil')" style="margin-top:8px"><div class="row"><h3>${t("home.profile")}</h3><span class="tiny">›</span></div><p class="muted">${t("home.profileSub")}</p></div>
+    <div class="card" role="button" onclick="setCellarView('ubicaciones');show('cellar',{tab:true})" style="margin-top:8px"><div class="row"><h3>${t("home.location")}</h3><span class="tiny">›</span></div><p class="muted">${t("home.locationSub")}</p></div>
     <div class="chip-row" style="margin-top:14px">
-      <button class="chip on" onclick="startScan()">Escanear</button>
-      <button class="chip" onclick="show('inbox')">Entradas</button>
-      <button class="chip" onclick="quickTaste()">Cata rápida</button>
-      <button class="chip" onclick="openHomeMap()">Mapa</button>
+      <button class="chip on" onclick="startScan()">${t("home.scan")}</button>
+      <button class="chip" onclick="show('inbox')">${t("home.inbox")}</button>
+      <button class="chip" onclick="quickTaste()">${t("home.quick")}</button>
+      <button class="chip" onclick="openHomeMap()">${t("home.map")}</button>
     </div>
     ${backupReminderHtml()}
     <div class="card" style="margin-top:12px">
       <div role="button" onclick="openNotify()">
-        <div class="row"><h2>Avisos</h2><span class="badge ${on ? "ok" : "wait"}">${on ? "Activos" : "Configurar"}</span></div>
-        <p class="muted" style="margin-top:6px">${on ? "Apogeo, beber pronto, temperatura y última botella." : "Actívalos para no perder la ventana."}</p>
+        <div class="row"><h2>${t("home.notices")}</h2><span class="badge ${on ? "ok" : "wait"}">${on ? t("home.noticesOn") : t("home.noticesSetup")}</span></div>
+        <p class="muted" style="margin-top:6px">${on ? t("home.noticesOnHint") : t("home.noticesOffHint")}</p>
       </div>
       ${stockNoticesHtml()}
     </div>
     <div class="card" role="button" onclick="show('perfil')" style="margin-top:10px">
-      <div class="row"><h2>Perfil</h2><span class="tiny">›</span></div>
-      <p class="muted" style="margin-top:6px">Casas, privacidad, copias y fuentes.</p>
+      <div class="row"><h2>${t("home.profile")}</h2><span class="tiny">›</span></div>
+      <p class="muted" style="margin-top:6px">${t("home.profileCard")}</p>
     </div>
-    <p class="tiny app-version" style="text-align:center;margin:18px 0 8px">Versión ${APP_VERSION}</p>`;
+    <p class="tiny app-version" style="text-align:center;margin:18px 0 8px">${t("home.version", { v: (typeof APP_VERSION !== "undefined" ? APP_VERSION : "") })}</p>`;
   mountLabelThumbs(document.getElementById("home"));
 }
 function pickFeaturedWine() {
@@ -115,9 +115,9 @@ function monthOpenReason(w) {
   const past = (Number.isFinite(holdTo) && YEAR > holdTo) || YEAR > peakEnd;
   const endsThisYear = peakEnd === YEAR || holdTo === YEAR;
   const atPeak = YEAR >= peakStart && YEAR <= peakEnd;
-  if (past) return { rank: 0, text: "Pasado su momento óptimo" };
-  if (endsThisYear) return { rank: 1, text: "Beber antes de " + YEAR };
-  if (atPeak) return { rank: 2, text: "En su mejor momento" };
+  if (past) return { rank: 0, text: t("home.reasonPast") };
+  if (endsThisYear) return { rank: 1, text: t("home.reasonBefore", { y: YEAR }) };
+  if (atPeak) return { rank: 2, text: t("home.reasonPeak") };
   return null;
 }
 function openThisMonth() {
@@ -145,10 +145,10 @@ function monthOpenHtml() {
     return `<div class="card" role="button" onclick="openWine('${w.id}')" style="margin-top:8px">
       <div class="row"><h3>${escHtml(w.producer)}</h3><span class="badge ${badge}">${escHtml(r.reason)}</span></div>
       <p style="margin-top:4px">${escHtml(w.name)} ${escHtml(String(w.vintage || ""))}</p>
-      <p class="muted">${r.qty} botella${r.qty > 1 ? "s" : ""}</p>
+      <p class="muted">${r.qty} ${nounBottles(r.qty)}</p>
     </div>`;
-  }).join("") : `<p class="empty">Nada en su momento este mes.</p>`;
-  return `<h2 style="margin-top:16px">Qué abrir este mes</h2>${body}`;
+  }).join("") : `<p class="empty">${t("home.noneMonth")}</p>`;
+  return `<h2 style="margin-top:16px">${t("home.openMonth")}</h2>${body}`;
 }
 function stockByWine() {
   const map = {};
@@ -185,11 +185,11 @@ function stockNoticesHtml() {
   const rows = lastBottleWines().filter(w => !stockDismissed(w.id));
   if (!rows.length) return "";
   return rows.map(w => `<div class="card" style="margin-top:8px" onclick="event.stopPropagation()">
-    <h3>Queda 1 botella de ${escHtml(w.producer)} ${escHtml(w.name)}</h3>
+    <h3>${t("home.stockOne", { name: escHtml(w.producer) + " " + escHtml(w.name) })}</h3>
     <p class="muted" style="margin-top:6px">${escHtml(String(w.vintage || ""))}${w.type ? " · " + escHtml(typeLabel(w.type)) : ""}</p>
     <div class="btn-row">
-      <button class="btn btn-ghost" onclick="event.stopPropagation();openWine('${w.id}')">Ver ficha</button>
-      <button class="btn btn-ghost" onclick="event.stopPropagation();dismissStock('${w.id}')">Ocultar</button>
+      <button class="btn btn-ghost" onclick="event.stopPropagation();openWine('${w.id}')">${t("home.see")}</button>
+      <button class="btn btn-ghost" onclick="event.stopPropagation();dismissStock('${w.id}')">${t("home.hide")}</button>
     </div>
   </div>`).join("");
 }
@@ -199,13 +199,13 @@ function maybeStockPush() {
   const rows = lastBottleWines().filter(w => !stockDismissed(w.id));
   if (!rows.length) return;
   const w = rows[0];
-  const extra = rows.length > 1 ? " · y " + (rows.length - 1) + " más" : "";
-  pushNote("Última botella", "Queda 1 botella de " + w.producer + " " + w.name + extra, "stock-" + w.id, "home");
+  const extra = rows.length > 1 ? t("notify.more", { n: rows.length - 1 }) : "";
+  pushNote(t("notify.lastTitle"), t("notify.lastBody", { wine: w.producer + " " + w.name, extra: extra }), "stock-" + w.id, "home");
 }
 function homeAlertsHtml(main) {
   const items = [];
   if (main && main.tHigh >= 15) {
-    items.push(`<div class="card warn-card" role="button" onclick="openCave('v1')"><strong>Temperatura elevada</strong><p class="muted" style="margin-top:6px">${main.tHigh.toFixed(1)} °C · ideal 12–16 °C</p></div>`);
+    items.push(`<div class="card warn-card" role="button" onclick="openCave('v1')"><strong>${t("home.tempHigh")}</strong><p class="muted" style="margin-top:6px">${t("home.tempIdeal", { t: main.tHigh.toFixed(1) })}</p></div>`);
   }
   state.bottles.forEach(b => {
     const w = wineById(b.wineId);
@@ -214,29 +214,29 @@ function homeAlertsHtml(main) {
     const bin = state.prefs.hideBin ? "" : (b.bin || "");
     if (p.key === "warn" || p.key === "late") {
       items.push(`<div class="card" role="button" onclick="openBottle('${b.uid}')">
-        <div class="row"><span class="muted"><i class="alert-dot"></i>Ventana de consumo</span><span class="badge ${p.key}">${p.label}</span></div>
+        <div class="row"><span class="muted"><i class="alert-dot"></i>${t("home.window")}</span><span class="badge ${p.key}">${p.label}</span></div>
         <h3 style="margin-top:6px">${w.producer} ${w.name} ${w.vintage}</h3>
         <p class="muted">${b.qty} ud${bin ? " · " + bin : ""}</p>
       </div>`);
     }
     if (b.qty <= 1) {
       items.push(`<div class="card" role="button" onclick="openBottle('${b.uid}')">
-        <div class="row"><span class="muted">Stock bajo</span><span class="badge warn">1 ud</span></div>
+        <div class="row"><span class="muted">${t("home.lowStock")}</span><span class="badge warn">${t("home.oneUd")}</span></div>
         <h3 style="margin-top:6px">${w.producer} ${w.name}</h3>
       </div>`);
     }
     if (!b.bin || !state.tasting[b.wineId]) {
       items.push(`<div class="card" role="button" onclick="openBottle('${b.uid}')">
-        <div class="row"><span class="muted">Información pendiente</span></div>
+        <div class="row"><span class="muted">${t("home.pendingInfo")}</span></div>
         <h3 style="margin-top:6px">${w.producer} ${w.name}</h3>
-        <p class="tiny">${!b.bin ? "Sin hueco" : "Sin cata personal"}</p>
+        <p class="tiny">${!b.bin ? t("home.noBin") : t("home.noTaste")}</p>
       </div>`);
     }
   });
   const uniq = [];
   const seen = new Set();
   items.forEach(html => { if (!seen.has(html)) { seen.add(html); uniq.push(html); } });
-  return `<h2 style="margin-top:16px">Alertas</h2><div style="margin-top:10px">${uniq.slice(0, 6).join("") || `<div class="card muted">Sin urgencias.</div>`}</div>`;
+  return `<h2 style="margin-top:16px">${t("home.alerts")}</h2><div style="margin-top:10px">${uniq.slice(0, 6).join("") || `<div class="card muted">${t("home.noneUrgent")}</div>`}</div>`;
 }
 function openWineThenTaste(id) {
   openWine(id);
@@ -262,10 +262,10 @@ function renderCalendar() {
   const groups = { wait: [], ok: [], warn: [], late: [] };
   state.bottles.forEach(b => groups[phaseOf(wineById(b.wineId)).key].push(b));
   $("#calendar-list").innerHTML = `
-    ${calBlock("Beber ahora", groups.ok)}
-    ${calBlock("Beber pronto", groups.warn)}
-    ${calBlock("Aguardar", groups.wait)}
-    ${calBlock("Riesgo de declive", groups.late)}`;
+    ${calBlock(t("cal.now"), groups.ok)}
+    ${calBlock(t("cal.soon"), groups.warn)}
+    ${calBlock(t("cal.wait"), groups.wait)}
+    ${calBlock(t("cal.late"), groups.late)}`;
   mountLabelThumbs($("#calendar-list"));
 }
 function calBlock(title, arr) {
@@ -280,16 +280,16 @@ function calBlock(title, arr) {
         <div>
           <h3>${shortWineName(w)}</h3>
           <p class="muted">${w.name} ${w.vintage}</p>
-          <p class="tiny">${datesAreReal(w) ? "Beber hasta " + w.aging.peakEnd : "Beber hasta Sin dato"}</p>
+          <p class="tiny">${datesAreReal(w) ? t("cal.until", { y: w.aging.peakEnd }) : t("cal.untilUnknown")}</p>
         </div>
       </div>
       <div class="win-row">
-        <span class="tiny">Ventana de consumo</span>
-        <span class="tiny win-left">${datesAreReal(w) ? yearsUntilPeakEnd(w.aging.peakEnd) : "Sin dato"}</span>
+        <span class="tiny">${t("home.window")}</span>
+        <span class="tiny win-left">${datesAreReal(w) ? yearsUntilPeakEnd(w.aging.peakEnd) : t("nodata")}</span>
       </div>
-      <div class="win-bar" role="img" aria-label="Apogeo de ${w.aging.peakStart} a ${w.aging.peakEnd}. Año actual ${YEAR}.">
+      <div class="win-bar" role="img" aria-label="${t("cal.peakAria", { a: w.aging.peakStart, b: w.aging.peakEnd, y: YEAR })}">
         <span class="win-peak" style="left:${mark.left}%;width:${mark.width}%"></span>
-        <span class="win-now" style="left:${mark.now}%" title="Año ${YEAR}"></span>
+        <span class="win-now" style="left:${mark.now}%" title="${t("cal.year", { y: YEAR })}"></span>
       </div>
     </div>`;
   }).join("");

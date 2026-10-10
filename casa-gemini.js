@@ -274,7 +274,7 @@ async function startLiveCamera() {
     if (finder) finder.style.display = "none";
     await video.play();
     setCamButton("Capturar etiqueta");
-    setScanStatus("Encuadra la etiqueta en vertical y pulsa Capturar etiqueta.");
+    setScanStatus(t("scan.frame"));
     return true;
   } catch (e) {
     if (video) video.hidden = true;
@@ -289,7 +289,7 @@ async function startScan() {
   resetScanPreview();
   if ($("#scan-results")) $("#scan-results").innerHTML = "";
   const ok = await startLiveCamera();
-  if (!ok) setScanStatus("Cámara no disponible. Abre la cámara del sistema, elige una foto o usa el alta manual.");
+  if (!ok) setScanStatus(t("scan.noCam"));
 }
 async function captureOrOpenCamera() {
   if (screenId !== "scan") {
@@ -554,7 +554,7 @@ async function ocrOnce(Tesseract, img, lang) {
     tessedit_pageseg_mode: "6",
     logger: m => {
       if (m.status === "recognizing text" && m.progress) {
-        setScanStatus("Leyendo la etiqueta… " + Math.round(m.progress * 100) + "%");
+        setScanStatus(t("scan.readingPct", { n: Math.round(m.progress * 100) }));
       }
     }
   });
@@ -828,7 +828,7 @@ function searchCorrectedLabel() {
   if ($("#scan-q")) $("#scan-q").value = typed;
   lastOcrText = typed;
   if (typed.length < 3) {
-    setScanStatus("Escribe el nombre del vino para buscarlo.");
+    setScanStatus(t("scan.typeName"));
     return;
   }
   searchAndShowLabel(typed);
@@ -1780,13 +1780,18 @@ async function readGeminiWineFacts(wine, gaps) {
   wine.provenance.geminiNote = summarizeGeminiProblems(problems);
   return any ? { ok: true } : null;
 }
+let lastGeminiProbeOk = false;
 async function geminiProbe(key) {
+  lastGeminiProbeOk = false;
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 20000);
   const schema = { type: "OBJECT", properties: { ok: { type: "BOOLEAN" } } };
   try {
     const outcome = await geminiWithModel(key, "Responde solo este JSON: {\"ok\":true}", schema, ctrl.signal, 64);
-    if (outcome && outcome.parsed) return "Funciona · " + (outcome.model || "");
+    if (outcome && outcome.parsed) {
+      lastGeminiProbeOk = true;
+      return t("price.works", { m: outcome.model || "" });
+    }
     return (outcome && outcome.reason) || "modelo no disponible (HTTP 404)";
   } finally {
     clearTimeout(timer);
@@ -1913,7 +1918,7 @@ async function completeWineRecord(wine, pageUrl) {
 }
 async function settleNewWine(wine, raw, source, pageUrl) {
   if (!wine) return;
-  if (intakeBusy) return toast("Sigue completando la ficha anterior");
+  if (intakeBusy) return toast(t("gemini.busy"));
   intakeBusy = true;
   try {
     if (needsWineCompletion(wine)) {
@@ -1937,7 +1942,7 @@ async function settleNewWine(wine, raw, source, pageUrl) {
 async function completeExistingWine(id) {
   const wine = wineById(id);
   if (!wine || isCatalogWineId(wine.id)) return;
-  if (intakeBusy) return toast("Sigue completando la ficha anterior");
+  if (intakeBusy) return toast(t("gemini.busy"));
   intakeBusy = true;
   try {
     normalizeWine(wine);
@@ -1956,9 +1961,9 @@ async function completeExistingWine(id) {
     await completeWineRecord(wine, wine.provenance.pageUrl || "");
     if (currentWine && currentWine.id === wine.id) openWine(wine.id, currentBottle);
     if (noKey) openNotify();
-    toast(wine.provenance.geminiNote ? "Ficha a medias" : "Ficha actualizada");
+    toast(wine.provenance.geminiNote ? t("gemini.partial") : t("gemini.updated"));
   } catch (e) {
-    toast("No se pudo completar la ficha");
+    toast(t("gemini.fail"));
   } finally {
     intakeBusy = false;
   }
@@ -1967,7 +1972,7 @@ function confirmScanCustom() {
   const q = (($("#scan-read") && $("#scan-read").value) || ($("#scan-q") && $("#scan-q").value) || "").trim();
   const raw = q || lastOcrText || "";
   const w = inferWineFromText(raw);
-  if (!w) return toast("Escribe bodega y añada");
+  if (!w) return toast(t("gemini.needName"));
   settleNewWine(w, raw, intakeSource || "camara", "");
 }
 function wineFromInternetHit(hit) {
@@ -2021,18 +2026,18 @@ function wineFromInternetHit(hit) {
 }
 function confirmInternetWine(i) {
   const hit = lastInternetHits[i];
-  if (!hit) return toast("Ese resultado ya no está");
+  if (!hit) return toast(t("gemini.gone"));
   if (hit.kind === "buscar") {
     if (hit.url) window.open(hit.url, "_blank", "noopener");
     return;
   }
   const w = wineFromInternetHit(hit);
-  if (!w) return toast("No se pudo crear la ficha");
+  if (!w) return toast(t("gemini.noCreate"));
   settleNewWine(w, lastOcrText || hit.title, intakeSource || "fototeca", hit.url || "");
 }
 async function searchAndShowLabel(text) {
   const gen = ++photoSearchGen;
-  setScanStatus("Buscando el vino en internet…");
+  setScanStatus(t("gemini.searching"));
   if ($("#scan-results")) $("#scan-results").innerHTML = `<div class="card muted">Buscando el vino en internet…</div>`;
   const remote = await lookupWineOnline(text);
   if (gen !== photoSearchGen) return;
@@ -2081,12 +2086,12 @@ async function readLabelWithGemini(dataUrl) {
 }
 async function identifyFromPhoto(dataUrl) {
   if (ocrBusy) {
-    setScanStatus("Sigue la lectura anterior.");
+    setScanStatus(t("scan.prev"));
     return;
   }
   ocrBusy = true;
   const fromRoll = intakeSource === "fototeca";
-  setScanStatus(fromRoll ? "Foto de la fototeca. Leyendo la etiqueta…" : "Leyendo la etiqueta…");
+  setScanStatus(fromRoll ? t("scan.rollReading") : t("scan.reading"));
   if ($("#scan-results")) $("#scan-results").innerHTML = `<div class="card muted">${fromRoll ? "Foto elegida. Leyendo la etiqueta para buscar el vino." : "Analizando la foto. Un momento."}</div>`;
   let text = "";
   let query = "";
@@ -2096,7 +2101,7 @@ async function identifyFromPhoto(dataUrl) {
     lastOcrRaw = readableLabel(text).replace(/\s+/g, " ");
     query = cleanOcrQuery(text);
     if (storedGeminiKey()) {
-      setScanStatus(fromRoll ? "Foto de la fototeca. Leyendo la etiqueta con Gemini…" : "Leyendo la etiqueta con Gemini…");
+      setScanStatus(fromRoll ? t("scan.rollGemini") : t("scan.geminiReading"));
       const gem = await readLabelWithGemini(dataUrl);
       if (gem.query) query = gem.query;
       else if (gem.note) lastOcrNote = gem.note;
@@ -2107,7 +2112,7 @@ async function identifyFromPhoto(dataUrl) {
   if (!query) {
     lastOcrText = lastOcrRaw;
     if ($("#scan-q")) $("#scan-q").value = lastOcrRaw;
-    setScanStatus("No se pudo limpiar la lectura. Corrige el texto y busca.");
+    setScanStatus(t("scan.unclean"));
     showScanConfirm(lastOcrRaw, rankFromText(lastOcrRaw), { hits: [], state: "sin-texto", note: "La lectura no dejó un nombre de vino. Corrige el texto.", query: "" });
     return;
   }
@@ -2151,9 +2156,9 @@ function rankFromText(raw) {
   return uniq.slice(0, 6);
 }
 function intakeSourceLabel(src) {
-  if (src === "fototeca") return "Fototeca";
-  if (src === "manual") return "Manual";
-  return "Cámara";
+  if (src === "fototeca") return t("src.photo");
+  if (src === "manual") return t("src.manual");
+  return t("src.camera");
 }
 function parkScanInInbox(wine, text, source) {
   if (!wine) return;
@@ -2176,7 +2181,7 @@ function parkScanInInbox(wine, text, source) {
   if (via !== "manual" && lastLabelData) rememberLabelPhoto(wine.id, lastLabelData, null, row);
   save();
   if ($("#scan-q")) $("#scan-q").value = "";
-  setScanStatus("Ficha lista. Hueco " + bin + " reservado en altas pendientes.");
+  setScanStatus(t("inbox.ready", { bin: bin }));
   toast(wine.producer + " " + wine.vintage + " · " + cellarName(cellarId) + " " + bin);
   show("inbox");
 }
@@ -2207,23 +2212,23 @@ function renderInbox() {
     return !q || hay.includes(q);
   });
   if (!(state.inbox || []).length) {
-    box.innerHTML = `<div class="card muted">Aún no hay altas pendientes. Escanea una etiqueta, elige una foto o da de alta a mano.</div>
-      <button class="btn btn-gold" style="width:100%;margin-top:12px" onclick="startScan()">Abrir cámara</button>
-      <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="pickFromRoll()">Elegir de fotos</button>`;
+    box.innerHTML = `<div class="card muted">${t("inbox.empty")}</div>
+      <button class="btn btn-gold" style="width:100%;margin-top:12px" onclick="startScan()">${t("scan.open")}</button>
+      <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="pickFromRoll()">${t("scan.photos")}</button>`;
     return;
   }
   if (!rows.length) {
-    box.innerHTML = `<p class="empty">Ninguna entrada coincide. Borra la búsqueda para ver el listado.</p>`;
+    box.innerHTML = `<p class="empty">${t("inbox.none")}</p>`;
     return;
   }
   box.innerHTML = rows.map(row => {
     const w = wineById(row.wineId);
-    const title = w ? `${w.producer}` : "Vino leído";
+    const title = w ? `${w.producer}` : t("inbox.read");
     const sub = w ? `${w.name} ${w.vintage}` : "";
-    const badge = row.entered ? `<span class="badge ok">En bodega</span>` : `<span class="badge warn">Pendiente</span>`;
+    const badge = row.entered ? `<span class="badge ok">${t("inbox.inCellar")}</span>` : `<span class="badge warn">${t("inbox.pending")}</span>`;
     const where = row.entered
-      ? `<p class="tiny">En bodega · ${cellarName(row.cellarId)} · ${row.bin || "sin hueco"}</p>`
-      : `<p class="tiny">Hueco pendiente · ${cellarName(row.cellarId)} · ${row.bin || "sin hueco"}</p>`;
+      ? `<p class="tiny">${t("inbox.where", { cave: cellarName(row.cellarId), bin: row.bin || t("cellar.noBin") })}</p>`
+      : `<p class="tiny">${t("inbox.slot", { cave: cellarName(row.cellarId), bin: row.bin || t("cellar.noBin") })}</p>`;
     const via = `<p class="tiny">${intakeSourceLabel(row.source)}</p>`;
     return `<article class="inbox-card">
       ${row.photo ? `<img src="${row.photo}" alt="">` : `<div class="inbox-ph"></div>`}
@@ -2234,30 +2239,30 @@ function renderInbox() {
         ${via}
         <div class="inbox-actions">
           ${row.entered
-            ? `<button class="btn btn-ghost" onclick="openWine('${row.wineId}')">Ver ficha</button>`
-            : `<button class="btn btn-gold" onclick="enterInbox('${row.uid}')">Introducir en el hueco</button>
-               <button class="btn btn-ghost" onclick="openWine('${row.wineId}')">Ficha</button>`}
-          <button class="btn btn-ghost" onclick="deleteInbox('${row.uid}')">Eliminar</button>
+            ? `<button class="btn btn-ghost" onclick="openWine('${row.wineId}')">${t("inbox.see")}</button>`
+            : `<button class="btn btn-gold" onclick="enterInbox('${row.uid}')">${t("inbox.enter")}</button>
+               <button class="btn btn-ghost" onclick="openWine('${row.wineId}')">${t("inbox.sheet")}</button>`}
+          <button class="btn btn-ghost" onclick="deleteInbox('${row.uid}')">${t("inbox.delete")}</button>
         </div>
       </div>
     </article>`;
-  }).join("") + `<button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="startScan()">Escanear otra</button>`;
+  }).join("") + `<button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="startScan()">${t("inbox.another")}</button>`;
 }
 function deleteInbox(uid) {
   const row = (state.inbox || []).find(x => x.uid === uid);
   if (!row) return;
   const w = wineById(row.wineId);
-  if (!confirm("Eliminar esta lectura" + (w ? " de " + w.name : "") + " del listado?")) return;
+  if (!confirm(t("inbox.confirm", { extra: w ? t("inbox.of", { name: w.name }) : "" }))) return;
   state.inbox = (state.inbox || []).filter(x => x.uid !== uid);
   save();
   renderInbox();
-  toast("Lectura eliminada");
+  toast(t("inbox.deleted"));
 }
 function enterInbox(uid) {
   const row = (state.inbox || []).find(x => x.uid === uid);
   if (!row || row.entered) return;
   const w = wineById(row.wineId);
-  if (!w) return toast("Ficha no encontrada");
+  if (!w) return toast(t("inbox.missing"));
   normalizeWine(w);
   currentWine = w;
   if (!row.cellarId) row.cellarId = preferredCellar(w, 0) || "v1";
@@ -2268,7 +2273,7 @@ function enterInbox(uid) {
   if ($("#add-cellar")) $("#add-cellar").value = row.cellarId;
   if ($("#add-bin")) $("#add-bin").value = row.bin;
   if ($("#add-qty")) $("#add-qty").value = "1";
-  if ($("#add-keep-hint")) $("#add-keep-hint").textContent = "Hueco reservado " + row.bin + " · " + cellarName(row.cellarId) + ". Confirma cuando la botella esté en ese espacio.";
+  if ($("#add-keep-hint")) $("#add-keep-hint").textContent = t("inbox.reserved", { bin: row.bin, cave: cellarName(row.cellarId) });
 }
 function yearFromText(raw) {
   const m = String(raw || "").match(/\b((?:19|20)\d{2})\b/);
@@ -2341,7 +2346,7 @@ function previewScanQuery() {
 }
 function queueIntake(wineId) {
   const w = wineById(wineId);
-  if (!w) return toast("No hay ficha");
+  if (!w) return toast(t("gemini.noSheet"));
   const q = (($("#scan-q") && $("#scan-q").value) || lastOcrText || "").trim();
   const source = intakeSource === "manual" || !lastLabelData ? "manual" : (intakeSource || "camara");
   parkScanInInbox(ensureScannedWine(w, q), q, source);
@@ -2350,7 +2355,7 @@ function manualIntake() {
   intakeSource = "manual";
   const q = (($("#scan-q") && $("#scan-q").value) || "").trim();
   if (!q) {
-    setScanStatus("Escribe bodega, vino y añada. Alta manual es la última opción, sin foto.");
+    setScanStatus(t("scan.manualHint"));
     if (screenId !== "scan") {
       show("scan");
       lastList = "scan";
@@ -2369,7 +2374,7 @@ function manualIntake() {
     return;
   }
   const w = inferWineFromText(q);
-  if (!w) return toast("Escribe bodega y añada");
+  if (!w) return toast(t("gemini.needName"));
   settleNewWine(w, q, "manual", "");
 }
 function runIdentify() {
@@ -2385,36 +2390,36 @@ function refreshGeminiKeyState() {
   const typed = ($("#p-gemini-key") && $("#p-gemini-key").value.trim()) || "";
   const stored = storedGeminiKey();
   if (typed && typed !== stored) {
-    stateEl.textContent = "Clave escrita, pulsa Guardar precios para guardarla";
+    stateEl.textContent = t("price.typed");
     return;
   }
   if (stored) {
-    stateEl.textContent = "Clave guardada en esta app.";
+    stateEl.textContent = t("price.stored");
     return;
   }
-  stateEl.textContent = "No hay clave en esta app. Pégala aquí: Safari y el icono de inicio no comparten la clave.";
+  stateEl.textContent = t("price.none");
 }
 async function probeGeminiKey() {
   const el = document.getElementById("gemini-probe");
   const typed = ($("#p-gemini-key") && $("#p-gemini-key").value.trim()) || "";
   const key = typed || storedGeminiKey();
   if (!key) {
-    if (el) el.textContent = "No hay clave. Pégala arriba o guárdala antes.";
+    if (el) el.textContent = t("price.needKey");
     refreshGeminiKeyState();
     return;
   }
-  if (el) el.textContent = "Probando la clave…";
+  if (el) el.textContent = t("price.probing");
   try {
     const msg = await geminiProbe(key);
     if (el) el.textContent = msg;
-    if (typed && /^Funciona\b/.test(String(msg || ""))) {
+    if (typed && lastGeminiProbeOk) {
       const box = $("#p-gemini");
       if (box) box.checked = true;
       const result = persistPriceCfg();
-      toast(result.ok ? "Clave de Gemini guardada en esta app" : "No se pudo guardar la clave");
+      toast(result.ok ? t("price.savedKey") : t("price.keyFail"));
     }
   } catch (e) {
-    if (el) el.textContent = "red o CORS";
+    if (el) el.textContent = t("price.net");
   }
   refreshGeminiKeyState();
 }
@@ -2447,11 +2452,11 @@ function persistPriceCfg() {
 function savePriceCfg() {
   const result = persistPriceCfg();
   if (!result.ok) {
-    toast("No se pudo guardar la clave");
+    toast(t("price.keyFail"));
     return;
   }
   hideSheets();
-  toast(result.saved ? "Clave de Gemini guardada en esta app" : (result.live ? "Precios: Wine-Searcher" : "Precios: dossier"));
+  toast(result.saved ? t("price.savedKey") : (result.live ? t("price.wsOn") : t("price.dossier")));
   refreshGeminiKeyState();
 }
 function hydratePriceFields() {
@@ -2463,4 +2468,158 @@ function hydratePriceFields() {
   const keyEl = $("#p-gemini-key");
   if (keyEl && document.activeElement !== keyEl) keyEl.value = cfg.geminiKey || "";
   refreshGeminiKeyState();
+}
+const TR_DB_NAME = "casa-llavaneras-i18n";
+const TR_STORE = "tr";
+const TR_LS_KEY = "vinoteca.i18n.cache";
+const TR_LS_CAP = 350000;
+const TR_LANG_NAME = { ca: "Catalan", en: "English", fr: "French", pt: "European Portuguese" };
+const TR_WINE_TERM = { ca: "criança", en: "ageing", fr: "élevage", pt: "estágio" };
+function trCacheKey(wineId, lang) {
+  return String(wineId) + ":" + String(lang);
+}
+function openTrDb() {
+  return new Promise((resolve, reject) => {
+    if (!window.indexedDB) return reject(new Error("no-idb"));
+    const req = indexedDB.open(TR_DB_NAME, 1);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains(TR_STORE)) db.createObjectStore(TR_STORE);
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error || new Error("idb"));
+  });
+}
+function idbGetTr(db, key) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(TR_STORE, "readonly");
+    const req = tx.objectStore(TR_STORE).get(key);
+    req.onsuccess = () => resolve(req.result || null);
+    req.onerror = () => reject(req.error);
+  });
+}
+function idbPutTr(db, key, row) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(TR_STORE, "readwrite");
+    tx.objectStore(TR_STORE).put(row, key);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+function readTrBag() {
+  try { return JSON.parse(localStorage.getItem(TR_LS_KEY) || "{}") || {}; } catch (e) { return {}; }
+}
+async function readWineTranslation(wineId, lang) {
+  const key = trCacheKey(wineId, lang);
+  try {
+    const db = await openTrDb();
+    const hit = await idbGetTr(db, key);
+    db.close();
+    if (hit && hit.text) return hit;
+  } catch (e) {}
+  const bag = readTrBag();
+  return bag[key] && bag[key].text ? bag[key] : null;
+}
+async function writeWineTranslation(wineId, lang, text) {
+  const key = trCacheKey(wineId, lang);
+  const row = { text: String(text), at: Date.now(), lang: lang };
+  try {
+    const db = await openTrDb();
+    await idbPutTr(db, key, row);
+    db.close();
+    return;
+  } catch (e) {}
+  try {
+    const bag = readTrBag();
+    bag[key] = row;
+    let raw = JSON.stringify(bag);
+    if (raw.length > TR_LS_CAP) {
+      const entries = Object.keys(bag).sort((a, b) => (bag[a].at || 0) - (bag[b].at || 0));
+      while (raw.length > TR_LS_CAP && entries.length) {
+        delete bag[entries.shift()];
+        raw = JSON.stringify(bag);
+      }
+    }
+    localStorage.setItem(TR_LS_KEY, raw);
+  } catch (e) {}
+}
+function wineFieldLocked(w, field) {
+  if (!w) return false;
+  if (w.provenance && w.provenance[field] === "usuario") return true;
+  const user = w.wineEdits && w.wineEdits.user;
+  return !!(user && user[field]);
+}
+function wineTranslatePayload(w) {
+  const d = typeof dossierOf === "function" ? dossierOf(w) : {};
+  const pack = (window.WINE_PAIRINGS && WINE_PAIRINGS[w.id]) || w.pairingPack || null;
+  const out = {};
+  ["soils", "vineyard", "vinification", "elevage", "history", "oxygen", "glass", "decant"].forEach(k => {
+    if (d && d[k]) out[k] = d[k];
+  });
+  if (d && d.awards && d.awards.length) out.awards = d.awards;
+  if (w.tasting && !wineFieldLocked(w, "tasting")) out.tasting = w.tasting;
+  if (pack) {
+    if (pack.logic) out.pairingLogic = pack.logic;
+    if (pack.serve) out.pairingServe = pack.serve;
+    if (pack.avoid && pack.avoid.length) out.pairingAvoid = pack.avoid;
+    const why = (pack.matches || []).map(m => m.why).filter(Boolean);
+    if (why.length) out.pairingWhy = why;
+  }
+  if (Array.isArray(w.evolutionNotes) && w.evolutionNotes.length) {
+    out.evolution = w.evolutionNotes.map(n => ({ year: n.year, phase: n.phase, text: n.text }));
+  }
+  const critics = [];
+  const ratings = w.ratings || {};
+  ["penin", "parker", "spectator", "decanter", "vivino"].forEach(k => {
+    const note = ratings[k] && ratings[k].note;
+    if (note && !wineFieldLocked(w, "ratings")) critics.push(note);
+  });
+  if (critics.length) out.critics = critics;
+  return out;
+}
+async function paintWineTranslation(wineId) {
+  const lang = (typeof appLang !== "undefined" && appLang) || "es";
+  const box = document.getElementById("wine-tr-body");
+  if (!box || !wineId || lang === "es") return;
+  const hit = await readWineTranslation(wineId, lang);
+  if (!hit || !hit.text) return;
+  if (!currentWine || currentWine.id !== wineId) return;
+  if (((typeof appLang !== "undefined" && appLang) || "es") !== lang) return;
+  box.textContent = hit.text;
+}
+async function requestWineTranslation(wineId) {
+  const lang = (typeof appLang !== "undefined" && appLang) || "es";
+  if (lang === "es") return toast(t("tr.already"));
+  const key = storedGeminiKey();
+  if (!key) return toast(t("tr.needKey"));
+  const cached = await readWineTranslation(wineId, lang);
+  if (cached && cached.text) {
+    await paintWineTranslation(wineId);
+    return;
+  }
+  const w = wineById(wineId);
+  if (!w) return;
+  const box = document.getElementById("wine-tr-body");
+  if (box) box.textContent = t("tr.working");
+  const payload = wineTranslatePayload(w);
+  const prompt = [
+    "Translate this Spanish wine-catalogue JSON into " + (TR_LANG_NAME[lang] || lang) + ".",
+    "Return JSON {\"text\":\"...\"}: natural prose a sommelier would write, covering every field.",
+    "Keep proper nouns (estate, cuvée, appellation, place, grape variety, critic) unchanged.",
+    "Use the wine term «" + (TR_WINE_TERM[lang] || "crianza") + "» wherever the Spanish says crianza, envejecimiento or élevage.",
+    "Do not invent facts. Do not translate the drinker's own notes.",
+    JSON.stringify(payload)
+  ].join("\n");
+  const schema = { type: "OBJECT", properties: { text: { type: "STRING" } }, required: ["text"] };
+  try {
+    const outcome = await geminiWithModel(key, prompt, schema, null, 2048);
+    const text = outcome && outcome.parsed && String(outcome.parsed.text || "").trim();
+    if (!text) throw new Error("empty");
+    await writeWineTranslation(wineId, lang, text);
+    if (box && currentWine && currentWine.id === wineId) box.textContent = text;
+    toast(t("tr.done"));
+  } catch (e) {
+    if (box) box.textContent = t("tr.keep");
+    toast(t("tr.fail"));
+  }
 }

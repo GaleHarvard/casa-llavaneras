@@ -123,6 +123,7 @@ function keepPreMigrationSnapshot(raw) {
 }
 let bebidaFilter = "todas";
 let cellarView = "botellas";
+let perfilKind = "";
 let currentCaveId = "";
 let cellarSearchTick = 0;
 let pendingExit = null;
@@ -310,7 +311,7 @@ function notifySaveFailed() {
   const now = Date.now();
   if (now - (notifySaveFailed.at || 0) < 5000) return;
   notifySaveFailed.at = now;
-  try { toast("No cabe en el iPhone. Las etiquetas siguen guardadas."); }
+  try { toast(t("quota.toast")); }
   catch (err) { console.warn("save quota", err); }
 }
 function migrateStoredLabelBytes() {
@@ -479,7 +480,7 @@ function changeWineLabel() {
     const reader = new FileReader();
     reader.onload = async () => {
       const thumb = await compressLabelThumb(reader.result);
-      if (!thumb) { toast("No se pudo leer la foto"); return; }
+      if (!thumb) { toast(t("label.unread")); return; }
       const wineOk = await saveWineLabelPhoto(wine.id, thumb);
       if (currentBottle && currentBottle.wineId === wine.id) {
         const lotKey = lotLabelKey(currentBottle.uid);
@@ -491,7 +492,7 @@ function changeWineLabel() {
       const stored = wineById(wine.id);
       if (stored && !isCatalogWineId(wine.id) && wineOk) stored.labelThumb = labelMarker(wine.id);
       save();
-      toast("Etiqueta actualizada");
+      toast(t("label.updated"));
       openWine(wine.id, currentBottle);
     };
     reader.readAsDataURL(file);
@@ -685,6 +686,7 @@ function ensureHouse(name) {
   return h.id;
 }
 function fmtBackup(ts) {
+  if (typeof formatWhen === "function") return formatWhen(ts);
   if (!ts) return "Aún no";
   const d = new Date(ts);
   const p = n => String(n).padStart(2, "0");
@@ -703,8 +705,8 @@ function backupReminderHtml() {
   if (!backupIsDue()) return "";
   const never = !Number(prefs().lastBackup);
   return `<div class="card backup-remind" role="button" onclick="openPerfilSub('backup')" style="margin-top:12px">
-    <div class="row"><h3>Copia de seguridad</h3><span class="badge warn">${never ? "Pendiente" : "Hace tiempo"}</span></div>
-    <p class="muted" style="margin-top:6px">${never ? "Aún no hay una copia de esta cava. Conviene guardarla en Archivos o Drive." : "La última copia tiene más de 30 días. Conviene hacer otra."}</p>
+    <div class="row"><h3>${t("backup.title")}</h3><span class="badge warn">${never ? t("backup.due") : t("backup.old")}</span></div>
+    <p class="muted" style="margin-top:6px">${never ? t("backup.neverBody") : t("backup.oldBody")}</p>
   </div>`;
 }
 function refreshBackupReminder() {
@@ -759,7 +761,7 @@ async function collectBackup() {
 function markBackupSaved() {
   prefs().lastBackup = Date.now();
   save();
-  toast("Copia guardada");
+  toast(t("backup.saved"));
   if ($("#perfil-sub") && $("#perfil-sub").classList.contains("active")) openPerfilSub("backup");
   if (screenId === "home") renderHome();
   refreshBackupReminder();
@@ -777,12 +779,12 @@ async function exportBackup() {
     } catch (e) { canFileShare = false; }
     if (canFileShare) {
       try {
-        await navigator.share({ files: [file], title: "Copia de Mi Vinoteca" });
+        await navigator.share({ files: [file], title: t("backup.share") });
         markBackupSaved();
         return;
       } catch (err) {
         if (err && err.name === "AbortError") {
-          toast("Copia no guardada");
+          toast(t("backup.notSaved"));
           return;
         }
       }
@@ -790,7 +792,7 @@ async function exportBackup() {
     downloadFile(name, text, "application/json");
     markBackupSaved();
   } catch (e) {
-    toast("No se pudo crear la copia");
+    toast(t("backup.fail"));
   }
 }
 function applyRestoredBackup(data) {
@@ -834,7 +836,7 @@ function applyRestoredBackup(data) {
   });
 }
 function exportCsv() {
-  const head = ["Nombre","Bodega","Añada","Región","País","Tipo","Cantidad","Ubicación","Puntuación","Estado","Precio"];
+  const head = ["csv.name","csv.estate","csv.vintage","csv.region","csv.country","csv.type","csv.qty","csv.place","csv.score","csv.state","csv.price"].map(k => t(k));
   const rows = state.bottles.map(b => {
     const w = wineById(b.wineId) || {};
     const loc = state.prefs.hideBin ? houseName(state.vinotecas.find(v=>v.id===b.cellarId)?.houseId) : (cellarName(b.cellarId) + " " + (b.bin||""));
@@ -843,7 +845,7 @@ function exportCsv() {
   });
   const csv = [head].concat(rows).map(r => r.map(x => `"${String(x??"").replace(/"/g,'""')}"`).join(";")).join("\n");
   downloadFile("MiVinoteca_Inventario_" + new Date().toISOString().slice(0,10) + ".csv", csv, "text/csv");
-  toast("CSV de inventario");
+  toast(t("backup.csvInv"));
 }
 function exportTastingCsv() {
   const head = ["Vino","Añada","Fecha","Acidez","Dulzor","Tanino","Cuerpo","Final","Puntuación","Recuerdo"];
@@ -857,7 +859,7 @@ function exportTastingCsv() {
   });
   const csv = [head].concat(rows).map(r => r.map(x => `"${String(x??"").replace(/"/g,'""')}"`).join(";")).join("\n");
   downloadFile("MiVinoteca_Catas_" + new Date().toISOString().slice(0,10) + ".csv", csv, "text/csv");
-  toast("CSV de catas");
+  toast(t("backup.csvTaste"));
 }
 function reviewRestore(file) {
   if (!file) return;
@@ -873,27 +875,28 @@ function reviewRestore(file) {
       const nCustom = ((bag.customWines) || data.customWines || []).length;
       const nLabels = data.labels ? Object.keys(data.labels).length : 0;
       const nDrink = ((bag.consumption) || data.consumption || []).length;
-      if (!confirm(`COPIA ENCONTRADA\n${nW} vinos\n${nB} lotes de botellas\n${nT} catas\n${nCustom} vinos propios\n${nDrink} bebidas\n${nLabels} fotos de etiqueta\nFecha: ${data.savedAt || "—"}\n\nEsto REEMPLAZA la colección actual. ¿Continuar?`)) return;
+      if (!confirm(t("backup.confirm", { w: nW, b: nB, t: nT, c: nCustom, d: nDrink, l: nLabels, when: data.savedAt || "—" }))) return;
       applyRestoredBackup(data).then(() => {
-        toast("Colección restaurada");
+        toast(t("backup.restored"));
         show("perfil");
         renderHome();
-      }).catch(() => toast("Archivo no válido"));
+      }).catch(() => toast(t("backup.badFile")));
     } catch {
-      toast("JSON ilegible");
+      toast(t("backup.badJson"));
     }
   };
   reader.readAsText(file);
 }
-function importCsv() { toast("Importar CSV: siguiente pase. Usa JSON de copia."); }
+function importCsv() { toast(t("backup.csvLater")); }
 function askWipe() {
-  const ok = prompt("Esto borra botellas y catas de este iPhone.\nEscribe ELIMINAR para confirmar.");
-  if (ok !== "ELIMINAR") return toast("No se ha borrado");
+  const ok = prompt(t("backup.wipeAsk"));
+  if (ok !== "ELIMINAR") return toast(t("backup.notWiped"));
   state.bottles = [];
   state.tasting = {};
   state.favorites = [];
   prefs().demo = false;
   save();
-  toast("Colección vacía");
+  toast(t("backup.wiped"));
   show("perfil");
 }
+if (typeof bootLang === "function") bootLang();

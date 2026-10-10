@@ -90,10 +90,11 @@ h1 {
 }
 h2 {
   font-size: 11px;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--gold);
   font-weight: 500;
+  overflow-wrap: anywhere;
 }
 h3 {
   font-size: 16px;
@@ -204,11 +205,12 @@ h3 {
 }
 .tab {
   flex: 1;
+  min-width: 0;
   border: 0;
   background: none;
   color: #6e6e6e;
   font-size: 9px;
-  letter-spacing: 0.04em;
+  letter-spacing: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -216,6 +218,16 @@ h3 {
   gap: 3px;
   cursor: pointer;
   font-weight: 500;
+  padding: 0 2px;
+}
+.tab-label {
+  display: block;
+  max-width: 100%;
+  text-align: center;
+  line-height: 1.15;
+  font-weight: 500;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 .tab svg { width: 20px; height: 20px; }
 .tab.active { color: var(--gold2); }
@@ -408,7 +420,7 @@ label.field span {
   color: #c9a227; text-transform: uppercase;
 }
 .viewfinder::after {
-  content: "Toca para abrir la cámara";
+  content: var(--vf-hint, "Toca para abrir la cámara");
   position: absolute;
   left: 0; right: 0; bottom: -28px;
   text-align: center;
@@ -428,6 +440,10 @@ label.field span {
   background: transparent;
   cursor: pointer;
   font-family: inherit;
+  max-width: 100%;
+  white-space: normal;
+  text-align: center;
+  overflow-wrap: anywhere;
 }
 .chip.on { color: #000; background: var(--gold2); border-color: var(--gold2); font-weight: 560; }
 
@@ -745,7 +761,7 @@ label.field span {
   justify-content: space-between;
   margin: 6px 0 10px;
 }
-.sec-head h2 { margin: 0; color: #cfcfcf; letter-spacing: 0.2em; }
+.sec-head h2 { margin: 0; color: #cfcfcf; letter-spacing: 0.06em; min-width: 0; overflow-wrap: anywhere; }
 .sec-ico { color: var(--gold); opacity: .85; }
 .rate-grid {
   display: grid;
@@ -1073,7 +1089,8 @@ a.btn{text-decoration:none}
 .cave-lux-rule:after{content:"";position:absolute;left:0;top:-3px;width:7px;height:7px;transform:rotate(45deg);background:#100c0a;border:1px solid #c9a227}
 .cave-lux-stat{display:flex;align-items:center;gap:8px;color:#c9a227;margin:6px 0 0;font-size:15px}
 .cave-lux-stat b{font-weight:600;color:#e8dfd0}
-.caves-add{width:100%;margin-top:4px;border:0;border-radius:14px;padding:15px 16px;background:linear-gradient(180deg,#d4b44a,#b8922a);color:#1a1204;font:600 17px/1 inherit;display:flex;align-items:center;justify-content:center;gap:10px}
+.caves-add{width:100%;margin-top:4px;border:0;border-radius:14px;padding:15px 16px;background:linear-gradient(180deg,#d4b44a,#b8922a);color:#1a1204;font:600 17px/1.2 inherit;display:flex;align-items:center;justify-content:center;gap:10px}
+.caves-add em{font-style:normal;font-weight:inherit}
 .caves-add span{width:22px;height:22px;border:1.5px solid #1a1204;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:16px}
 .caves-motto{text-align:center;margin:12px 8px 8px;color:#c9a227;font-size:11px;letter-spacing:.04em;opacity:.9}
 .cave-ico{width:42px;height:52px;border:1.5px solid #c4a35a;border-radius:8px;position:relative;flex-shrink:0}

@@ -14,10 +14,10 @@ function openNotify() {
   if ($("#stock-notices")) $("#stock-notices").innerHTML = stockNoticesHtml();
   const perm = typeof Notification === "undefined" ? "unsupported" : Notification.permission;
   const tip = {
-    granted: "Permiso dado. Los avisos salen al abrir la app y en pruebas.",
-    denied: "El iPhone ha bloqueado los avisos. Ajustes → Notificaciones → Casa Llavaneras.",
-    default: "Pulsa Permitir y acepta el diálogo del iPhone.",
-    unsupported: "Este navegador no admite avisos."
+    granted: t("notify.granted"),
+    denied: t("notify.denied"),
+    default: t("notify.default"),
+    unsupported: t("notify.unsupported")
   };
   $("#notify-perm").textContent = tip[perm] || tip.default;
   refreshBackupReminder();
@@ -34,12 +34,12 @@ function setNotify(key, val) {
 }
 async function enableNotifications() {
   if (typeof Notification === "undefined") {
-    toast("Este iPhone no admite avisos web");
+    toast(t("notify.noWeb"));
     return;
   }
   const standalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone;
   if (!standalone) {
-    toast("Antes: Compartir → Añadir a pantalla de inicio");
+    toast(t("notify.homeScreen"));
   }
   let perm = Notification.permission;
   if (perm !== "granted") {
@@ -66,10 +66,10 @@ async function enableNotifications() {
   openNotify();
   renderHome();
   if (perm === "granted") {
-    toast("Avisos activados");
+    toast(t("notify.on"));
     runNotifyCheck(true);
   } else if (perm === "denied") {
-    toast("Actívalos en Ajustes del iPhone");
+    toast(t("notify.iosSettings"));
   }
 }
 const VAPID_PUBLIC = "BJTA-BISIe4fBRIQrwMpcYo4uEjhCGtz0ZjhRQxFsgCGE-TRpcv7QAmHIqcjnJAy2m53kYUFWR-qjRp6emitpqY";
@@ -107,9 +107,9 @@ async function testNotification() {
   if (typeof Notification !== "undefined" && Notification.permission !== "granted") {
     await enableNotifications();
   }
-  await pushNote("Casa Llavaneras", "Avisos listos. Te avisaremos del apogeo y de la temperatura.", "test", "home");
+  await pushNote("Casa Llavaneras", t("notify.testBody"), "test", "home");
   forceOnce = false;
-  toast("Aviso de prueba enviado");
+  toast(t("notify.testSent"));
 }
 function runNotifyCheck(force) {
   const n = notifyPrefs();
@@ -122,15 +122,15 @@ function runNotifyCheck(force) {
   });
   const main = state.vinotecas.find(v => v.id === "v1");
   if (n.temp && main && main.tHigh >= 15) {
-    pushNote("Vinoteca a " + main.tHigh.toFixed(1) + " °C", "Baja SET 1 hacia 12–14 °C para la guarda.", "temp", "caves");
+    pushNote(t("notify.tempTitle", { t: main.tHigh.toFixed(1) }), t("notify.tempBody"), "temp", "caves");
   }
   if (n.evolve && alerts.length) {
     const w = wineById(alerts[0].wineId);
-    pushNote("Beber pronto", w.producer + " " + w.name + " " + w.vintage + " · " + alerts.length + " aviso" + (alerts.length > 1 ? "s" : ""), "evolve", "calendar");
+    pushNote(t("notify.soonTitle"), t("notify.soonBody", { wine: w.producer + " " + w.name + " " + w.vintage, n: alerts.length, s: alerts.length > 1 ? t("notify.soonS") : "" }), "evolve", "calendar");
   }
   if (n.ready && ready.length) {
     const w = wineById(ready[0].wineId);
-    pushNote("En apogeo", w.producer + " " + w.name + " listo para abrir.", "ready", "home");
+    pushNote(t("notify.peakTitle"), t("notify.peakBody", { wine: w.producer + " " + w.name }), "ready", "home");
   }
   if (n.stock !== false) maybeStockPush();
   forceOnce = false;
@@ -140,101 +140,103 @@ function renderPerfil() {
   const house = (state.houses[0] && state.houses[0].name) || "Casa Llavaneras";
   $("#perfil-body").innerHTML = `
     <div class="hero">
-      <p class="eyebrow">Mi Vinoteca</p>
-      <h1>Perfil</h1>
-      <p>Colección, preferencias y configuración</p>
+      <p class="eyebrow">${t("eyebrow.cellar")}</p>
+      <h1>${t("profile.h1")}</h1>
+      <p>${t("profile.lead")}</p>
     </div>
     <div class="card" style="display:flex;gap:14px;align-items:center">
       <img src="apple-touch-icon.png" alt="" style="width:64px;height:64px;border-radius:32px;border:1px solid rgba(198,163,90,.4)">
       <div>
-      <p class="tiny">Colección</p>
-      <h3 style="margin-top:4px">Mi Vinoteca ${house}</h3>
-      <p class="muted">${totalBottles()} botellas · ${uniqueWines()} vinos</p>
+      <p class="tiny">${t("profile.collection")}</p>
+      <h3 style="margin-top:4px">${t("profile.houseLine", { house: house })}</h3>
+      <p class="muted">${t("profile.counts", { b: totalBottles(), w: uniqueWines() })}</p>
       </div>
       <div class="temp-grid" style="margin-top:12px">
-        <div class="temp"><span class="tiny">Botellas</span><b>${totalBottles()}</b></div>
-        <div class="temp"><span class="tiny">Vinos</span><b>${uniqueWines()}</b></div>
+        <div class="temp"><span class="tiny">${t("profile.bottles")}</span><b>${totalBottles()}</b></div>
+        <div class="temp"><span class="tiny">${t("profile.wines")}</span><b>${uniqueWines()}</b></div>
       </div>
-      <p class="tiny" style="margin-top:12px">Última copia de seguridad</p>
+      <p class="tiny" style="margin-top:12px">${t("profile.lastCopy")}</p>
       <p>${fmtBackup(p.lastBackup)}</p>
-      <p class="tiny app-version" style="margin-top:8px">Versión ${APP_VERSION}</p>
+      <p class="tiny app-version" style="margin-top:8px">${t("home.version", { v: APP_VERSION })}</p>
     </div>
-    ${p.demo ? `<div class="card"><div class="row"><strong>Modo demostración</strong><button class="btn btn-ghost" onclick="exitDemo()">Salir</button></div><p class="tiny" style="margin-top:6px">Los vinos de ejemplo no son tu colección real.</p></div>` : ""}
-    <div class="card" role="button" onclick="openPerfilSub('casas')"><div class="row"><h3>Mis casas y vinotecas</h3><span>›</span></div><p class="muted">Gestionar ubicaciones físicas.</p></div>
-    <div class="card" role="button" onclick="openPerfilSub('cata')"><div class="row"><h3>Preferencias de cata</h3><span>›</span></div><p class="muted">Escala 0–${p.scale}. El cuaderno aprobado no cambia.</p></div>
-    <div class="card" role="button" onclick="openPerfilSub('fuentes')"><div class="row"><h3>Puntuaciones externas</h3><span>›</span></div><p class="muted">Qué guías se ven en la ficha.</p></div>
-    <div class="card" role="button" onclick="openPerfilSub('privacidad')"><div class="row"><h3>Privacidad y seguridad</h3><span>›</span></div><p class="muted">Valor, precios, hueco.</p></div>
-    <div class="card" role="button" onclick="show('bebidas')"><div class="row"><h3>Bebidas</h3><span>›</span></div><p class="muted">Historial de lo servido, por año y mes.</p></div>
-    <div class="card" role="button" onclick="openPerfilSub('backup')"><div class="row"><h3>Copias de seguridad</h3><span>›</span></div><p class="muted">Exportar y restaurar JSON / CSV.</p></div>
-    <div class="card" role="button" onclick="openPerfilSub('acerca')"><div class="row"><h3>Acerca de</h3><span>›</span></div><p class="muted">Versión ${APP_VERSION} · esquema localStorage</p></div>
+    ${langPickerHtml()}
+    ${p.demo ? `<div class="card"><div class="row"><strong>${t("profile.demo")}</strong><button class="btn btn-ghost" onclick="exitDemo()">${t("profile.demoOut")}</button></div><p class="tiny" style="margin-top:6px">${t("profile.demoHint")}</p></div>` : ""}
+    <div class="card" role="button" onclick="openPerfilSub('casas')"><div class="row"><h3>${t("profile.houses")}</h3><span>›</span></div><p class="muted">${t("profile.housesSub")}</p></div>
+    <div class="card" role="button" onclick="openPerfilSub('cata')"><div class="row"><h3>${t("profile.tastePrefs")}</h3><span>›</span></div><p class="muted">${t("profile.tastePrefsSub", { n: p.scale })}</p></div>
+    <div class="card" role="button" onclick="openPerfilSub('fuentes')"><div class="row"><h3>${t("profile.sources")}</h3><span>›</span></div><p class="muted">${t("profile.sourcesSub")}</p></div>
+    <div class="card" role="button" onclick="openPerfilSub('privacidad')"><div class="row"><h3>${t("profile.privacy")}</h3><span>›</span></div><p class="muted">${t("profile.privacySub")}</p></div>
+    <div class="card" role="button" onclick="show('bebidas')"><div class="row"><h3>${t("home.drinks")}</h3><span>›</span></div><p class="muted">${t("profile.drinksSub")}</p></div>
+    <div class="card" role="button" onclick="openPerfilSub('backup')"><div class="row"><h3>${t("profile.backup")}</h3><span>›</span></div><p class="muted">${t("profile.backupSub")}</p></div>
+    <div class="card" role="button" onclick="openPerfilSub('acerca')"><div class="row"><h3>${t("profile.about")}</h3><span>›</span></div><p class="muted">${t("profile.aboutSub", { v: APP_VERSION })}</p></div>
     <input id="restore-file" type="file" accept="application/json,.json" hidden onchange="reviewRestore(this.files[0])" />
     <input id="import-csv" type="file" accept=".csv,text/csv" hidden onchange="importCsv(this.files[0])" />`;
 }
 function openPerfilSub(kind) {
+  perfilKind = kind || "";
   const p = prefs();
   const titles = {
-    casas: "Mis ubicaciones",
-    cata: "Preferencias de cata",
-    fuentes: "Fuentes externas",
-    privacidad: "Privacidad y seguridad",
-    backup: "Copias de seguridad",
-    acerca: "Acerca de"
+    casas: t("profile.locations"),
+    cata: t("profile.tastePrefs"),
+    fuentes: t("profile.sourcesTitle"),
+    privacidad: t("profile.privacy"),
+    backup: t("profile.backup"),
+    acerca: t("profile.about")
   };
   let body = "";
   if (kind === "casas") {
     body = state.houses.map(h => {
       const caves = state.vinotecas.filter(v => (v.houseId || "h1") === h.id);
-      return `<div class="card"><p class="tiny">${h.type || "Casa"}</p><h3>${h.name}</h3>
-        ${caves.map(v => `<p class="muted" style="margin-top:6px">· ${v.name} · ${v.used || 0}/${v.capacity} · ${v.tHigh} °C</p>`).join("") || `<p class="muted">Sin vinotecas</p>`}
+      return `<div class="card"><p class="tiny">${h.type || t("profile.houseType")}</p><h3>${h.name}</h3>
+        ${caves.map(v => `<p class="muted" style="margin-top:6px">· ${v.name} · ${v.used || 0}/${v.capacity} · ${v.tHigh} °C</p>`).join("") || `<p class="muted">${t("profile.noCellars")}</p>`}
       </div>`;
-    }).join("") + `<button class="btn btn-gold" style="width:100%" onclick="showSheet('cave-sheet')">Añadir vinoteca</button>
-      <p class="tiny" style="margin-top:10px">La casa se indica en el campo Casa. No pedimos dirección postal.</p>`;
+    }).join("") + `<button class="btn btn-gold" style="width:100%" onclick="showSheet('cave-sheet')">${t("caves.add")}</button>
+      <p class="tiny" style="margin-top:10px">${t("profile.houseField")}</p>`;
   } else if (kind === "cata") {
     body = `
-      <div class="card"><p class="tiny">Escala principal</p>
+      <div class="card"><p class="tiny">${t("profile.scale")}</p>
         <div class="btn-row" style="margin-top:8px">
           <button class="btn ${p.scale===10?"btn-gold":"btn-ghost"}" onclick="setPref('scale',10)">0–10</button>
           <button class="btn ${p.scale===100?"btn-gold":"btn-ghost"}" onclick="setPref('scale',100)">0–100</button>
         </div>
-        <p class="muted" style="margin-top:8px">El cuaderno sigue Débil–Ácido / Seco–Dulce / Suave–Tánico / Ligero–Poderoso.</p>
+        <p class="muted" style="margin-top:8px">${t("profile.scaleHint")}</p>
       </div>
-      <label class="switch-row"><span>Permitir decimales</span><input type="checkbox" ${p.decimals?"checked":""} onchange="setPref('decimals', this.checked)" /></label>`;
+      <label class="switch-row"><span>${t("profile.decimals")}</span><input type="checkbox" ${p.decimals?"checked":""} onchange="setPref('decimals', this.checked)" /></label>`;
   } else if (kind === "fuentes") {
     const rows = [
       ["vivino","Vivino"],["penin","Peñín"],["parker","Parker"],
       ["spectator","Wine Spectator"],["decanter","Decanter"],["vinous","Vinous"],["suckling","James Suckling"]
     ];
-    body = `<p class="muted" style="margin-bottom:10px">Solo ocultan o muestran la guía. No hay API de Vivino.</p>` +
+    body = `<p class="muted" style="margin-bottom:10px">${t("profile.sourcesHint")}</p>` +
       rows.map(([k,l]) => `<label class="switch-row"><span>${l}</span><input type="checkbox" ${p.sources[k]!==false?"checked":""} onchange="setSource('${k}', this.checked)" /></label>`).join("");
   } else if (kind === "privacidad") {
     body = `
-      <label class="switch-row"><span>Mostrar valor de la colección</span><input type="checkbox" ${p.hideValue?"":"checked"} onchange="setPref('hideValue', !this.checked)" /></label>
-      <label class="switch-row"><span>Mostrar precios en las fichas</span><input type="checkbox" ${p.hidePrices?"":"checked"} onchange="setPref('hidePrices', !this.checked)" /></label>
-      <label class="switch-row"><span>Mostrar hueco exacto</span><input type="checkbox" ${p.hideBin?"":"checked"} onchange="setPref('hideBin', !this.checked)" /></label>
-      <div class="card" style="margin-top:12px"><p class="tiny">Face ID</p><p class="muted" style="margin-top:6px">En PWA no hay Face ID nativo. Más adelante: PIN o passkey. La colección no se publica.</p></div>`;
+      <label class="switch-row"><span>${t("profile.showValue")}</span><input type="checkbox" ${p.hideValue?"":"checked"} onchange="setPref('hideValue', !this.checked)" /></label>
+      <label class="switch-row"><span>${t("profile.showPrices")}</span><input type="checkbox" ${p.hidePrices?"":"checked"} onchange="setPref('hidePrices', !this.checked)" /></label>
+      <label class="switch-row"><span>${t("profile.showBin")}</span><input type="checkbox" ${p.hideBin?"":"checked"} onchange="setPref('hideBin', !this.checked)" /></label>
+      <div class="card" style="margin-top:12px"><p class="tiny">${t("profile.face")}</p><p class="muted" style="margin-top:6px">${t("profile.faceHint")}</p></div>`;
   } else if (kind === "backup") {
     body = `
-      <div class="card"><p class="tiny">Última copia</p><h3 style="margin-top:4px">${fmtBackup(p.lastBackup)}</h3><p class="muted">${p.lastBackup ? "Correcta" : "Pendiente"}</p></div>
-      <p class="muted" style="margin:0 0 12px">La copia lleva toda la cava: vinos propios, entradas, actividad y las fotos de etiqueta. En el iPhone se ofrece guardar en Archivos o Drive.</p>
-      <button class="btn btn-gold" style="width:100%" onclick="exportBackup()">Crear copia ahora · JSON</button>
-      <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="exportCsv()">Exportar inventario · CSV</button>
-      <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="exportTastingCsv()">Exportar catas · CSV</button>
-      <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="$('#restore-file').click()">Restaurar copia JSON</button>
-      <p class="tiny" style="margin:12px 0">La restauración pide confirmación. No se mezcla a ciegas.</p>
-      <button class="btn btn-ghost" style="width:100%" onclick="askWipe()">Eliminar colección</button>`;
+      <div class="card"><p class="tiny">${t("profile.lastCopy")}</p><h3 style="margin-top:4px">${fmtBackup(p.lastBackup)}</h3><p class="muted">${p.lastBackup ? t("profile.copyOk") : t("profile.copyDue")}</p></div>
+      <p class="muted" style="margin:0 0 12px">${t("profile.copyLead")}</p>
+      <button class="btn btn-gold" style="width:100%" onclick="exportBackup()">${t("profile.exportNow")}</button>
+      <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="exportCsv()">${t("profile.exportCsv")}</button>
+      <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="exportTastingCsv()">${t("profile.exportTastings")}</button>
+      <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="$('#restore-file').click()">${t("profile.restore")}</button>
+      <p class="tiny" style="margin:12px 0">${t("profile.restoreHint")}</p>
+      <button class="btn btn-ghost" style="width:100%" onclick="askWipe()">${t("profile.wipe")}</button>`;
   } else {
     body = `
-      <div class="card"><h3>Mi Vinoteca</h3><p class="muted" style="margin-top:6px">Versión ${APP_VERSION}</p>
-        <p class="tiny" style="margin-top:10px">Esquema vinoteca.pro.max.v3 · ${totalBottles()} botellas · ${uniqueWines()} vinos · ${state.vinotecas.length} vinotecas</p>
-        <p class="tiny" id="about-labels">Etiquetas propias guardadas: ${countOwnLabels()}</p>
-        <p class="tiny">Última copia: ${fmtBackup(p.lastBackup)}</p>
-        <div id="about-storage"><p class="tiny" style="margin-top:10px">Consultando el almacenamiento…</p></div>
+      <div class="card"><h3>${t("profile.aboutApp")}</h3><p class="muted" style="margin-top:6px">${t("home.version", { v: APP_VERSION })}</p>
+        <p class="tiny" style="margin-top:10px">${t("profile.schema", { b: totalBottles(), w: uniqueWines(), c: state.vinotecas.length })}</p>
+        <p class="tiny" id="about-labels">${t("profile.labels", { n: countOwnLabels() })}</p>
+        <p class="tiny">${t("profile.lastLine", { when: fmtBackup(p.lastBackup) })}</p>
+        <div id="about-storage"><p class="tiny" style="margin-top:10px">${t("profile.checking")}</p></div>
       </div>
-      <p class="muted">Colección privada. No se indexa ni se comparte sola.</p>`;
+      <p class="muted">${t("profile.private")}</p>`;
   }
   $("#perfil-sub-body").innerHTML = `
     <button class="back" onclick="goBack()">‹ ${backCaption()}</button>
-    <p class="eyebrow">Mi Vinoteca</p>
+    <p class="eyebrow">${t("eyebrow.cellar")}</p>
     <h1>${titles[kind]}</h1>
     ${body}`;
   show("perfil-sub");
@@ -244,11 +246,7 @@ function setPref(key, val) {
   prefs()[key] = val;
   save();
   renderPerfil();
-  if (document.getElementById("perfil-sub").classList.contains("active")) {
-    const t = ($("#perfil-sub-body h1") || {}).textContent;
-    const map = { "Preferencias de cata":"cata", "Privacidad y seguridad":"privacidad" };
-    if (map[t]) openPerfilSub(map[t]);
-  }
+  if (document.getElementById("perfil-sub").classList.contains("active") && perfilKind) openPerfilSub(perfilKind);
   if (key === "hideValue" || key === "hidePrices" || key === "hideBin") renderHome();
 }
 function setSource(key, on) {
@@ -261,20 +259,20 @@ function fillAboutStorage() {
   const paint = (persistent, space) => {
     const box = document.getElementById("about-storage");
     if (!box) return;
-    box.innerHTML = `<p class="tiny" style="margin-top:10px">Almacenamiento persistente</p><p>${persistent}</p><p class="tiny" style="margin-top:8px">Espacio usado</p><p>${space}</p>`;
+    box.innerHTML = `<p class="tiny" style="margin-top:10px">${t("profile.persist")}</p><p>${persistent}</p><p class="tiny" style="margin-top:8px">${t("profile.used")}</p><p>${space}</p>`;
   };
   const paintLabels = (n) => {
     const line = document.getElementById("about-labels");
-    if (line) line.textContent = "Etiquetas propias guardadas: " + n;
+    if (line) line.textContent = t("profile.labels", { n: n });
   };
   Promise.resolve().then(async () => {
-    let persistent = "No se puede consultar en este navegador.";
-    let space = "Sin dato";
+    let persistent = t("profile.persistUnknown");
+    let space = t("profile.spaceUnknown");
     try {
       if (navigator.storage && typeof navigator.storage.persisted === "function") {
         persistent = (await navigator.storage.persisted())
-          ? "Sí. El sistema conserva estos datos."
-          : "No. El sistema puede borrarlos si necesita espacio.";
+          ? t("profile.persistYes")
+          : t("profile.persistNo");
       }
     } catch (e) {}
     try {
@@ -282,7 +280,7 @@ function fillAboutStorage() {
         const est = await navigator.storage.estimate();
         const used = formatBytes(est && est.usage);
         const quota = est && est.quota ? formatBytes(est.quota) : "";
-        space = quota ? used + " de " + quota : used;
+        space = quota ? t("profile.spaceOf", { used: used, quota: quota }) : used;
       }
     } catch (e) {}
     paint(persistent, space);
@@ -296,6 +294,6 @@ function fillAboutStorage() {
 function exitDemo() {
   prefs().demo = false;
   save();
-  toast("Fuera de demostración. Los datos de este teléfono siguen aquí.");
+  toast(t("profile.demoLeft"));
   renderPerfil();
 }

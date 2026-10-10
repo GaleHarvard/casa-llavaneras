@@ -9,14 +9,14 @@
   <meta name="apple-mobile-web-app-title" content="Casa Llavaneras" />
   <meta name="application-name" content="Casa Llavaneras" />
   <meta name="theme-color" content="#000000" />
-  <meta name="app-version" content="v76" />
+  <meta name="app-version" content="v77" />
   <title>Casa Llavaneras</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="apple-touch-icon" href="apple-touch-icon.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
   <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png" />
-  <link rel="stylesheet" href="styles.css?v=76" />
+  <link rel="stylesheet" href="styles.css?v=77" />
 </head>
 <body>
   <div class="device">
@@ -29,8 +29,8 @@
       <div id="splash" class="splash">
         <div class="mark">J.G.C.</div>
         <p class="brand-sub">Casa Llavaneras</p>
-        <h1>Vinotecas</h1>
-        <p class="muted">Escanea. Conserva. Sirve en su momento.</p>
+        <h1 data-i18n="splash.title">Vinotecas</h1>
+        <p class="muted" data-i18n="splash.tag">Escanea. Conserva. Sirve en su momento.</p>
       </div>
       <script>window.__splashAt = Date.now();</script>
 
@@ -38,7 +38,7 @@
         <div class="scroll">
           <div class="hero home-hero">
             <img class="home-hero-photo" src="hero-render.jpg" alt="Cava">
-            <p class="eyebrow">Mi Vinoteca</p>
+            <p class="eyebrow" data-i18n="eyebrow.cellar">Mi Vinoteca</p>
             <h1>Casa Llavaneras</h1>
           </div>
           <div id="home-kpis" class="kpi-grid"></div>
@@ -62,23 +62,23 @@
               <circle cx="32" cy="38" r="2.2" fill="#c9a227"/>
               <circle cx="38" cy="34" r="2.2" fill="#c9a227"/>
             </svg>
-            <h1>Vinotecas</h1>
-            <p>Gestión de cava privada</p>
+            <h1 data-i18n="caves.h1">Vinotecas</h1>
+            <p data-i18n="caves.sub">Gestión de cava privada</p>
             <i class="crest-rule"></i>
           </header>
           <div id="caves-list"></div>
           <button class="caves-add" type="button" onclick="showSheet('cave-sheet')">
-            <span>+</span> Añadir vinoteca
+            <span>+</span> <em data-i18n="caves.add">Añadir vinoteca</em>
           </button>
-          <p class="caves-motto">Colección privada · Control preciso · Conservación perfecta</p>
+          <p class="caves-motto" data-i18n="caves.motto">Colección privada · Control preciso · Conservación perfecta</p>
         </div>
       </section>
 
       <section id="cave-detail-screen" class="screen">
         <div class="scroll">
-          <button class="back" onclick="goBack()">‹ Vinotecas</button>
+          <button class="back" onclick="goBack()">‹ <span data-i18n="nav.caves">Vinotecas</span></button>
           <p class="eyebrow" id="cave-house"></p>
-          <h1 id="cave-title">Vinoteca</h1>
+          <h1 id="cave-title" data-i18n="nav.cave">Vinoteca</h1>
           <div id="cave-detail"></div>
         </div>
       </section>
@@ -86,25 +86,25 @@
       <section id="cellar" class="screen">
         <div class="scroll">
           <div class="hero">
-            <p class="eyebrow">Inventario</p>
-            <h1>Botellas</h1>
+            <p class="eyebrow" data-i18n="kicker.inventory">Inventario</p>
+            <h1 data-i18n="tab.bottles">Botellas</h1>
                       </div>
           <form class="search" role="search" action="#" onsubmit="scheduleCellarSearch(); return false;">
             <span aria-hidden="true">⌕</span>
-            <input id="cellar-q" type="search" enterkeyhint="search" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Buscar en cava y catálogo…" oninput="scheduleCellarSearch()" onsearch="scheduleCellarSearch()" onchange="scheduleCellarSearch()" onkeyup="scheduleCellarSearch()" oncompositionend="scheduleCellarSearch()" />
+            <input id="cellar-q" type="search" enterkeyhint="search" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-i18n-placeholder="search.cellar" placeholder="Buscar en cava y catálogo…" oninput="scheduleCellarSearch()" onsearch="scheduleCellarSearch()" onchange="scheduleCellarSearch()" onkeyup="scheduleCellarSearch()" oncompositionend="scheduleCellarSearch()" />
           </form>
           <div class="chip-row">
-            <button class="chip on" onclick="setFilter('todos', this)">Todos</button>
-            <button class="chip" onclick="setFilter('tinto', this)">Tinto</button>
-            <button class="chip" onclick="setFilter('blanco', this)">Blanco</button>
-            <button class="chip" onclick="setFilter('espumoso', this)">Espumoso</button>
-            <button class="chip" onclick="setFilter('rosado', this)">Rosado</button>
+            <button class="chip on" onclick="setFilter('todos', this)" data-i18n="type.todos">Todos</button>
+            <button class="chip" onclick="setFilter('tinto', this)" data-i18n="type.tinto">Tinto</button>
+            <button class="chip" onclick="setFilter('blanco', this)" data-i18n="type.blanco">Blanco</button>
+            <button class="chip" onclick="setFilter('espumoso', this)" data-i18n="type.espumoso">Espumoso</button>
+            <button class="chip" onclick="setFilter('rosado', this)" data-i18n="type.rosado">Rosado</button>
           </div>
           <div class="chip-row">
-            <button type="button" class="chip" onclick="toggleCellarFlag('owned', this)">Solo lo que tengo</button>
-            <button type="button" class="chip" onclick="toggleCellarFlag('ready', this)">Listo para beber</button>
+            <button type="button" class="chip" onclick="toggleCellarFlag('owned', this)" data-i18n="filter.owned">Solo lo que tengo</button>
+            <button type="button" class="chip" onclick="toggleCellarFlag('ready', this)" data-i18n="filter.ready">Listo para beber</button>
           </div>
-          <label class="field"><span>Uva</span><select id="cellar-grape" onchange="setCellarGrape(this.value)"><option value="">Todas las uvas</option></select></label>
+          <label class="field"><span data-i18n="grape.label">Uva</span><select id="cellar-grape" onchange="setCellarGrape(this.value)"><option value="" data-i18n="grape.all">Todas las uvas</option></select></label>
           <div id="cellar-list"></div>
         </div>
       </section>
@@ -126,8 +126,8 @@
       <section id="calendar" class="screen">
         <div class="scroll">
           <div class="hero">
-            <p class="eyebrow">Consumo</p>
-            <h1>Cuándo abrirlo</h1>
+            <p class="eyebrow" data-i18n="kicker.when">Consumo</p>
+            <h1 data-i18n="cal.h1">Cuándo abrirlo</h1>
           </div>
           <div id="calendar-list"></div>
         </div>
@@ -142,13 +142,13 @@
 
       <section id="inbox" class="screen">
         <div class="scroll">
-          <button class="back" onclick="show('home',{tab:true})">‹ Inicio</button>
-          <p class="eyebrow">Altas pendientes</p>
-          <h1>Entradas</h1>
-          <p class="muted" style="margin:0 0 14px">Fichas ya creadas que aún no están en la bodega. El hueco reservado se ve aquí y en la hoja de la vinoteca.</p>
+          <button class="back" onclick="show('home',{tab:true})">‹ <span data-i18n="nav.home">Inicio</span></button>
+          <p class="eyebrow" data-i18n="kicker.inbox">Altas pendientes</p>
+          <h1 data-i18n="inbox.h1">Entradas</h1>
+          <p class="muted" style="margin:0 0 14px" data-i18n="inbox.lead">Fichas ya creadas que aún no están en la bodega. El hueco reservado se ve aquí y en la hoja de la vinoteca.</p>
           <div class="search">
             <span>⌕</span>
-            <input id="inbox-q" placeholder="Buscar en entradas…" oninput="renderInbox()" />
+            <input id="inbox-q" data-i18n-placeholder="search.inbox" placeholder="Buscar en entradas…" oninput="renderInbox()" />
           </div>
           <div id="inbox-list"></div>
         </div>
@@ -156,32 +156,32 @@
 
       <section id="scan" class="screen">
         <div class="scroll">
-          <button class="back" onclick="goBack()">‹ Inicio</button>
-          <p class="eyebrow">Un toque</p>
-          <h1>Escanear</h1>
+          <button class="back" onclick="goBack()">‹ <span data-i18n="nav.home">Inicio</span></button>
+          <p class="eyebrow" data-i18n="kicker.scan">Un toque</p>
+          <h1 data-i18n="scan.h1">Escanear</h1>
           <div class="card" role="button" onclick="captureOrOpenCamera()">
-            <h3>Etiqueta</h3>
-            <p class="muted">Cámara. Lee la etiqueta, crea la ficha y reserva el hueco en altas pendientes.</p>
+            <h3 data-i18n="scan.label">Etiqueta</h3>
+            <p class="muted" data-i18n="scan.labelSub">Cámara. Lee la etiqueta, crea la ficha y reserva el hueco en altas pendientes.</p>
           </div>
           <div class="card" role="button" onclick="pickFromRoll()">
-            <h3>Carta o lineal</h3>
-            <p class="muted">Foto del carrete. Lee la etiqueta, busca el vino en internet y puedes confirmar la ficha.</p>
+            <h3 data-i18n="scan.roll">Carta o lineal</h3>
+            <p class="muted" data-i18n="scan.rollSub">Foto del carrete. Lee la etiqueta, busca el vino en internet y puedes confirmar la ficha.</p>
           </div>
-          <button id="scan-cam-btn" class="btn btn-gold" style="width:100%" onclick="captureOrOpenCamera()">Abrir cámara</button>
-          <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="pickFromRoll()">Elegir de fotos</button>
+          <button id="scan-cam-btn" class="btn btn-gold" style="width:100%" onclick="captureOrOpenCamera()" data-i18n="scan.open">Abrir cámara</button>
+          <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="pickFromRoll()" data-i18n="scan.photos">Elegir de fotos</button>
           <div class="search" style="margin-top:12px">
             <span>⌕</span>
-            <input id="scan-q" placeholder="O escribe bodega / añada" oninput="previewScanQuery()" onkeydown="if(event.key==='Enter')runIdentify()" />
+            <input id="scan-q" data-i18n-placeholder="search.scan" placeholder="O escribe bodega / añada" oninput="previewScanQuery()" onkeydown="if(event.key==='Enter')runIdentify()" />
           </div>
-          <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="manualIntake()">Alta manual</button>
+          <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="manualIntake()" data-i18n="scan.manual">Alta manual</button>
           <div id="scan-status" class="tiny" style="margin-top:10px"></div>
           <div id="scan-results" style="margin-top:14px"></div>
           <div class="scan-stage scan-stage-vert" onclick="onScanStage()">
             <video id="cam" playsinline muted hidden></video>
-            <img id="scan-preview" alt="Etiqueta capturada" hidden />
+            <img id="scan-preview" data-i18n-aria="scan.alt" alt="Etiqueta capturada" hidden />
             <canvas id="scan-canvas" hidden></canvas>
             <div class="viewfinder viewfinder-vert" id="scan-finder">
-              <span>Cámara · etiqueta en vertical</span>
+              <span data-i18n="scan.finder">Cámara · etiqueta en vertical</span>
             </div>
           </div>
           <input id="scan-file-cam" type="file" accept="image/*" capture="environment" hidden />
@@ -193,25 +193,25 @@
       <section id="pairings" class="screen">
         <div class="scroll">
           <div class="hero">
-            <p class="eyebrow">Mesa</p>
-            <h1>Maridajes</h1>
-            <p>Explora armonías pensadas para cada momento.</p>
+            <p class="eyebrow" data-i18n="kicker.table">Mesa</p>
+            <h1 data-i18n="pair.h1">Maridajes</h1>
+            <p data-i18n="pair.lead">Explora armonías pensadas para cada momento.</p>
           </div>
           <div class="seg" id="pair-seg">
-            <button onclick="setPairMode('vinos', this)">Catálogo</button>
-            <button class="on" onclick="setPairMode('cava', this)">Tu cava</button>
-            <button onclick="setPairMode('platos', this)">Por plato</button>
+            <button onclick="setPairMode('vinos', this)" data-i18n="pair.catalog">Catálogo</button>
+            <button class="on" onclick="setPairMode('cava', this)" data-i18n="pair.yours">Tu cava</button>
+            <button onclick="setPairMode('platos', this)" data-i18n="pair.byDish">Por plato</button>
           </div>
           <div class="search">
             <span>⌕</span>
-            <input id="pair-q" placeholder="Vino, bodega o plato…" oninput="setPairQuery(this.value)" />
+            <input id="pair-q" data-i18n-placeholder="search.pair" placeholder="Vino, bodega o plato…" oninput="setPairQuery(this.value)" />
           </div>
           <div class="chip-row" id="mesa-filters">
-            <button type="button" class="chip" id="mesa-owned" onclick="toggleMesaFlag('owned')">Solo lo que tengo</button>
-            <button type="button" class="chip" id="mesa-ready" onclick="toggleMesaFlag('ready')">Listo para beber</button>
-            <button type="button" class="chip" id="mesa-type" onclick="cycleMesaType()">Tipo</button>
+            <button type="button" class="chip" id="mesa-owned" onclick="toggleMesaFlag('owned')" data-i18n="filter.owned">Solo lo que tengo</button>
+            <button type="button" class="chip" id="mesa-ready" onclick="toggleMesaFlag('ready')" data-i18n="filter.ready">Listo para beber</button>
+            <button type="button" class="chip" id="mesa-type" onclick="cycleMesaType()" data-i18n="type.word">Tipo</button>
           </div>
-          <label class="field"><span>Uva</span><select id="mesa-grape" onchange="setMesaGrape(this.value)"><option value="">Todas las uvas</option></select></label>
+          <label class="field"><span data-i18n="grape.label">Uva</span><select id="mesa-grape" onchange="setMesaGrape(this.value)"><option value="" data-i18n="grape.all">Todas las uvas</option></select></label>
           <div id="pair-body" style="margin-top:10px"></div>
         </div>
       </section>
@@ -228,78 +228,78 @@
         <div class="scroll" id="wine-sub-body"></div>
       </section>
 
-      <button class="scan-fab" onclick="startScan()" aria-label="Escanear">
+      <button class="scan-fab" onclick="startScan()" data-i18n-aria="scan.aria" aria-label="Escanear">
         <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" width="28" height="28"><path d="M4 8V5a1 1 0 0 1 1-1h3M20 8V5a1 1 0 0 0-1-1h-3M4 16v3a1 1 0 0 0 1 1h3M20 16v3a1 1 0 0 1-1 1h-3"/><path d="M8 12h8"/></svg>
       </button>
-      <button id="update-notice" class="update-notice" type="button" hidden onclick="location.reload()">Nueva versión disponible</button>
+      <button id="update-notice" class="update-notice" type="button" hidden onclick="location.reload()" data-i18n="update.ready">Nueva versión disponible</button>
       <nav class="tabbar">
-        <button class="tab active" data-go="home" onclick="show('home',{tab:true})"><span></span>Inicio</button>
-        <button class="tab" data-go="caves" onclick="show('caves',{tab:true})"><span></span>Vinotecas</button>
-        <button class="tab" data-go="cellar" onclick="show('cellar',{tab:true})"><span></span>Botellas</button>
-        <button class="tab" data-go="pairings" onclick="show('pairings',{tab:true})"><span></span>Mesa</button>
-        <button class="tab" data-go="calendar" onclick="show('calendar',{tab:true})"><span></span>Fechas</button>
+        <button class="tab active" data-go="home" onclick="show('home',{tab:true})"><span></span><span class="tab-label" data-i18n="tab.home">Inicio</span></button>
+        <button class="tab" data-go="caves" onclick="show('caves',{tab:true})"><span></span><span class="tab-label" data-i18n="tab.caves">Vinotecas</span></button>
+        <button class="tab" data-go="cellar" onclick="show('cellar',{tab:true})"><span></span><span class="tab-label" data-i18n="tab.bottles">Botellas</span></button>
+        <button class="tab" data-go="pairings" onclick="show('pairings',{tab:true})"><span></span><span class="tab-label" data-i18n="tab.table">Mesa</span></button>
+        <button class="tab" data-go="calendar" onclick="show('calendar',{tab:true})"><span></span><span class="tab-label" data-i18n="tab.dates">Fechas</span></button>
       </nav>
     </div>
 
     <div id="add-sheet" class="modal-bg" onclick="if(event.target===this)hideSheets()">
       <div class="sheet">
         <div class="handle"></div>
-        <h3>Añadir a vinoteca</h3>
+        <h3 data-i18n="add.h1">Añadir a vinoteca</h3>
         <p class="tiny" id="add-keep-hint" style="margin:0 0 10px"></p>
-        <label class="field"><span>Vinoteca</span><select id="add-cellar" onchange="onAddCellarChange()"></select></label>
-        <label class="field"><span>Hueco / bandeja</span><input id="add-bin" placeholder="A-14" oninput="onAddBinInput()" /></label>
+        <label class="field"><span data-i18n="add.cellar">Vinoteca</span><select id="add-cellar" onchange="onAddCellarChange()"></select></label>
+        <label class="field"><span data-i18n="add.bin">Hueco / bandeja</span><input id="add-bin" placeholder="A-14" oninput="onAddBinInput()" /></label>
         <p class="tiny" id="add-free-hint" style="margin:0 0 8px"></p>
         <div id="add-free-grid" class="rack"></div>
-        <label class="field"><span>Botellas</span><input id="add-qty" type="number" min="1" value="1" /></label>
-        <label class="field"><span>Precio € / botella</span><input id="add-price" type="number" step="0.01" /></label>
-        <label class="field"><span>Nota</span><textarea id="add-note" placeholder="Caja, ocasión, proveedor…"></textarea></label>
+        <label class="field"><span data-i18n="add.qty">Botellas</span><input id="add-qty" type="number" min="1" value="1" /></label>
+        <label class="field"><span data-i18n="add.price">Precio € / botella</span><input id="add-price" type="number" step="0.01" /></label>
+        <label class="field"><span data-i18n="add.note">Nota</span><textarea id="add-note" data-i18n-placeholder="add.notePh" placeholder="Caja, ocasión, proveedor…"></textarea></label>
         <input type="hidden" id="add-inbox-uid" value="" />
-        <button class="btn btn-gold" style="width:100%" onclick="addCurrentToCellar()">Guardar en la cava</button>
+        <button class="btn btn-gold" style="width:100%" onclick="addCurrentToCellar()" data-i18n="add.save">Guardar en la cava</button>
       </div>
     </div>
 
     <div id="move-sheet" class="modal-bg" onclick="if(event.target===this)hideSheets()">
       <div class="sheet">
         <div class="handle"></div>
-        <h3>Mover lote</h3>
+        <h3 data-i18n="move.h1">Mover lote</h3>
         <p class="tiny" id="move-hint"></p>
-        <label class="field"><span>Vinoteca destino</span><select id="move-cellar"></select></label>
-        <label class="field"><span>Nuevo hueco</span><input id="move-bin" placeholder="G-02" /></label>
-        <label class="field"><span>Botellas a mover</span><input id="move-qty" type="number" min="1" value="1" /></label>
-        <button class="btn btn-gold" style="width:100%" onclick="moveBottle()">Mover</button>
+        <label class="field"><span data-i18n="move.dest">Vinoteca destino</span><select id="move-cellar"></select></label>
+        <label class="field"><span data-i18n="move.bin">Nuevo hueco</span><input id="move-bin" placeholder="G-02" /></label>
+        <label class="field"><span data-i18n="move.qty">Botellas a mover</span><input id="move-qty" type="number" min="1" value="1" /></label>
+        <button class="btn btn-gold" style="width:100%" onclick="moveBottle()" data-i18n="move.go">Mover</button>
       </div>
     </div>
 
     <div id="cave-sheet" class="modal-bg" onclick="if(event.target===this)hideSheets()">
       <div class="sheet">
         <div class="handle"></div>
-        <h3>Nueva vinoteca</h3>
-        <label class="field"><span>Casa</span><input id="new-cave-house" placeholder="Selecciona o introduce la casa" autocomplete="off" /></label>
-        <label class="field"><span>Nombre</span><input id="new-cave-name" placeholder="Ej. Bodega principal" autocomplete="off" /></label>
-        <label class="field"><span>Marca / modelo</span><input id="new-cave-brand" placeholder="Ej. EuroCave Professional" autocomplete="off" /></label>
-        <label class="field"><span>Sitio / estancia</span><input id="new-cave-place" placeholder="Ej. cocina, sótano, office" autocomplete="off" /></label>
-        <label class="field"><span>Huecos (referencia)</span><input id="new-cave-bins" placeholder="Ej. A-01 a C-12" autocomplete="off" /></label>
-        <label class="field"><span>Capacidad (botellas)</span><input id="new-cave-cap" type="number" placeholder="24" /></label>
-        <label class="field"><span>Temp. zona 1 °C</span><input id="new-cave-th" type="number" step="0.1" placeholder="13.0" /></label>
-        <label class="field"><span>Temp. zona 2 °C</span><input id="new-cave-tl" type="number" step="0.1" placeholder="10.5" /></label>
-        <label class="field"><span>Humedad relativa %</span><input id="new-cave-hr" type="number" placeholder="68" /></label>
-        <label class="field"><span>Espacios a crear</span><input id="new-cave-slots" type="number" min="1" value="12" /></label>
-        <button class="btn btn-ghost" style="width:100%;margin-bottom:8px" onclick="previewNewSlots()">Añadir espacios</button>
+        <h3 data-i18n="new.h1">Nueva vinoteca</h3>
+        <label class="field"><span data-i18n="new.house">Casa</span><input id="new-cave-house" data-i18n-placeholder="new.housePh" placeholder="Selecciona o introduce la casa" autocomplete="off" /></label>
+        <label class="field"><span data-i18n="new.name">Nombre</span><input id="new-cave-name" data-i18n-placeholder="new.namePh" placeholder="Ej. Bodega principal" autocomplete="off" /></label>
+        <label class="field"><span data-i18n="new.brand">Marca / modelo</span><input id="new-cave-brand" data-i18n-placeholder="new.brandPh" placeholder="Ej. EuroCave Professional" autocomplete="off" /></label>
+        <label class="field"><span data-i18n="new.place">Sitio / estancia</span><input id="new-cave-place" data-i18n-placeholder="new.placePh" placeholder="Ej. cocina, sótano, office" autocomplete="off" /></label>
+        <label class="field"><span data-i18n="new.bins">Huecos (referencia)</span><input id="new-cave-bins" data-i18n-placeholder="new.binsPh" placeholder="Ej. A-01 a C-12" autocomplete="off" /></label>
+        <label class="field"><span data-i18n="new.cap">Capacidad (botellas)</span><input id="new-cave-cap" type="number" placeholder="24" /></label>
+        <label class="field"><span data-i18n="new.t1">Temp. zona 1 °C</span><input id="new-cave-th" type="number" step="0.1" placeholder="13.0" /></label>
+        <label class="field"><span data-i18n="new.t2">Temp. zona 2 °C</span><input id="new-cave-tl" type="number" step="0.1" placeholder="10.5" /></label>
+        <label class="field"><span data-i18n="new.hr">Humedad relativa %</span><input id="new-cave-hr" type="number" placeholder="68" /></label>
+        <label class="field"><span data-i18n="new.slots">Espacios a crear</span><input id="new-cave-slots" type="number" min="1" value="12" /></label>
+        <button class="btn btn-ghost" style="width:100%;margin-bottom:8px" onclick="previewNewSlots()" data-i18n="new.addSlots">Añadir espacios</button>
         <p class="tiny" id="new-slots-preview"></p>
-        <button class="btn btn-gold" style="width:100%" onclick="addCave()">Crear</button>
-        <p class="tiny" style="margin-top:10px;text-align:center">Se creará en la casa que indiques. Los huecos sirven para localizar cada botella.</p>
+        <button class="btn btn-gold" style="width:100%" onclick="addCave()" data-i18n="new.create">Crear</button>
+        <p class="tiny" style="margin-top:10px;text-align:center" data-i18n="new.hint">Se creará en la casa que indiques. Los huecos sirven para localizar cada botella.</p>
       </div>
     </div>
 
     <div id="space-sheet" class="modal-bg" onclick="if(event.target===this)hideSheets()">
       <div class="sheet">
         <div class="handle"></div>
-        <h3>Añadir espacios</h3>
+        <h3 data-i18n="space.h1">Añadir espacios</h3>
         <p class="tiny" id="space-hint"></p>
-        <label class="field"><span>Nuevos espacios seguidos</span><input id="space-count" type="number" min="1" value="6" /></label>
-        <button class="btn btn-gold" style="width:100%" onclick="addSequentialSpaces()">Crear espacios nuevos</button>
-        <label class="field" style="margin-top:14px"><span>Asignar un espacio ya existente</span><select id="space-existing"></select></label>
-        <button class="btn btn-ghost" style="width:100%" onclick="assignExistingSpace()">Asignar a esta vinoteca</button>
+        <label class="field"><span data-i18n="space.count">Nuevos espacios seguidos</span><input id="space-count" type="number" min="1" value="6" /></label>
+        <button class="btn btn-gold" style="width:100%" onclick="addSequentialSpaces()" data-i18n="space.create">Crear espacios nuevos</button>
+        <label class="field" style="margin-top:14px"><span data-i18n="space.existing">Asignar un espacio ya existente</span><select id="space-existing"></select></label>
+        <button class="btn btn-ghost" style="width:100%" onclick="assignExistingSpace()" data-i18n="space.assign">Asignar a esta vinoteca</button>
       </div>
     </div>
 
@@ -307,81 +307,81 @@
     <div id="wine-menu-sheet" class="modal-bg" onclick="if(event.target===this)hideSheets()">
       <div class="sheet">
         <div class="handle"></div>
-        <h3>Más de este vino</h3>
-        <button class="btn btn-ghost" style="width:100%;margin-top:8px;text-align:left" onclick="hideSheets();openWineSub('ratings')">Calificaciones</button>
-        <button class="btn btn-ghost" style="width:100%;margin-top:8px;text-align:left" onclick="hideSheets();openWineSub('pairings')">Maridajes</button>
-        <button class="btn btn-ghost" style="width:100%;margin-top:8px;text-align:left" onclick="hideSheets();openWineSub('keep')">Conservación</button>
-        <button class="btn btn-ghost" style="width:100%;margin-top:8px;text-align:left" onclick="hideSheets();openWineSub('servicio')">Servicio en copa</button>
-        <button class="btn btn-ghost" style="width:100%;margin-top:8px;text-align:left" onclick="hideSheets();openWineSub('tecnica')">Ficha técnica</button>
-        <button class="btn btn-ghost" style="width:100%;margin-top:8px;text-align:left" onclick="hideSheets();openWineSub('historia')">Historia</button>
-        <button class="btn btn-ghost" style="width:100%;margin-top:8px;text-align:left" onclick="hideSheets();openWineSub('mercado')">Valor de mercado</button>
-        <button class="btn btn-ghost" style="width:100%;margin-top:8px;text-align:left" onclick="hideSheets();openWineSub('evolve')">Evolución y fechas</button>
-        <button class="btn btn-ghost" style="width:100%;margin-top:8px;text-align:left" onclick="hideSheets();openWineSub('origen')">Origen y hueco</button>
-        <button class="btn btn-ghost" style="width:100%;margin-top:8px;text-align:left" onclick="hideSheets();openWineSub('mapa')">Mapa y bodega</button>
-        <button class="btn btn-ghost" style="width:100%;margin-top:8px;text-align:left" onclick="hideSheets();openWineSub('profile')">Perfil</button>
-        <button class="btn btn-ghost" style="width:100%;margin-top:8px;text-align:left" onclick="hideSheets();openWineSub('taste')">Cuaderno de cata</button>
-        <button class="btn btn-ghost" style="width:100%;margin-top:8px;text-align:left" onclick="hideSheets();openWineSub('bottle')">Ubicación física</button>
-        <button class="btn btn-ghost" style="width:100%;margin-top:8px;text-align:left" onclick="hideSheets();openWineSub('compras')">Compras e historial</button>
-        <button class="btn btn-ghost" style="width:100%;margin-top:8px;text-align:left" onclick="hideSheets();openWineSub('anadas')">Añadas</button>
+        <h3 data-i18n="menu.h1">Más de este vino</h3>
+        <button class="btn btn-ghost" style="width:100%;margin-top:8px;text-align:left" onclick="hideSheets();openWineSub('ratings')" data-i18n="menu.ratings">Calificaciones</button>
+        <button class="btn btn-ghost" style="width:100%;margin-top:8px;text-align:left" onclick="hideSheets();openWineSub('pairings')" data-i18n="menu.pairings">Maridajes</button>
+        <button class="btn btn-ghost" style="width:100%;margin-top:8px;text-align:left" onclick="hideSheets();openWineSub('keep')" data-i18n="menu.keep">Conservación</button>
+        <button class="btn btn-ghost" style="width:100%;margin-top:8px;text-align:left" onclick="hideSheets();openWineSub('servicio')" data-i18n="menu.servicio">Servicio en copa</button>
+        <button class="btn btn-ghost" style="width:100%;margin-top:8px;text-align:left" onclick="hideSheets();openWineSub('tecnica')" data-i18n="menu.tecnica">Ficha técnica</button>
+        <button class="btn btn-ghost" style="width:100%;margin-top:8px;text-align:left" onclick="hideSheets();openWineSub('historia')" data-i18n="menu.historia">Historia</button>
+        <button class="btn btn-ghost" style="width:100%;margin-top:8px;text-align:left" onclick="hideSheets();openWineSub('mercado')" data-i18n="menu.mercado">Valor de mercado</button>
+        <button class="btn btn-ghost" style="width:100%;margin-top:8px;text-align:left" onclick="hideSheets();openWineSub('evolve')" data-i18n="menu.evolve">Evolución y fechas</button>
+        <button class="btn btn-ghost" style="width:100%;margin-top:8px;text-align:left" onclick="hideSheets();openWineSub('origen')" data-i18n="menu.origen">Origen y hueco</button>
+        <button class="btn btn-ghost" style="width:100%;margin-top:8px;text-align:left" onclick="hideSheets();openWineSub('mapa')" data-i18n="menu.mapa">Mapa y bodega</button>
+        <button class="btn btn-ghost" style="width:100%;margin-top:8px;text-align:left" onclick="hideSheets();openWineSub('profile')" data-i18n="menu.profile">Perfil</button>
+        <button class="btn btn-ghost" style="width:100%;margin-top:8px;text-align:left" onclick="hideSheets();openWineSub('taste')" data-i18n="menu.taste">Cuaderno de cata</button>
+        <button class="btn btn-ghost" style="width:100%;margin-top:8px;text-align:left" onclick="hideSheets();openWineSub('bottle')" data-i18n="menu.bottle">Ubicación física</button>
+        <button class="btn btn-ghost" style="width:100%;margin-top:8px;text-align:left" onclick="hideSheets();openWineSub('compras')" data-i18n="menu.compras">Compras e historial</button>
+        <button class="btn btn-ghost" style="width:100%;margin-top:8px;text-align:left" onclick="hideSheets();openWineSub('anadas')" data-i18n="menu.anadas">Añadas</button>
       </div>
     </div>
 
     <div id="notify-sheet" class="modal-bg" onclick="if(event.target===this)hideSheets()">
       <div class="sheet">
         <div class="handle"></div>
-        <h3>Avisos</h3>
+        <h3 data-i18n="notify.h1">Avisos</h3>
         <div id="backup-remind"></div>
-        <p class="muted" style="margin:6px 0 14px">En el iPhone solo llegan si la app está en la pantalla de inicio. Un toque activa el permiso.</p>
-        <label class="switch-row"><span>Activar avisos</span><input id="n-on" type="checkbox" onchange="setNotify('on', this.checked)" /></label>
-        <label class="switch-row"><span>Beber pronto / maduros</span><input id="n-evolve" type="checkbox" onchange="setNotify('evolve', this.checked)" /></label>
-        <label class="switch-row"><span>En apogeo esta semana</span><input id="n-ready" type="checkbox" onchange="setNotify('ready', this.checked)" /></label>
-        <label class="switch-row"><span>Temperatura alta</span><input id="n-temp" type="checkbox" onchange="setNotify('temp', this.checked)" /></label>
-        <label class="switch-row"><span>Última botella</span><input id="n-stock" type="checkbox" onchange="setNotify('stock', this.checked)" /></label>
+        <p class="muted" style="margin:6px 0 14px" data-i18n="notify.lead">En el iPhone solo llegan si la app está en la pantalla de inicio. Un toque activa el permiso.</p>
+        <label class="switch-row"><span data-i18n="notify.switch">Activar avisos</span><input id="n-on" type="checkbox" onchange="setNotify('on', this.checked)" /></label>
+        <label class="switch-row"><span data-i18n="notify.evolve">Beber pronto / maduros</span><input id="n-evolve" type="checkbox" onchange="setNotify('evolve', this.checked)" /></label>
+        <label class="switch-row"><span data-i18n="notify.ready">En apogeo esta semana</span><input id="n-ready" type="checkbox" onchange="setNotify('ready', this.checked)" /></label>
+        <label class="switch-row"><span data-i18n="notify.temp">Temperatura alta</span><input id="n-temp" type="checkbox" onchange="setNotify('temp', this.checked)" /></label>
+        <label class="switch-row"><span data-i18n="notify.stock">Última botella</span><input id="n-stock" type="checkbox" onchange="setNotify('stock', this.checked)" /></label>
         <div id="stock-notices"></div>
-        <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="hideSheets();show('bebidas')">Ver bebidas</button>
+        <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="hideSheets();show('bebidas')" data-i18n="notify.seeDrinks">Ver bebidas</button>
         <p id="notify-perm" class="tiny" style="margin:12px 0"></p>
-        <button class="btn btn-gold" style="width:100%" onclick="enableNotifications()">Permitir en el iPhone</button>
-        <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="testNotification()">Probar aviso</button>
-        <h3 style="margin-top:22px">Precios de mercado</h3>
-        <p class="muted" style="margin:6px 0 10px">Vivino no tiene API. Sin clave se usa el dossier. Gemini estima la horquilla (no es una cotización). Wine-Searcher solo si tienes su clave.</p>
-        <label class="switch-row"><span>Estimar con Gemini</span><input id="p-gemini" type="checkbox" /></label>
-        <label class="field"><span>Clave Gemini (AI Studio)</span><input id="p-gemini-key" type="password" placeholder="No se guarda en el código" autocomplete="off" oninput="refreshGeminiKeyState()" /></label>
-        <button type="button" class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="probeGeminiKey()">Probar Gemini</button>
+        <button class="btn btn-gold" style="width:100%" onclick="enableNotifications()" data-i18n="notify.allow">Permitir en el iPhone</button>
+        <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="testNotification()" data-i18n="notify.test">Probar aviso</button>
+        <h3 style="margin-top:22px" data-i18n="price.h1">Precios de mercado</h3>
+        <p class="muted" style="margin:6px 0 10px" data-i18n="price.lead">Vivino no tiene API. Sin clave se usa el dossier. Gemini estima la horquilla (no es una cotización). Wine-Searcher solo si tienes su clave.</p>
+        <label class="switch-row"><span data-i18n="price.gemini">Estimar con Gemini</span><input id="p-gemini" type="checkbox" /></label>
+        <label class="field"><span data-i18n="price.geminiKey">Clave Gemini (AI Studio)</span><input id="p-gemini-key" type="password" data-i18n-placeholder="price.geminiPh" placeholder="No se guarda en el código" autocomplete="off" oninput="refreshGeminiKeyState()" /></label>
+        <button type="button" class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="probeGeminiKey()" data-i18n="price.probe">Probar Gemini</button>
         <p id="gemini-key-state" class="tiny" style="margin:8px 0 0"></p>
         <p id="gemini-probe" class="tiny" style="margin:8px 0 0"></p>
-        <label class="switch-row"><span>Usar Wine-Searcher</span><input id="p-live" type="checkbox" onchange="setPriceMode(this.checked)" /></label>
-        <label class="field"><span>API URL</span><input id="p-url" placeholder="https://www.wine-searcher.com/ws_api.php" /></label>
-        <label class="field"><span>Clave Wine-Searcher</span><input id="p-key" placeholder="Opcional" autocomplete="off" /></label>
-        <button class="btn btn-gold" style="width:100%" onclick="savePriceCfg()">Guardar precios</button>
+        <label class="switch-row"><span data-i18n="price.ws">Usar Wine-Searcher</span><input id="p-live" type="checkbox" onchange="setPriceMode(this.checked)" /></label>
+        <label class="field"><span data-i18n="price.url">API URL</span><input id="p-url" placeholder="https://www.wine-searcher.com/ws_api.php" /></label>
+        <label class="field"><span data-i18n="price.wsKey">Clave Wine-Searcher</span><input id="p-key" data-i18n-placeholder="price.optional" placeholder="Opcional" autocomplete="off" /></label>
+        <button class="btn btn-gold" style="width:100%" onclick="savePriceCfg()" data-i18n="price.save">Guardar precios</button>
       </div>
     </div>
 
     <div id="serve-sheet" class="modal-bg" onclick="if(event.target===this)hideSheets()">
       <div class="sheet">
         <div class="handle"></div>
-        <h3 id="serve-title">Salida de cava</h3>
+        <h3 id="serve-title" data-i18n="serve.h1">Salida de cava</h3>
         <p class="tiny" id="serve-hint"></p>
-        <p class="muted" style="margin:6px 0 10px">Elige el motivo. La nota es opcional.</p>
-        <span class="tiny">Motivo</span>
+        <p class="muted" style="margin:6px 0 10px" data-i18n="serve.lead">Elige el motivo. La nota es opcional.</p>
+        <span class="tiny" data-i18n="serve.reason">Motivo</span>
         <div class="chip-row" id="serve-reasons">
-          <button type="button" class="chip on" data-reason="bebida" onclick="setExitReason('bebida', this)">Bebida</button>
-          <button type="button" class="chip" data-reason="regalada" onclick="setExitReason('regalada', this)">Regalada</button>
-          <button type="button" class="chip" data-reason="defecto" onclick="setExitReason('defecto', this)">Defectuosa / corcho</button>
-          <button type="button" class="chip" data-reason="vendida" onclick="setExitReason('vendida', this)">Vendida</button>
-          <button type="button" class="chip" data-reason="otro" onclick="setExitReason('otro', this)">Otro</button>
+          <button type="button" class="chip on" data-reason="bebida" onclick="setExitReason('bebida', this)" data-i18n="reason.bebida">Bebida</button>
+          <button type="button" class="chip" data-reason="regalada" onclick="setExitReason('regalada', this)" data-i18n="reason.regalada">Regalada</button>
+          <button type="button" class="chip" data-reason="defecto" onclick="setExitReason('defecto', this)" data-i18n="reason.defecto">Defectuosa / corcho</button>
+          <button type="button" class="chip" data-reason="vendida" onclick="setExitReason('vendida', this)" data-i18n="reason.vendida">Vendida</button>
+          <button type="button" class="chip" data-reason="otro" onclick="setExitReason('otro', this)" data-i18n="reason.otro">Otro</button>
         </div>
-        <label class="field"><span>Fecha</span><input id="serve-date" type="date" /></label>
+        <label class="field"><span data-i18n="serve.date">Fecha</span><input id="serve-date" type="date" /></label>
         <div id="serve-bebida">
-        <span class="tiny">Ocasión</span>
+        <span class="tiny" data-i18n="serve.occasion">Ocasión</span>
         <div class="chip-row" id="serve-chips">
-          <button type="button" class="chip" onclick="setServeChip('Cena', this)">Cena</button>
-          <button type="button" class="chip" onclick="setServeChip('Celebración', this)">Celebración</button>
-          <button type="button" class="chip" onclick="setServeChip('Cata', this)">Cata</button>
-          <button type="button" class="chip" onclick="setServeChip('Regalo', this)">Regalo</button>
+          <button type="button" class="chip" data-occasion="cena" onclick="setServeChip('cena', this)" data-i18n="occasion.cena">Cena</button>
+          <button type="button" class="chip" data-occasion="celebracion" onclick="setServeChip('celebracion', this)" data-i18n="occasion.celebracion">Celebración</button>
+          <button type="button" class="chip" data-occasion="cata" onclick="setServeChip('cata', this)" data-i18n="occasion.cata">Cata</button>
+          <button type="button" class="chip" data-occasion="regalo" onclick="setServeChip('regalo', this)" data-i18n="occasion.regalo">Regalo</button>
         </div>
-        <label class="field"><span>Otra ocasión</span><input id="serve-occasion" placeholder="Aniversario, comida…" oninput="syncServeChip()" /></label>
-        <label class="field"><span>Con quién</span><input id="serve-people" placeholder="Familia, invitados…" /></label>
-        <span class="tiny">Nota (1–5)</span>
+        <label class="field"><span data-i18n="serve.other">Otra ocasión</span><input id="serve-occasion" data-i18n-placeholder="serve.otherPh" placeholder="Aniversario, comida…" oninput="syncServeChip()" /></label>
+        <label class="field"><span data-i18n="serve.who">Con quién</span><input id="serve-people" data-i18n-placeholder="serve.whoPh" placeholder="Familia, invitados…" /></label>
+        <span class="tiny" data-i18n="serve.stars">Nota (1–5)</span>
         <div class="chip-row" id="serve-stars">
           <button type="button" class="chip" data-star="1" onclick="setServeRating(1)">★</button>
           <button type="button" class="chip" data-star="2" onclick="setServeRating(2)">★★</button>
@@ -391,34 +391,34 @@
         </div>
         <input id="serve-rating" type="hidden" value="" />
         </div>
-        <label class="field"><span>Nota</span><textarea id="serve-note" placeholder="Qué se te quedó"></textarea></label>
-        <button id="serve-save" class="btn btn-gold" style="width:100%" onclick="confirmServe(true)">Guardar</button>
-        <button id="serve-skip" class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="skipServe()">Omitir nota</button>
+        <label class="field"><span data-i18n="serve.note">Nota</span><textarea id="serve-note" data-i18n-placeholder="serve.notePh" placeholder="Qué se te quedó"></textarea></label>
+        <button id="serve-save" class="btn btn-gold" style="width:100%" onclick="confirmServe(true)" data-i18n="serve.save">Guardar</button>
+        <button id="serve-skip" class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="skipServe()" data-i18n="serve.skip">Omitir nota</button>
       </div>
     </div>
 
     <div id="cata-offer-sheet" class="modal-bg" onclick="if(event.target===this)hideSheets()">
       <div class="sheet">
         <div class="handle"></div>
-        <h3>¿Añadir cata?</h3>
+        <h3 data-i18n="cata.h1">¿Añadir cata?</h3>
         <p class="tiny" id="cata-offer-hint"></p>
-        <p class="muted" style="margin:6px 0 10px">La salida ya está en Bebidas. Puedes anotar la cata ahora.</p>
-        <button class="btn btn-gold" style="width:100%" onclick="acceptCataOffer()">Añadir cata</button>
-        <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="hideSheets()">Ahora no</button>
+        <p class="muted" style="margin:6px 0 10px" data-i18n="cata.lead">La salida ya está en Bebidas. Puedes anotar la cata ahora.</p>
+        <button class="btn btn-gold" style="width:100%" onclick="acceptCataOffer()" data-i18n="cata.add">Añadir cata</button>
+        <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="hideSheets()" data-i18n="cata.later">Ahora no</button>
       </div>
     </div>
 
     <div id="exit-sheet" class="modal-bg" onclick="if(event.target===this)hideSheets()">
       <div class="sheet">
         <div class="handle"></div>
-        <h3 id="exit-title">Quitar lote</h3>
+        <h3 id="exit-title" data-i18n="exit.h1">Quitar lote</h3>
         <p class="tiny" id="exit-hint"></p>
-        <p class="muted" style="margin:6px 0 10px">Si fue un error de registro, no cuenta en el historial.</p>
-        <span class="tiny">Motivo</span>
+        <p class="muted" style="margin:6px 0 10px" data-i18n="exit.lead">Si fue un error de registro, no cuenta en el historial.</p>
+        <span class="tiny" data-i18n="serve.reason">Motivo</span>
         <div class="chip-row" id="exit-reasons"></div>
-        <label class="field"><span>Nota</span><textarea id="exit-note" placeholder="Opcional"></textarea></label>
-        <button class="btn btn-gold" style="width:100%" onclick="confirmExit()">Quitar</button>
-        <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="hideSheets()">Cancelar</button>
+        <label class="field"><span data-i18n="exit.note">Nota</span><textarea id="exit-note" data-i18n-placeholder="exit.notePh" placeholder="Opcional"></textarea></label>
+        <button class="btn btn-gold" style="width:100%" onclick="confirmExit()" data-i18n="exit.go">Quitar</button>
+        <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="hideSheets()" data-i18n="serve.cancel">Cancelar</button>
       </div>
     </div>
 
@@ -450,7 +450,8 @@
       var box = document.createElement("div");
       box.id = "boot-error";
       box.className = "boot-error";
-      box.innerHTML = '<div class="mark">J.G.C.</div><h1>No se ha podido abrir</h1><p class="muted">La app no ha arrancado. Tus vinos siguen guardados en este iPhone.</p><button class="btn btn-gold" type="button" onclick="casaRetry()">Reintentar</button><button class="btn btn-ghost" type="button" style="margin-top:8px" onclick="casaRepair()">Reparar</button><p class="tiny">Reparar quita la caché de la app y vuelve a cargarla. No borra la cava.</p>';
+      var tr = function (k, fb) { try { if (window.t) return window.t(k); } catch (e) {} return fb; };
+      box.innerHTML = '<div class="mark">J.G.C.</div><h1>' + tr("boot.title", "No se ha podido abrir") + '</h1><p class="muted">' + tr("boot.body", "La app no ha arrancado. Tus vinos siguen guardados en este iPhone.") + '</p><button class="btn btn-gold" type="button" onclick="casaRetry()">' + tr("boot.retry", "Reintentar") + '</button><button class="btn btn-ghost" type="button" style="margin-top:8px" onclick="casaRepair()">' + tr("boot.repair", "Reparar") + '</button><p class="tiny">' + tr("boot.repairHint", "Reparar quita la caché de la app y vuelve a cargarla. No borra la cava.") + '</p>';
       var host = document.querySelector(".app") || document.body;
       host.appendChild(box);
     }
@@ -480,23 +481,24 @@
       if (!window.__casaReady) casaShowBootError();
     }, 8000);
   </script>
-  <script src="wines.js?v=76"></script>
-  <script src="bodegas.js?v=76"></script>
-  <script src="dossiers.js?v=76"></script>
-  <script src="providers/wineProvider.js?v=76"></script>
-  <script src="pairings.js?v=76"></script>
-  <script src="casa-util.js?v=76"></script>
-  <script src="casa-vino.js?v=76"></script>
-  <script src="casa-estado.js?v=76"></script>
-  <script src="casa-inicio.js?v=76"></script>
-  <script src="casa-vinoteca.js?v=76"></script>
-  <script src="casa-bodega.js?v=76"></script>
-  <script src="casa-ficha.js?v=76"></script>
-  <script src="casa-mesa.js?v=76"></script>
-  <script src="casa-bebidas.js?v=76"></script>
-  <script src="casa-gemini.js?v=76"></script>
-  <script src="casa-ajustes.js?v=76"></script>
-  <script src="app.js?v=76"></script>
+  <script src="wines.js?v=77"></script>
+  <script src="bodegas.js?v=77"></script>
+  <script src="dossiers.js?v=77"></script>
+  <script src="providers/wineProvider.js?v=77"></script>
+  <script src="pairings.js?v=77"></script>
+  <script src="i18n.js?v=77"></script>
+  <script src="casa-util.js?v=77"></script>
+  <script src="casa-vino.js?v=77"></script>
+  <script src="casa-estado.js?v=77"></script>
+  <script src="casa-inicio.js?v=77"></script>
+  <script src="casa-vinoteca.js?v=77"></script>
+  <script src="casa-bodega.js?v=77"></script>
+  <script src="casa-ficha.js?v=77"></script>
+  <script src="casa-mesa.js?v=77"></script>
+  <script src="casa-bebidas.js?v=77"></script>
+  <script src="casa-gemini.js?v=77"></script>
+  <script src="casa-ajustes.js?v=77"></script>
+  <script src="app.js?v=77"></script>
   <script>
     document.querySelectorAll(".tab").forEach((t, i) => {
       const icons = [
@@ -535,7 +537,7 @@
         const current = (document.querySelector('meta[name="app-version"]') || {}).content || "";
         if (data.version && current && data.version !== current) reloadForSw();
       });
-      navigator.serviceWorker.register("sw.js?v=76").catch(() => {});
+      navigator.serviceWorker.register("sw.js?v=77").catch(() => {});
     }
   </script>
 </body>

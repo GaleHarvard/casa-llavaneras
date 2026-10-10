@@ -1,5 +1,5 @@
 /* Arranque y enlaces con la página. */
-const APP_VERSION = "v76";
+const APP_VERSION = "v77";
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.addEventListener("message", ev => {
     const d = ev.data || {};
@@ -125,6 +125,7 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       if (!booted) {
         booted = true;
+        try { if (typeof bootLang === "function") bootLang(); } catch (e) {}
         clock();
         setInterval(() => { try { clock(); } catch (e) {} }, 30000);
         try { askPersistentStorage(); } catch (e) {}
