@@ -43,11 +43,23 @@ function publishedNote(obj) {
   if (!n || isPlaceholderNote(n) || noteLooksLikeLinkOrPrice(n)) return "";
   return n;
 }
+function shownRating(w, key) {
+  const block = (w && w.ratings && w.ratings[key]) || {};
+  const note = typeof catalogNote === "function" ? catalogNote(w, key) : (block.note || "");
+  return Object.assign({}, block, { note: note });
+}
+function shownTasting(w) {
+  return typeof catalogTasting === "function" ? catalogTasting(w) : ((w && w.tasting) || "");
+}
+function shownKeep(w, field) {
+  if (typeof catalogKeep === "function") return catalogKeep(w, field);
+  return (w && w.conservation && w.conservation[field]) || "";
+}
 function criticBlurb(w) {
-  const parker = w && w.ratings && w.ratings.parker;
+  const parker = shownRating(w, "parker");
   const note = publishedNote(parker);
   if (note) return (parker && parker.estimate ? t("fact.estimateDot") : "") + note;
-  const tasting = publishedNote({ note: w && w.tasting });
+  const tasting = publishedNote({ note: shownTasting(w) });
   if (tasting.length > 24) {
     const est = w.provenance && w.provenance.tasting === "estimación Gemini";
     return (est ? t("fact.estimateDot") : "") + tasting;
@@ -58,10 +70,10 @@ function criticMeters(w) {
   const r = (w && w.ratings) || {};
   const bit = (label, block, digits) => {
     const score = block && block.score;
-    const est = block && block.estimate && score ? " est." : "";
+    const est = block && block.estimate && score ? (" " + t("fact.estMark")) : "";
     return label + " " + rateScore(score, digits) + est;
   };
-  const dec = r.decanter && r.decanter.score ? " · Decanter " + rateScore(r.decanter.score, 0) + (r.decanter.estimate ? " est." : "") : "";
+  const dec = r.decanter && r.decanter.score ? " · Decanter " + rateScore(r.decanter.score, 0) + (r.decanter.estimate ? (" " + t("fact.estMark")) : "") : "";
   return bit("WA", r.parker, 0) + " · " + bit("Peñín", r.penin, 0) + " · " + bit("WS", r.spectator, 0) + dec + " · " + bit("Vivino", r.vivino, 1);
 }
 function shownTemp(w, which) {
@@ -72,7 +84,9 @@ function shownTemp(w, which) {
 }
 function pairingPackOf(w) {
   if (!w) return null;
-  if (window.WINE_PAIRINGS && WINE_PAIRINGS[w.id]) return WINE_PAIRINGS[w.id];
+  if (window.WINE_PAIRINGS && WINE_PAIRINGS[w.id]) {
+    return typeof localizePairingPack === "function" ? localizePairingPack(w.id, WINE_PAIRINGS[w.id]) : WINE_PAIRINGS[w.id];
+  }
   if (w.pairingPack && Array.isArray(w.pairingPack.matches) && w.pairingPack.matches.length) return w.pairingPack;
   if (Array.isArray(w.pairing) && w.pairing.length) {
     return {
@@ -119,6 +133,7 @@ function setFichaProgress(msg) {
   }
 }
 function wineTranslateCard(w) {
+  if (!w || (typeof isCatalogWineId === "function" && isCatalogWineId(w.id))) return "";
   return `<div class="card" id="wine-tr">
     <p class="tiny">${t("tr.title")}</p>
     <p class="muted" id="wine-tr-body" style="margin-top:6px">${t("tr.keep")}</p>
@@ -544,7 +559,7 @@ function openWineSub(kind) {
   let body = "";
   if (kind === "ratings") {
     const d = dossierOf(w);
-    const casaRaw = publishedNote({ note: w.tasting });
+    const casaRaw = publishedNote({ note: shownTasting(w) });
     const casa = casaRaw || (w.provenance ? t("nodata") : (w.tasting || "").trim());
     const noteOf = (obj, extra) => {
       const n = publishedNote(obj) || publishedNote({ note: extra });
@@ -565,11 +580,11 @@ function openWineSub(kind) {
         <div class="temp"><span class="tiny">Parker / WA</span><b>${rateScore(r.parker.score, 0)}</b></div>
         <div class="temp"><span class="tiny">Spectator</span><b>${rateScore(r.spectator.score, 0)}</b></div>
       </div>
-      ${card("Guía Peñín" + (r.penin.estimate ? " · " + t("fact.estimate") : ""), r.penin.score ? r.penin.score + "/100" : t("nodata"), noteOf(r.penin))}
-      ${card((r.parker.reviewer || "Wine Advocate") + (r.parker.estimate ? " · " + t("fact.estimate") : ""), r.parker.score ? r.parker.score + "/100" : t("nodata"), noteOf(r.parker))}
-      ${card("Wine Spectator" + (r.spectator.estimate ? " · " + t("fact.estimate") : ""), r.spectator.score ? r.spectator.score + "/100" : t("nodata"), noteOf(r.spectator, r.spectator.note))}
-      ${card("Decanter" + (r.decanter && r.decanter.estimate ? " · " + t("fact.estimate") : ""), (r.decanter && r.decanter.score ? r.decanter.score + "/100" : t("nodata")), noteOf(r.decanter))}
-      ${card("Vivino · " + t("fact.users") + (r.vivino.estimate ? " · " + t("fact.estimate") : ""), (r.vivino.score ? r.vivino.score.toFixed(1) + "/5 · " + (r.vivino.count || t("nodata")) + " " + t("fact.reviews") : t("nodata")), noteOf(r.vivino))}
+      ${card("Guía Peñín" + (r.penin.estimate ? " · " + t("fact.estimate") : ""), r.penin.score ? r.penin.score + "/100" : t("nodata"), noteOf(shownRating(w, "penin")))}
+      ${card((r.parker.reviewer || "Wine Advocate") + (r.parker.estimate ? " · " + t("fact.estimate") : ""), r.parker.score ? r.parker.score + "/100" : t("nodata"), noteOf(shownRating(w, "parker")))}
+      ${card("Wine Spectator" + (r.spectator.estimate ? " · " + t("fact.estimate") : ""), r.spectator.score ? r.spectator.score + "/100" : t("nodata"), noteOf(shownRating(w, "spectator")))}
+      ${card("Decanter" + (r.decanter && r.decanter.estimate ? " · " + t("fact.estimate") : ""), (r.decanter && r.decanter.score ? r.decanter.score + "/100" : t("nodata")), noteOf(shownRating(w, "decanter")))}
+      ${card("Vivino · " + t("fact.users") + (r.vivino.estimate ? " · " + t("fact.estimate") : ""), (r.vivino.score ? r.vivino.score.toFixed(1) + "/5 · " + (r.vivino.count || t("nodata")) + " " + t("fact.reviews") : t("nodata")), noteOf(shownRating(w, "vivino")))}
       ${card(t("fact.houseNote"), t("fact.sheetWord"), casa)}
       ${d.awards && d.awards.length ? `<div class="card"><p class="tiny">${t("fact.refs")}</p><p style="margin-top:8px">${d.awards.join(" · ")}</p></div>` : ""}
       <button class="btn btn-ghost" style="width:100%;margin-top:12px" onclick="openWineSub('taste')">${t("fact.personalLink")}</button>
@@ -581,11 +596,11 @@ function openWineSub(kind) {
       <div class="temp-grid" style="margin:10px 0">
         <div class="temp"><span class="tiny">${t("fact.cellarShort")}</span><b>${shownTemp(w, "cellar")}</b></div>
         <div class="temp"><span class="tiny">${t("fact.service")}</span><b>${shownTemp(w, "service")}</b></div>
-        <div class="temp"><span class="tiny">${t("fact.humidity")}</span><b>${fieldIsReal(w, "cellar") ? w.conservation.humidity : t("nodata")}</b></div>
-        <div class="temp"><span class="tiny">${t("fact.pos")}</span><b style="font-size:16px">${fieldIsReal(w, "cellar") ? w.conservation.position : t("nodata")}</b></div>
+        <div class="temp"><span class="tiny">${t("fact.humidity")}</span><b>${fieldIsReal(w, "cellar") ? shownKeep(w, "humidity") : t("nodata")}</b></div>
+        <div class="temp"><span class="tiny">${t("fact.pos")}</span><b style="font-size:16px">${fieldIsReal(w, "cellar") ? shownKeep(w, "position") : t("nodata")}</b></div>
       </div>
       <div class="card">
-        <p class="muted">${t("fact.light", { light: w.conservation.light, h: corkHumidity(w) })}</p>
+        <p class="muted">${t("fact.light", { light: shownKeep(w, "light"), h: corkHumidity(w) })}</p>
         ${adviseCave(w)}
       </div>
       <div class="card">
@@ -602,7 +617,7 @@ function openWineSub(kind) {
       </div>
       <div class="card"><p class="tiny">${t("fact.glass")}</p><p>${d.glass}</p></div>
       <div class="card"><p class="tiny">${t("fact.oxygen")}</p><p class="muted" style="margin-top:6px">${d.oxygen}</p></div>
-      <div class="card"><p class="tiny">${t("fact.cellar")}</p><p class="muted" style="margin-top:6px">${shownTemp(w, "cellar")} · ${fieldIsReal(w, "cellar") ? w.conservation.humidity : t("nodata")} · ${fieldIsReal(w, "cellar") ? w.conservation.position : t("nodata")}</p></div>`;
+      <div class="card"><p class="tiny">${t("fact.cellar")}</p><p class="muted" style="margin-top:6px">${shownTemp(w, "cellar")} · ${fieldIsReal(w, "cellar") ? shownKeep(w, "humidity") : t("nodata")} · ${fieldIsReal(w, "cellar") ? shownKeep(w, "position") : t("nodata")}</p></div>`;
   } else if (kind === "tecnica") {
     const d = dossierOf(w);
     body = `
@@ -613,7 +628,7 @@ function openWineSub(kind) {
       ${w.provenance ? `<div class="fact"><span>${t("fact.zone")}</span><b>${escHtml([w.appellation || w.region, countryLabel(w.country)].filter(Boolean).join(" · ") || "—")}</b></div>
       <div class="fact"><span>${t("fact.drink")}</span><b>${datesAreReal(w) ? w.aging.drinkFrom + "–" + w.aging.peakEnd : t("nodata")}</b></div>
       <div class="fact"><span>${t("fact.limit")}</span><b>${datesAreReal(w) ? w.aging.holdTo : t("nodata")}</b></div>
-      <div class="fact"><span>${t("fact.pair")}</span><b>${escHtml((w.pairing || []).join(", ") || "—")}</b></div>` : ""}
+      <div class="fact"><span>${t("fact.pair")}</span><b>${escHtml((typeof catalogPairingList === "function" ? catalogPairingList(w) : (w.pairing || [])).join(", ") || "—")}</b></div>` : ""}
       <div class="fact"><span>${t("fact.alt")}</span><b>${d.elevation}</b></div>
       <div class="card" style="margin-top:12px"><p class="tiny">${t("fact.soils")}</p><p class="muted" style="margin-top:6px">${d.soils}</p></div>
       <div class="card"><p class="tiny">${t("fact.vineyard")}</p><p class="muted" style="margin-top:6px">${d.vineyard}</p></div>
@@ -623,7 +638,7 @@ function openWineSub(kind) {
       <div id="tech-edit"></div>`;
   } else if (kind === "historia") {
     const d = dossierOf(w);
-    const paras = String(d.history || (w.producer + " se elabora en " + w.region + ".")).split("\n").filter(Boolean);
+    const paras = String(d.history || t("fact.madeIn", { producer: w.producer, region: w.region, app: w.appellation || "" })).split("\n").filter(Boolean);
     body = `
       ${mapTabs("historia")}
       ${paras.map(t => `<div class="card"><p style="line-height:1.5">${t}</p></div>`).join("")}
@@ -631,7 +646,7 @@ function openWineSub(kind) {
       <div class="card"><p class="tiny">${t("fact.vintageNote", { y: w.vintage })}</p>
         <p style="margin-top:8px;line-height:1.45">${escHtml(criticBlurb(w))}</p>
         <p class="muted" style="margin-top:8px">${escHtml(criticMeters(w))}</p>
-        ${(r.penin && r.penin.note) ? `<p class="muted" style="margin-top:10px">${r.penin.note}</p>` : ""}
+        ${(shownRating(w, "penin").note) ? `<p class="muted" style="margin-top:10px">${escHtml(shownRating(w, "penin").note)}</p>` : ""}
       </div>
       ${d.awards && d.awards.length ? `<div class="card"><p class="tiny">${t("fact.refs")}</p><p style="margin-top:8px">${d.awards.join(" · ")}</p></div>` : ""}
       <button class="btn btn-ghost" style="width:100%;margin-top:12px" onclick="openWineSub('evolve')">${t("fact.evolveLink")}</button>
@@ -649,7 +664,7 @@ function openWineSub(kind) {
       ${datesAreReal(w) ? `<div class="bar"><i style="width:${pr.pct}%"></i></div>
       <div class="row tiny"><span>${w.vintage}</span><span>${t("fact.now", { y: YEAR })}</span><span>${w.aging.holdTo}</span></div>` : ""}
       <div class="timeline">
-        ${(w.evolutionNotes || []).map(n => `<div class="tl-item"><em>${n.year} · ${n.phase}</em><strong>${escHtml(n.text)}</strong></div>`).join("")}
+        ${(typeof catalogEvolution === "function" ? catalogEvolution(w) : (w.evolutionNotes || [])).map(n => `<div class="tl-item"><em>${n.year} · ${escHtml(n.phase)}</em><strong>${escHtml(n.text)}</strong></div>`).join("")}
         <div class="tl-item"><em>${YEAR} · ${t("fact.state")}</em><strong>${datesAreReal(w) ? currentAdvice(w, p) : t("fact.noWindow")}</strong></div>
       </div>`;
   } else if (kind === "profile") {
@@ -659,7 +674,7 @@ function openWineSub(kind) {
       <p>${w.name} ${w.vintage}</p>
       <div class="card" style="margin-top:12px">
         <h2>${t("fact.published")}</h2>
-        <p style="margin-top:8px">${w.tasting}</p>
+        <p style="margin-top:8px">${escHtml(shownTasting(w))}</p>
       </div>
       <div class="card">
         <p>${t("fact.grapes")}: ${(w.grapes || []).join(", ") || "—"}</p>

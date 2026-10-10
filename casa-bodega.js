@@ -408,15 +408,15 @@ function renderHits(hits, title, withAdd) {
         <div class="meta">
           <div class="row"><h3>${w.producer} ${w.name}</h3><span class="badge ${p.key}">${w.vintage}</span></div>
           <p class="muted">${w.region} · Vivino ${w.ratings.vivino.score.toFixed(1)} · Peñín ${w.ratings.penin.score}</p>
-          ${have ? `<p class="tiny">Ya tienes ${have} ud</p>` : ""}
+          ${have ? `<p class="tiny">${t("cellar.haveN", { n: have })}</p>` : ""}
         </div>
       </div>
       ${withAdd ? `<div class="scan-hit-actions">
         <button class="btn btn-gold" onclick="event.stopPropagation();queueIntake('${w.id}')">${t("cellar.reserve")}</button>
-        <button class="btn btn-ghost" onclick="event.stopPropagation();openWine('${w.id}')">Ver ficha</button>
+        <button class="btn btn-ghost" onclick="event.stopPropagation();openWine('${w.id}')">${t("inbox.see")}</button>
       </div>` : ""}
     </div>`;
-  }).join("") || `<p class="empty">Sin ficha en el catálogo.</p><button class="btn btn-gold" style="width:100%;margin-top:8px" onclick="manualIntake()">Crear ficha con lo escrito</button>`);
+  }).join("") || `<p class="empty">${t("cellar.noSheet")}</p><button class="btn btn-gold" style="width:100%;margin-top:8px" onclick="manualIntake()">${t("scan.create")}</button>`);
   mountLabelThumbs($("#scan-results"));
 }
 function fillSelects() {
