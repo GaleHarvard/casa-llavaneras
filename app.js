@@ -82,11 +82,16 @@ const defaultState = () => ({
   },
   activity: [],
   consumption: [],
+  consumptionBackfilled: true,
   customWines: [],
   inbox: []
 });
 
 let state = load();
+if (state && state._consumptionDirty) {
+  delete state._consumptionDirty;
+  save();
+}
 let currentWine = null;
 let currentBottle = null;
 let stream = null;
@@ -2578,6 +2583,7 @@ function ensureConsumption(target) {
   if (!target) return target;
   if (!Array.isArray(target.consumption)) target.consumption = [];
   if (target.consumptionBackfilled) return target;
+  let added = 0;
   const seen = {};
   target.consumption.forEach(c => {
     if (c && c.sourceAt != null) seen[String(c.sourceAt) + "|" + (c.sourceText || "")] = 1;
@@ -2613,8 +2619,10 @@ function ensureConsumption(target) {
       sourceText: text
     });
     seen[key] = 1;
+    added += 1;
   });
   target.consumptionBackfilled = true;
+  if (added) target._consumptionDirty = true;
   return target;
 }
 function makeConsumption(wine, qty, fields) {
