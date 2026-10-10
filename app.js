@@ -28,7 +28,7 @@ function dossierOf(w) {
 const NOW = new Date(2026, 8, 22);
 const YEAR = NOW.getFullYear();
 const STORE = "vinoteca.pro.max.v3";
-const APP_VERSION = "v71";
+const APP_VERSION = "v72";
 const PRICE_CFG_KEY = "vinoteca-jgc-provider";
 
 const ICONS = {
@@ -81,6 +81,7 @@ const defaultState = () => ({
     sources: { vivino: true, penin: true, parker: true, spectator: true, decanter: true, vinous: true, suckling: true }
   },
   activity: [],
+  consumption: [],
   customWines: [],
   inbox: []
 });
@@ -123,6 +124,7 @@ function load() {
     if (!parsed.activity) parsed.activity = [];
     if (!parsed.customWines) parsed.customWines = [];
     if (!parsed.inbox) parsed.inbox = [];
+    ensureConsumption(parsed);
     parsed.vinotecas.forEach(v => { if (!v.houseId) v.houseId = "h1"; });
     return parsed;
   } catch {
@@ -241,6 +243,7 @@ function show(id, opts) {
   if (id === "perfil") renderPerfil();
   if (id === "zonas") renderZonas();
   if (id === "catas") renderCatas();
+  if (id === "bebidas") renderBebidas();
   mountLabelThumbs(document.getElementById(id));
 }
 function backCaption() {
@@ -249,7 +252,7 @@ function backCaption() {
   const names = {
     home: "Inicio", caves: "Vinotecas", "cave-detail-screen": "Vinoteca",
     cellar: "Botellas", calendar: "Fechas", pairings: "Mesa", scan: "Escanear", inbox: "Entradas",
-    perfil: "Perfil", "perfil-sub": "Perfil", zonas: "Zonas", catas: "Catas",
+    perfil: "Perfil", "perfil-sub": "Perfil", zonas: "Zonas", catas: "Catas", bebidas: "Bebidas",
     dish: "Plato", wine: "Ficha", "wine-sub": "Ficha"
   };
   if (p.id === "wine" && p.wineId) {
@@ -310,6 +313,7 @@ function renderHome() {
     </div>` : "";
 
   const drinkNow = ready.slice(0, 4);
+  if ($("#home-open")) $("#home-open").innerHTML = monthOpenHtml();
   $("#home-ready").innerHTML = `
     <h2 style="margin-top:16px">Para beber ahora</h2>
     ${drinkNow.length
@@ -338,6 +342,7 @@ function renderHome() {
     <div class="card" role="button" onclick="show('pairings',{tab:true})" style="margin-top:8px"><div class="row"><h3>Mesa</h3><span class="tiny">›</span></div><p class="muted">Maridajes por plato y por vino</p></div>
     <div class="card" role="button" onclick="show('calendar',{tab:true})" style="margin-top:8px"><div class="row"><h3>Fechas</h3><span class="tiny">›</span></div><p class="muted">Beber ahora, pronto, aguardar</p></div>
     <div class="card" role="button" onclick="openHomeMap()" style="margin-top:8px"><div class="row"><h3>Zonas vinícolas</h3><span class="tiny">›</span></div><p class="muted">Mapa por región y vinos</p></div>
+    <div class="card" role="button" onclick="show('bebidas')" style="margin-top:8px"><div class="row"><h3>Bebidas</h3><span class="tiny">${(state.consumption || []).reduce((n, c) => n + (Number(c.qty) || 1), 0) || "›"}</span></div><p class="muted">Lo que ya se ha servido</p></div>
     <div class="card" role="button" onclick="show('catas')" style="margin-top:8px"><div class="row"><h3>Cuaderno de cata</h3><span class="tiny">›</span></div><p class="muted">Ejes y recuerdo</p></div>
     <div class="card" role="button" onclick="show('perfil')" style="margin-top:8px"><div class="row"><h3>Perfil</h3><span class="tiny">›</span></div><p class="muted">Casas, copias y privacidad</p></div>
     <div class="card" role="button" onclick="setCellarView('ubicaciones');show('cellar',{tab:true})" style="margin-top:8px"><div class="row"><h3>Ubicación física</h3><span class="tiny">›</span></div><p class="muted">Hueco, lote, servir y mover</p></div>
@@ -348,9 +353,12 @@ function renderHome() {
       <button class="chip" onclick="openHomeMap()">Mapa</button>
     </div>
     ${backupReminderHtml()}
-    <div class="card" role="button" onclick="openNotify()" style="margin-top:12px">
-      <div class="row"><h2>Avisos</h2><span class="badge ${on ? "ok" : "wait"}">${on ? "Activos" : "Configurar"}</span></div>
-      <p class="muted" style="margin-top:6px">${on ? "Apogeo, beber pronto y temperatura." : "Actívalos para no perder la ventana."}</p>
+    <div class="card" style="margin-top:12px">
+      <div role="button" onclick="openNotify()">
+        <div class="row"><h2>Avisos</h2><span class="badge ${on ? "ok" : "wait"}">${on ? "Activos" : "Configurar"}</span></div>
+        <p class="muted" style="margin-top:6px">${on ? "Apogeo, beber pronto, temperatura y última botella." : "Actívalos para no perder la ventana."}</p>
+      </div>
+      ${stockNoticesHtml()}
     </div>
     <div class="card" role="button" onclick="show('perfil')" style="margin-top:10px">
       <div class="row"><h2>Perfil</h2><span class="tiny">›</span></div>
@@ -377,6 +385,197 @@ function lastTastings(n) {
   }).filter(Boolean).sort((a, b) => b.at - a.at).slice(0, n);
 }
 
+function monthOpenReason(w) {
+  if (!w || !datesAreReal(w) || !w.aging) return null;
+  const peakStart = Number(w.aging.peakStart);
+  const peakEnd = Number(w.aging.peakEnd);
+  const holdTo = Number(w.aging.holdTo);
+  if (!Number.isFinite(peakStart) || !Number.isFinite(peakEnd)) return null;
+  const past = (Number.isFinite(holdTo) && YEAR > holdTo) || YEAR > peakEnd;
+  const endsThisYear = peakEnd === YEAR || holdTo === YEAR;
+  const atPeak = YEAR >= peakStart && YEAR <= peakEnd;
+  if (past) return { rank: 0, text: "Pasado su momento óptimo" };
+  if (endsThisYear) return { rank: 1, text: "Beber antes de " + YEAR };
+  if (atPeak) return { rank: 2, text: "En su mejor momento" };
+  return null;
+}
+function openThisMonth() {
+  const seen = {};
+  const rows = [];
+  (state.bottles || []).forEach(b => {
+    const qty = Number(b && b.qty) || 0;
+    if (!b || qty < 1) return;
+    if (seen[b.wineId]) { seen[b.wineId].qty += qty; return; }
+    const w = wineById(b.wineId);
+    const reason = monthOpenReason(w);
+    if (!reason) return;
+    const row = { wine: w, qty: qty, reason: reason.text, rank: reason.rank, end: Number(w.aging.peakEnd) || 9999 };
+    seen[b.wineId] = row;
+    rows.push(row);
+  });
+  rows.sort((a, b) => a.rank - b.rank || a.end - b.end || String(a.wine.producer || "").localeCompare(String(b.wine.producer || ""), "es"));
+  return rows;
+}
+function monthOpenHtml() {
+  const rows = openThisMonth();
+  const body = rows.length ? rows.map(r => {
+    const w = r.wine;
+    const badge = r.rank === 0 ? "late" : r.rank === 1 ? "warn" : "ok";
+    return `<div class="card" role="button" onclick="openWine('${w.id}')" style="margin-top:8px">
+      <div class="row"><h3>${escHtml(w.producer)}</h3><span class="badge ${badge}">${escHtml(r.reason)}</span></div>
+      <p style="margin-top:4px">${escHtml(w.name)} ${escHtml(String(w.vintage || ""))}</p>
+      <p class="muted">${r.qty} botella${r.qty > 1 ? "s" : ""}</p>
+    </div>`;
+  }).join("") : `<p class="empty">Nada en su momento este mes.</p>`;
+  return `<h2 style="margin-top:16px">Qué abrir este mes</h2>${body}`;
+}
+function stockByWine() {
+  const map = {};
+  (state.bottles || []).forEach(b => {
+    if (!b || !b.wineId) return;
+    map[b.wineId] = (map[b.wineId] || 0) + (Number(b.qty) || 0);
+  });
+  return map;
+}
+function lastBottleWines() {
+  const map = stockByWine();
+  return Object.keys(map).filter(id => map[id] === 1).map(wineById).filter(Boolean);
+}
+function stockDismissed(id) {
+  const list = (notifyPrefs().dismissedStock) || [];
+  return list.indexOf(id) >= 0;
+}
+function pruneStockDismissals() {
+  const n = notifyPrefs();
+  const map = stockByWine();
+  n.dismissedStock = (n.dismissedStock || []).filter(id => map[id] === 1);
+}
+function dismissStock(id) {
+  const n = notifyPrefs();
+  n.dismissedStock = n.dismissedStock || [];
+  if (n.dismissedStock.indexOf(id) < 0) n.dismissedStock.push(id);
+  save();
+  if (screenId === "home") renderHome();
+  const box = $("#stock-notices");
+  if (box) box.innerHTML = stockNoticesHtml();
+}
+function stockNoticesHtml() {
+  pruneStockDismissals();
+  const rows = lastBottleWines().filter(w => !stockDismissed(w.id));
+  if (!rows.length) return "";
+  return rows.map(w => `<div class="card" style="margin-top:8px" onclick="event.stopPropagation()">
+    <h3>Queda 1 botella de ${escHtml(w.producer)} ${escHtml(w.name)}</h3>
+    <p class="muted" style="margin-top:6px">${escHtml(String(w.vintage || ""))}${w.type ? " · " + escHtml(typeLabel(w.type)) : ""}</p>
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="event.stopPropagation();openWine('${w.id}')">Ver ficha</button>
+      <button class="btn btn-ghost" onclick="event.stopPropagation();dismissStock('${w.id}')">Ocultar</button>
+    </div>
+  </div>`).join("");
+}
+function maybeStockPush() {
+  const n = notifyPrefs();
+  if (!n.on || n.stock === false) return;
+  const rows = lastBottleWines().filter(w => !stockDismissed(w.id));
+  if (!rows.length) return;
+  const w = rows[0];
+  const extra = rows.length > 1 ? " · y " + (rows.length - 1) + " más" : "";
+  pushNote("Última botella", "Queda 1 botella de " + w.producer + " " + w.name + extra, "stock-" + w.id, "home");
+}
+function typeLabel(t) {
+  const map = { tinto: "Tinto", blanco: "Blanco", espumoso: "Espumoso", rosado: "Rosado", otro: "Otro" };
+  return map[t] || (t ? String(t).charAt(0).toUpperCase() + String(t).slice(1) : "Otro");
+}
+const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+function consumptionThumb(c) {
+  const live = c.wineId && wineById(c.wineId);
+  if (live) return labelThumbHtml(live);
+  if (c.label && String(c.label).indexOf("data:") !== 0) return `<img class="label-thumb" alt="" src="${escHtml(c.label)}">`;
+  return labelThumbHtml({ id: c.wineId || "", producer: c.producer, name: c.name, vintage: c.vintage, type: c.type });
+}
+function renderBebidas() {
+  const el = $("#bebidas-body");
+  if (!el) return;
+  const list = (state.consumption || []).slice().sort((a, b) => (b.at || 0) - (a.at || 0));
+  const head = `<button class="back" onclick="goBack()">‹ ${backCaption()}</button>
+    <div class="hero"><p class="eyebrow">Historial</p><h1>Bebidas</h1><p>Lo servido se queda aquí aunque el lote se acabe.</p></div>`;
+  if (!list.length) {
+    el.innerHTML = head + `<p class="empty">Aún no hay botellas servidas.</p>`;
+    return;
+  }
+  const byYear = {};
+  list.forEach(c => {
+    const y = String((c.date || isoFromTs(c.at)).slice(0, 4) || "—");
+    (byYear[y] = byYear[y] || []).push(c);
+  });
+  const years = Object.keys(byYear).sort((a, b) => b.localeCompare(a));
+  const blocks = years.map(y => {
+    const rows = byYear[y];
+    const n = rows.reduce((s, c) => s + (Number(c.qty) || 1), 0);
+    const types = {};
+    rows.forEach(c => {
+      const t = c.type || "otro";
+      types[t] = (types[t] || 0) + (Number(c.qty) || 1);
+    });
+    const typeLine = Object.keys(types).map(t => typeLabel(t) + " " + types[t]).join(" · ");
+    const byMonth = {};
+    rows.forEach(c => {
+      const mk = String(c.date || isoFromTs(c.at)).slice(0, 7);
+      (byMonth[mk] = byMonth[mk] || []).push(c);
+    });
+    const months = Object.keys(byMonth).sort((a, b) => b.localeCompare(a)).map(mk => {
+      const monthIndex = Math.max(0, (parseInt(mk.slice(5, 7), 10) || 1) - 1);
+      const cards = byMonth[mk].map(c => {
+        const when = (c.date || "").split("-").reverse().join("/");
+        const bits = [when, c.occasion, c.people, c.rating ? starsRow(c.rating) : ""].filter(Boolean).join(" · ");
+        return `<div class="card" style="margin-top:8px">
+          <div class="bottle-row">
+            ${consumptionThumb(c)}
+            <div class="meta">
+              <h3>${escHtml(c.producer || "Bodega")}</h3>
+              <p>${escHtml(c.name || "Vino")} ${escHtml(String(c.vintage || ""))}${c.qty > 1 ? " · " + c.qty + " botellas" : ""}</p>
+              <p class="tiny">${escHtml(bits)}</p>
+              ${c.note ? `<p class="muted">${escHtml(c.note)}</p>` : ""}
+              <div class="btn-row">
+                <button class="btn btn-ghost" onclick="editConsumption('${c.id}')">Editar</button>
+                <button class="btn btn-ghost" onclick="deleteConsumption('${c.id}')">Borrar</button>
+              </div>
+            </div>
+          </div>
+        </div>`;
+      }).join("");
+      return `<h2 class="cal-h">${MESES[monthIndex] || mk}</h2>${cards}`;
+    }).join("");
+    return `<div class="card" style="margin-top:12px"><div class="row"><h3>${escHtml(y)}</h3><span class="badge">${n} botella${n > 1 ? "s" : ""}</span></div><p class="muted" style="margin-top:6px">${escHtml(typeLine)}</p></div>${months}`;
+  }).join("");
+  el.innerHTML = head + blocks;
+  mountLabelThumbs(el);
+}
+function editConsumption(id) {
+  const row = (state.consumption || []).find(c => c.id === id);
+  if (!row) return;
+  openServeSheet({
+    mode: "edit",
+    id: row.id,
+    qty: row.qty || 1,
+    wineId: row.wineId,
+    date: row.date,
+    occasion: row.occasion || "",
+    people: row.people || "",
+    note: row.note || "",
+    rating: row.rating || null,
+    fallback: ((row.producer || "") + " " + (row.name || "")).trim()
+  });
+}
+function deleteConsumption(id) {
+  const row = (state.consumption || []).find(c => c.id === id);
+  if (!row) return;
+  const who = ((row.producer || "") + " " + (row.name || "esta bebida")).trim();
+  if (!confirm("¿Borrar " + who + " del historial de bebidas?")) return;
+  state.consumption = state.consumption.filter(c => c.id !== id);
+  save();
+  renderBebidas();
+  toast("Bebida borrada");
+}
 function homeAlertsHtml(main) {
   const items = [];
   if (main && main.tHigh >= 15) {
@@ -2171,8 +2370,8 @@ function openWineSub(kind) {
       ${currentBottle.labelPhoto ? `<img class="cave-photo" src="${currentBottle.labelPhoto}" alt="Etiqueta escaneada" />` : ""}
       <div class="btn-row">
         <button class="btn btn-ghost" onclick="addToLot(1)">+1</button>
-        <button class="btn btn-gold" onclick="consumeBottle(1)">Servir 1</button>
-        <button class="btn btn-ghost" onclick="consumeMany()">Servir N</button>
+        <button class="btn btn-gold" onclick="askServe(1)">Servir 1</button>
+        <button class="btn btn-ghost" onclick="askServeMany()">Servir N</button>
       </div>
       <div class="btn-row">
         <button class="btn btn-ghost" onclick="showSheet('move-sheet')">Mover lote</button>
@@ -2338,10 +2537,230 @@ function currentAdvice(w, p) {
 function stockOf(wineId) {
   return state.bottles.filter(b => b.wineId === wineId).reduce((n, b) => n + b.qty, 0);
 }
-function logAct(text) {
+function logAct(text, extra) {
   state.activity = state.activity || [];
-  state.activity.unshift({ at: Date.now(), text });
+  const row = Object.assign({ at: Date.now(), text: text }, extra || {});
+  state.activity.unshift(row);
   state.activity = state.activity.slice(0, 40);
+  return row;
+}
+function todayIso() {
+  const d = new Date();
+  const p = n => String(n).padStart(2, "0");
+  return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate());
+}
+function isoFromTs(ts) {
+  const d = new Date(Number(ts) || Date.now());
+  const p = n => String(n).padStart(2, "0");
+  return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate());
+}
+function labelRefFor(w) {
+  if (!w || typeof labelSrc !== "function") return "";
+  const src = labelSrc(w);
+  if (!src || String(src).indexOf("data:") === 0) return "";
+  return src;
+}
+function winesOf(target) {
+  return (window.WINE_CATALOG || []).concat((target && target.customWines) || []);
+}
+function wineFromServeLabel(target, label) {
+  const n = normTxt(label);
+  if (!n) return null;
+  let best = null;
+  let bestLen = 0;
+  winesOf(target).forEach(w => {
+    const key = normTxt((w.producer || "") + " " + (w.name || ""));
+    if (key && n.indexOf(key) >= 0 && key.length > bestLen) { best = w; bestLen = key.length; }
+  });
+  return best;
+}
+function ensureConsumption(target) {
+  if (!target) return target;
+  if (!Array.isArray(target.consumption)) target.consumption = [];
+  if (target.consumptionBackfilled) return target;
+  const seen = {};
+  target.consumption.forEach(c => {
+    if (c && c.sourceAt != null) seen[String(c.sourceAt) + "|" + (c.sourceText || "")] = 1;
+  });
+  (target.activity || []).forEach(a => {
+    if (!a) return;
+    const text = String(a.text || "");
+    const typed = a.type === "serve";
+    const m = text.match(/^Servidas?\s+(\d+)\s*·\s*(.+)$/i);
+    if (!typed && !m) return;
+    const key = String(a.at || "") + "|" + text;
+    if (seen[key]) return;
+    const qty = Math.max(1, parseInt((typed && a.qty) ? a.qty : (m && m[1]), 10) || 1);
+    const label = ((m && m[2]) || text).trim();
+    const wine = (a.wineId && winesOf(target).find(w => w.id === a.wineId)) || wineFromServeLabel(target, label);
+    const at = Number(a.at) || Date.now();
+    target.consumption.push({
+      id: "c" + at + "-" + qty,
+      at: at,
+      date: isoFromTs(at),
+      qty: qty,
+      occasion: "",
+      people: "",
+      rating: null,
+      note: "",
+      wineId: wine ? wine.id : (a.wineId || ""),
+      name: wine ? wine.name : (label || "Vino"),
+      vintage: wine ? (wine.vintage || "") : "",
+      producer: wine ? (wine.producer || "") : "",
+      type: wine ? (wine.type || "") : "",
+      label: "",
+      sourceAt: at,
+      sourceText: text
+    });
+    seen[key] = 1;
+  });
+  target.consumptionBackfilled = true;
+  return target;
+}
+function makeConsumption(wine, qty, fields) {
+  fields = fields || {};
+  const at = Date.parse((fields.date || todayIso()) + "T12:00:00");
+  return {
+    id: "c" + Date.now().toString(36) + Math.random().toString(16).slice(2, 6),
+    at: Number.isFinite(at) ? at : Date.now(),
+    date: fields.date || todayIso(),
+    qty: Math.max(1, qty || 1),
+    occasion: fields.occasion || "",
+    people: fields.people || "",
+    rating: fields.rating || null,
+    note: fields.note || "",
+    wineId: wine ? wine.id : "",
+    name: wine ? (wine.name || "Vino") : "Vino",
+    vintage: wine ? (wine.vintage || "") : "",
+    producer: wine ? (wine.producer || "") : "",
+    type: wine ? (wine.type || "") : "",
+    label: labelRefFor(wine)
+  };
+}
+let pendingServe = null;
+function readServeFields() {
+  const rating = parseInt(($("#serve-rating") && $("#serve-rating").value) || "", 10);
+  return {
+    date: ($("#serve-date") && $("#serve-date").value) || todayIso(),
+    occasion: (($("#serve-occasion") && $("#serve-occasion").value) || "").trim(),
+    people: (($("#serve-people") && $("#serve-people").value) || "").trim(),
+    note: (($("#serve-note") && $("#serve-note").value) || "").trim(),
+    rating: rating >= 1 && rating <= 5 ? rating : null
+  };
+}
+function paintServeStars(rating) {
+  $$("#serve-stars .chip").forEach(c => c.classList.toggle("on", Number(c.dataset.star) === Number(rating)));
+}
+function setServeChip(label, btn) {
+  const input = $("#serve-occasion");
+  if (!input) return;
+  const same = input.value.trim() === label;
+  $$("#serve-chips .chip").forEach(c => c.classList.remove("on"));
+  if (same) { input.value = ""; return; }
+  if (btn) btn.classList.add("on");
+  input.value = label;
+}
+function syncServeChip() {
+  const value = (($("#serve-occasion") && $("#serve-occasion").value) || "").trim();
+  $$("#serve-chips .chip").forEach(c => c.classList.toggle("on", c.textContent.trim() === value));
+}
+function setServeRating(n) {
+  const cur = parseInt(($("#serve-rating") && $("#serve-rating").value) || "0", 10);
+  const next = cur === n ? 0 : n;
+  if ($("#serve-rating")) $("#serve-rating").value = next ? String(next) : "";
+  paintServeStars(next);
+}
+function openServeSheet(opts) {
+  pendingServe = opts || null;
+  if (!pendingServe) return;
+  const editing = pendingServe.mode === "edit";
+  if ($("#serve-title")) $("#serve-title").textContent = editing ? "Editar bebida" : "Servir";
+  const w = pendingServe.wineId ? wineById(pendingServe.wineId) : null;
+  const name = w ? (w.producer + " " + w.name) : (pendingServe.fallback || "esta botella");
+  if ($("#serve-hint")) {
+    $("#serve-hint").textContent = editing ? name : ("Vas a servir " + pendingServe.qty + " · " + name);
+  }
+  if ($("#serve-date")) $("#serve-date").value = pendingServe.date || todayIso();
+  if ($("#serve-occasion")) $("#serve-occasion").value = pendingServe.occasion || "";
+  if ($("#serve-people")) $("#serve-people").value = pendingServe.people || "";
+  if ($("#serve-note")) $("#serve-note").value = pendingServe.note || "";
+  if ($("#serve-rating")) $("#serve-rating").value = pendingServe.rating ? String(pendingServe.rating) : "";
+  if ($("#serve-save")) $("#serve-save").textContent = editing ? "Guardar cambios" : "Guardar";
+  if ($("#serve-skip")) $("#serve-skip").textContent = editing ? "Cancelar" : "Omitir";
+  syncServeChip();
+  paintServeStars(pendingServe.rating || 0);
+  showSheet("serve-sheet");
+}
+function askServe(n) {
+  if (!currentBottle) return;
+  const qty = Math.min(Math.max(1, parseInt(n, 10) || 1), currentBottle.qty);
+  if (qty < 1) return;
+  openServeSheet({ mode: "new", qty: qty, wineId: currentBottle.wineId, bottleUid: currentBottle.uid, date: todayIso() });
+}
+function askServeMany() {
+  if (!currentBottle) return;
+  const n = parseInt(prompt("¿Cuántas sirves de este lote? (hay " + currentBottle.qty + ")", "1"), 10);
+  if (!n || n < 1) return;
+  askServe(n);
+}
+function skipServe() {
+  if (!pendingServe || pendingServe.mode === "edit") {
+    pendingServe = null;
+    hideSheets();
+    return;
+  }
+  confirmServe(false);
+}
+function confirmServe(keepNote) {
+  const job = pendingServe;
+  if (!job) return hideSheets();
+  const fields = keepNote ? readServeFields() : { date: todayIso(), occasion: "", people: "", note: "", rating: null };
+  if (job.mode === "edit") {
+    const row = (state.consumption || []).find(c => c.id === job.id);
+    if (row && keepNote) {
+      const at = Date.parse((fields.date || row.date) + "T12:00:00");
+      row.date = fields.date || row.date;
+      if (Number.isFinite(at)) row.at = at;
+      row.occasion = fields.occasion;
+      row.people = fields.people;
+      row.note = fields.note;
+      row.rating = fields.rating;
+      save();
+      toast("Bebida actualizada");
+    }
+    pendingServe = null;
+    hideSheets();
+    if (screenId === "bebidas") renderBebidas();
+    return;
+  }
+  const bottle = state.bottles.find(b => b.uid === job.bottleUid) || currentBottle;
+  if (!bottle) {
+    pendingServe = null;
+    hideSheets();
+    toast("Ese lote ya no está");
+    return;
+  }
+  const wine = wineById(bottle.wineId);
+  const used = Math.min(job.qty, bottle.qty);
+  const wineId = bottle.wineId;
+  const entry = makeConsumption(wine, used, fields);
+  const act = logAct("Servidas " + used + " · " + (wine ? (wine.producer + " " + wine.name) : "botella"), { type: "serve", qty: used, wineId: wineId });
+  entry.sourceAt = act.at;
+  entry.sourceText = act.text;
+  state.consumption = state.consumption || [];
+  state.consumption.unshift(entry);
+  bottle.qty -= used;
+  if (bottle.qty <= 0) {
+    state.bottles = state.bottles.filter(b => b.uid !== bottle.uid);
+    currentBottle = state.bottles.find(b => b.wineId === wineId) || null;
+  } else currentBottle = bottle;
+  save();
+  pendingServe = null;
+  hideSheets();
+  const left = stockOf(wineId);
+  toast(left ? (used + " servida" + (used > 1 ? "s" : "") + " · quedan " + left) : (used + " servida" + (used > 1 ? "s" : "") + " · sin botellas"));
+  openWine(wineId, currentBottle);
+  if (left === 1) maybeStockPush();
 }
 function refreshAddKeep() {
   const hint = $("#add-keep-hint");
@@ -2396,21 +2815,7 @@ function mergeOrCreateLot({ wineId, cellarId, bin, qty, price, note, photo }) {
   return lot;
 }
 function consumeBottle(n) {
-  if (!currentBottle) return;
-  const take = Math.max(1, parseInt(n || 1, 10));
-  const wineId = currentBottle.wineId;
-  const have = currentBottle.qty;
-  const used = Math.min(take, have);
-  currentBottle.qty -= used;
-  logAct(`Servidas ${used} · ${wineById(wineId).producer} ${wineById(wineId).name}`);
-  if (currentBottle.qty <= 0) {
-    const uid = currentBottle.uid;
-    state.bottles = state.bottles.filter(b => b.uid !== uid);
-    currentBottle = state.bottles.find(b => b.wineId === wineId) || null;
-  }
-  save();
-  toast(currentBottle ? `${used} servida${used>1?"s":""} · quedan ${currentBottle.qty}` : `${used} servida${used>1?"s":""} · lote vacío`);
-  openWine(wineId, currentBottle);
+  askServe(n);
 }
 function addToLot(n) {
   if (!currentBottle) return showSheet("add-sheet");
@@ -4714,10 +5119,7 @@ function quickAdd(wineId) {
   }
 }
 function consumeMany() {
-  if (!currentBottle) return;
-  const n = parseInt(prompt("¿Cuántas sirves de este lote? (hay " + currentBottle.qty + ")", "1"), 10);
-  if (!n || n < 1) return;
-  consumeBottle(n);
+  askServeMany();
 }
 function deleteCave(id) {
   const v = state.vinotecas.find(x => x.id === id);
@@ -4809,6 +5211,8 @@ function openNotify() {
   $("#n-evolve").checked = n.evolve !== false;
   $("#n-ready").checked = n.ready !== false;
   $("#n-temp").checked = n.temp !== false;
+  if ($("#n-stock")) $("#n-stock").checked = n.stock !== false;
+  if ($("#stock-notices")) $("#stock-notices").innerHTML = stockNoticesHtml();
   const perm = typeof Notification === "undefined" ? "unsupported" : Notification.permission;
   const tip = {
     granted: "Permiso dado. Los avisos salen al abrir la app y en pruebas.",
@@ -4937,6 +5341,7 @@ function runNotifyCheck(force) {
     const w = wineById(ready[0].wineId);
     pushNote("En apogeo", w.producer + " " + w.name + " listo para abrir.", "ready", "home");
   }
+  if (n.stock !== false) maybeStockPush();
   forceOnce = false;
 }
 
@@ -5318,6 +5723,7 @@ function renderPerfil() {
     <div class="card" role="button" onclick="openPerfilSub('cata')"><div class="row"><h3>Preferencias de cata</h3><span>›</span></div><p class="muted">Escala 0–${p.scale}. El cuaderno aprobado no cambia.</p></div>
     <div class="card" role="button" onclick="openPerfilSub('fuentes')"><div class="row"><h3>Puntuaciones externas</h3><span>›</span></div><p class="muted">Qué guías se ven en la ficha.</p></div>
     <div class="card" role="button" onclick="openPerfilSub('privacidad')"><div class="row"><h3>Privacidad y seguridad</h3><span>›</span></div><p class="muted">Valor, precios, hueco.</p></div>
+    <div class="card" role="button" onclick="show('bebidas')"><div class="row"><h3>Bebidas</h3><span>›</span></div><p class="muted">Historial de lo servido, por año y mes.</p></div>
     <div class="card" role="button" onclick="openPerfilSub('backup')"><div class="row"><h3>Copias de seguridad</h3><span>›</span></div><p class="muted">Exportar y restaurar JSON / CSV.</p></div>
     <div class="card" role="button" onclick="openPerfilSub('acerca')"><div class="row"><h3>Acerca de</h3><span>›</span></div><p class="muted">Versión ${APP_VERSION} · esquema localStorage</p></div>
     <input id="restore-file" type="file" accept="application/json,.json" hidden onchange="reviewRestore(this.files[0])" />
@@ -5484,6 +5890,8 @@ function ensureStateShape(target) {
   if (!target.activity) target.activity = [];
   if (!target.customWines) target.customWines = [];
   if (!target.inbox) target.inbox = [];
+  if (!target.notify.dismissedStock) target.notify.dismissedStock = [];
+  ensureConsumption(target);
   (target.vinotecas || []).forEach(v => { if (v && !v.houseId) v.houseId = "h1"; });
   return target;
 }
@@ -5558,6 +5966,8 @@ function applyRestoredBackup(data) {
     if (data.customWines) state.customWines = data.customWines;
     if (data.inbox) state.inbox = data.inbox;
     if (data.activity) state.activity = data.activity;
+    if (Array.isArray(data.consumption)) state.consumption = data.consumption;
+    else if (data.activity) state.consumptionBackfilled = false;
     if (data.prefs) {
       state.prefs = Object.assign(prefs(), data.prefs);
       state.prefs.lastBackup = keptStamp;
@@ -5616,7 +6026,8 @@ function reviewRestore(file) {
       const nT = Object.keys((bag.tasting) || {}).length;
       const nCustom = ((bag.customWines) || data.customWines || []).length;
       const nLabels = data.labels ? Object.keys(data.labels).length : 0;
-      if (!confirm(`COPIA ENCONTRADA\n${nW} vinos\n${nB} lotes de botellas\n${nT} catas\n${nCustom} vinos propios\n${nLabels} fotos de etiqueta\nFecha: ${data.savedAt || "—"}\n\nEsto REEMPLAZA la colección actual. ¿Continuar?`)) return;
+      const nDrink = ((bag.consumption) || data.consumption || []).length;
+      if (!confirm(`COPIA ENCONTRADA\n${nW} vinos\n${nB} lotes de botellas\n${nT} catas\n${nCustom} vinos propios\n${nDrink} bebidas\n${nLabels} fotos de etiqueta\nFecha: ${data.savedAt || "—"}\n\nEsto REEMPLAZA la colección actual. ¿Continuar?`)) return;
       applyRestoredBackup(data).then(() => {
         toast("Colección restaurada");
         show("perfil");
@@ -5690,6 +6101,17 @@ window.openHomeMap = openHomeMap;
 window.openWineThenTaste = openWineThenTaste;
 window.addToLot = addToLot;
 window.consumeMany = consumeMany;
+window.askServe = askServe;
+window.askServeMany = askServeMany;
+window.confirmServe = confirmServe;
+window.skipServe = skipServe;
+window.setServeChip = setServeChip;
+window.syncServeChip = syncServeChip;
+window.setServeRating = setServeRating;
+window.editConsumption = editConsumption;
+window.deleteConsumption = deleteConsumption;
+window.dismissStock = dismissStock;
+window.renderBebidas = renderBebidas;
 window.deleteCave = deleteCave;
 window.goBack = goBack;
 window.refreshAddKeep = refreshAddKeep;

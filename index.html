@@ -9,14 +9,14 @@
   <meta name="apple-mobile-web-app-title" content="Casa Llavaneras" />
   <meta name="application-name" content="Casa Llavaneras" />
   <meta name="theme-color" content="#000000" />
-  <meta name="app-version" content="v71" />
+  <meta name="app-version" content="v72" />
   <title>Casa Llavaneras</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="apple-touch-icon" href="apple-touch-icon.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
   <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png" />
-  <link rel="stylesheet" href="styles.css?v=71" />
+  <link rel="stylesheet" href="styles.css?v=72" />
 </head>
 <body>
   <div class="device">
@@ -43,6 +43,7 @@
           </div>
           <div id="home-kpis" class="kpi-grid"></div>
           <div id="home-featured"></div>
+          <div id="home-open"></div>
           <div id="home-ready"></div>
           <div id="home-tasting"></div>
           <div id="home-alerts"></div>
@@ -108,6 +109,10 @@
       </section>
       <section id="perfil-sub" class="screen">
         <div class="scroll" id="perfil-sub-body"></div>
+      </section>
+
+      <section id="bebidas" class="screen">
+        <div class="scroll" id="bebidas-body"></div>
       </section>
 
       <section id="calendar" class="screen">
@@ -315,6 +320,9 @@
         <label class="switch-row"><span>Beber pronto / maduros</span><input id="n-evolve" type="checkbox" onchange="setNotify('evolve', this.checked)" /></label>
         <label class="switch-row"><span>En apogeo esta semana</span><input id="n-ready" type="checkbox" onchange="setNotify('ready', this.checked)" /></label>
         <label class="switch-row"><span>Temperatura alta</span><input id="n-temp" type="checkbox" onchange="setNotify('temp', this.checked)" /></label>
+        <label class="switch-row"><span>Última botella</span><input id="n-stock" type="checkbox" onchange="setNotify('stock', this.checked)" /></label>
+        <div id="stock-notices"></div>
+        <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="hideSheets();show('bebidas')">Ver bebidas</button>
         <p id="notify-perm" class="tiny" style="margin:12px 0"></p>
         <button class="btn btn-gold" style="width:100%" onclick="enableNotifications()">Permitir en el iPhone</button>
         <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="testNotification()">Probar aviso</button>
@@ -329,6 +337,37 @@
         <label class="field"><span>API URL</span><input id="p-url" placeholder="https://www.wine-searcher.com/ws_api.php" /></label>
         <label class="field"><span>Clave Wine-Searcher</span><input id="p-key" placeholder="Opcional" autocomplete="off" /></label>
         <button class="btn btn-gold" style="width:100%" onclick="savePriceCfg()">Guardar precios</button>
+      </div>
+    </div>
+
+    <div id="serve-sheet" class="modal-bg" onclick="if(event.target===this)hideSheets()">
+      <div class="sheet">
+        <div class="handle"></div>
+        <h3 id="serve-title">Servir</h3>
+        <p class="tiny" id="serve-hint"></p>
+        <p class="muted" style="margin:6px 0 10px">La nota es opcional. Puedes omitirla y servir igual.</p>
+        <label class="field"><span>Fecha</span><input id="serve-date" type="date" /></label>
+        <span class="tiny">Ocasión</span>
+        <div class="chip-row" id="serve-chips">
+          <button type="button" class="chip" onclick="setServeChip('Cena', this)">Cena</button>
+          <button type="button" class="chip" onclick="setServeChip('Celebración', this)">Celebración</button>
+          <button type="button" class="chip" onclick="setServeChip('Cata', this)">Cata</button>
+          <button type="button" class="chip" onclick="setServeChip('Regalo', this)">Regalo</button>
+        </div>
+        <label class="field"><span>Otra ocasión</span><input id="serve-occasion" placeholder="Aniversario, comida…" oninput="syncServeChip()" /></label>
+        <label class="field"><span>Con quién</span><input id="serve-people" placeholder="Familia, invitados…" /></label>
+        <span class="tiny">Nota (1–5)</span>
+        <div class="chip-row" id="serve-stars">
+          <button type="button" class="chip" data-star="1" onclick="setServeRating(1)">★</button>
+          <button type="button" class="chip" data-star="2" onclick="setServeRating(2)">★★</button>
+          <button type="button" class="chip" data-star="3" onclick="setServeRating(3)">★★★</button>
+          <button type="button" class="chip" data-star="4" onclick="setServeRating(4)">★★★★</button>
+          <button type="button" class="chip" data-star="5" onclick="setServeRating(5)">★★★★★</button>
+        </div>
+        <input id="serve-rating" type="hidden" value="" />
+        <label class="field"><span>Recuerdo</span><textarea id="serve-note" placeholder="Qué se te quedó"></textarea></label>
+        <button id="serve-save" class="btn btn-gold" style="width:100%" onclick="confirmServe(true)">Guardar</button>
+        <button id="serve-skip" class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="skipServe()">Omitir</button>
       </div>
     </div>
 
@@ -390,12 +429,12 @@
       if (!window.__casaReady) casaShowBootError();
     }, 8000);
   </script>
-  <script src="wines.js?v=71"></script>
-  <script src="bodegas.js?v=71"></script>
-  <script src="dossiers.js?v=71"></script>
-  <script src="providers/wineProvider.js?v=71"></script>
-  <script src="pairings.js?v=71"></script>
-  <script src="app.js?v=71"></script>
+  <script src="wines.js?v=72"></script>
+  <script src="bodegas.js?v=72"></script>
+  <script src="dossiers.js?v=72"></script>
+  <script src="providers/wineProvider.js?v=72"></script>
+  <script src="pairings.js?v=72"></script>
+  <script src="app.js?v=72"></script>
   <script>
     document.querySelectorAll(".tab").forEach((t, i) => {
       const icons = [
@@ -434,7 +473,7 @@
         const current = (document.querySelector('meta[name="app-version"]') || {}).content || "";
         if (data.version && current && data.version !== current) reloadForSw();
       });
-      navigator.serviceWorker.register("sw.js?v=71").catch(() => {});
+      navigator.serviceWorker.register("sw.js?v=72").catch(() => {});
     }
   </script>
 </body>
