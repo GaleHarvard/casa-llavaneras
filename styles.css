@@ -137,7 +137,7 @@ h3 {
   letter-spacing: -0.04em;
   font-variant-numeric: tabular-nums;
 }
-.kpi span { font-size: 11px; color: var(--muted); letter-spacing: 0.02em; }
+.kpi span { display: block; font-size: 11px; color: var(--muted); letter-spacing: 0.02em; line-height: 1.35; }
 
 .card {
   background: var(--card);
@@ -1015,6 +1015,14 @@ a.btn{text-decoration:none}
 .rack-slot.empty{opacity:.55}
 .rack-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#c4a35a;margin-top:8px}
 .rack-dot.off{background:#333}
+.rack-rows{display:flex;flex-direction:column;gap:8px;margin:10px 0 16px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.rack-row{display:grid;gap:8px}
+.rack-focus{outline:2px solid #c4a35a;box-shadow:0 0 0 3px rgba(196,163,90,.45);animation:rack-pulse 1.1s ease-in-out 3}
+@keyframes rack-pulse{0%,100%{box-shadow:0 0 0 2px rgba(196,163,90,.3)}50%{box-shadow:0 0 0 7px rgba(196,163,90,.65)}}
+.rack-free{cursor:pointer}
+.rack-free.on{border-color:#c4a35a;outline:1px solid #c4a35a}
+#add-free-grid{grid-template-columns:repeat(4,1fr);max-height:220px;overflow:auto}
+#serve-bebida[hidden]{display:none !important}
 .temp-ring-row{display:flex;gap:16px;align-items:center;margin:8px 0 20px}
 .temp-ring{width:92px;height:92px;border-radius:50%;border:3px solid #c4a35a;display:flex;flex-direction:column;align-items:center;justify-content:center}
 .temp-ring b{font-size:22px;line-height:1}

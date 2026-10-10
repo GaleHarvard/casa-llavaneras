@@ -9,14 +9,14 @@
   <meta name="apple-mobile-web-app-title" content="Casa Llavaneras" />
   <meta name="application-name" content="Casa Llavaneras" />
   <meta name="theme-color" content="#000000" />
-  <meta name="app-version" content="v73" />
+  <meta name="app-version" content="v74" />
   <title>Casa Llavaneras</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="apple-touch-icon" href="apple-touch-icon.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
   <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png" />
-  <link rel="stylesheet" href="styles.css?v=73" />
+  <link rel="stylesheet" href="styles.css?v=74" />
 </head>
 <body>
   <div class="device">
@@ -113,6 +113,9 @@
 
       <section id="bebidas" class="screen">
         <div class="scroll" id="bebidas-body"></div>
+      </section>
+      <section id="balance" class="screen">
+        <div class="scroll" id="balance-body"></div>
       </section>
 
       <section id="calendar" class="screen">
@@ -233,7 +236,9 @@
         <h3>Añadir a vinoteca</h3>
         <p class="tiny" id="add-keep-hint" style="margin:0 0 10px"></p>
         <label class="field"><span>Vinoteca</span><select id="add-cellar" onchange="onAddCellarChange()"></select></label>
-        <label class="field"><span>Hueco / bandeja</span><input id="add-bin" placeholder="A-14" /></label>
+        <label class="field"><span>Hueco / bandeja</span><input id="add-bin" placeholder="A-14" oninput="onAddBinInput()" /></label>
+        <p class="tiny" id="add-free-hint" style="margin:0 0 8px"></p>
+        <div id="add-free-grid" class="rack"></div>
         <label class="field"><span>Botellas</span><input id="add-qty" type="number" min="1" value="1" /></label>
         <label class="field"><span>Precio € / botella</span><input id="add-price" type="number" step="0.01" /></label>
         <label class="field"><span>Nota</span><textarea id="add-note" placeholder="Caja, ocasión, proveedor…"></textarea></label>
@@ -343,10 +348,19 @@
     <div id="serve-sheet" class="modal-bg" onclick="if(event.target===this)hideSheets()">
       <div class="sheet">
         <div class="handle"></div>
-        <h3 id="serve-title">Servir</h3>
+        <h3 id="serve-title">Salida de cava</h3>
         <p class="tiny" id="serve-hint"></p>
-        <p class="muted" style="margin:6px 0 10px">La nota es opcional. Puedes omitirla y servir igual.</p>
+        <p class="muted" style="margin:6px 0 10px">Elige el motivo. La nota es opcional.</p>
+        <span class="tiny">Motivo</span>
+        <div class="chip-row" id="serve-reasons">
+          <button type="button" class="chip on" data-reason="bebida" onclick="setExitReason('bebida', this)">Bebida</button>
+          <button type="button" class="chip" data-reason="regalada" onclick="setExitReason('regalada', this)">Regalada</button>
+          <button type="button" class="chip" data-reason="defecto" onclick="setExitReason('defecto', this)">Defectuosa / corcho</button>
+          <button type="button" class="chip" data-reason="vendida" onclick="setExitReason('vendida', this)">Vendida</button>
+          <button type="button" class="chip" data-reason="otro" onclick="setExitReason('otro', this)">Otro</button>
+        </div>
         <label class="field"><span>Fecha</span><input id="serve-date" type="date" /></label>
+        <div id="serve-bebida">
         <span class="tiny">Ocasión</span>
         <div class="chip-row" id="serve-chips">
           <button type="button" class="chip" onclick="setServeChip('Cena', this)">Cena</button>
@@ -365,9 +379,24 @@
           <button type="button" class="chip" data-star="5" onclick="setServeRating(5)">★★★★★</button>
         </div>
         <input id="serve-rating" type="hidden" value="" />
-        <label class="field"><span>Recuerdo</span><textarea id="serve-note" placeholder="Qué se te quedó"></textarea></label>
+        </div>
+        <label class="field"><span>Nota</span><textarea id="serve-note" placeholder="Qué se te quedó"></textarea></label>
         <button id="serve-save" class="btn btn-gold" style="width:100%" onclick="confirmServe(true)">Guardar</button>
-        <button id="serve-skip" class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="skipServe()">Omitir</button>
+        <button id="serve-skip" class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="skipServe()">Omitir nota</button>
+      </div>
+    </div>
+
+    <div id="exit-sheet" class="modal-bg" onclick="if(event.target===this)hideSheets()">
+      <div class="sheet">
+        <div class="handle"></div>
+        <h3 id="exit-title">Quitar lote</h3>
+        <p class="tiny" id="exit-hint"></p>
+        <p class="muted" style="margin:6px 0 10px">Si fue un error de registro, no cuenta en el historial.</p>
+        <span class="tiny">Motivo</span>
+        <div class="chip-row" id="exit-reasons"></div>
+        <label class="field"><span>Nota</span><textarea id="exit-note" placeholder="Opcional"></textarea></label>
+        <button class="btn btn-gold" style="width:100%" onclick="confirmExit()">Quitar</button>
+        <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="hideSheets()">Cancelar</button>
       </div>
     </div>
 
@@ -429,12 +458,12 @@
       if (!window.__casaReady) casaShowBootError();
     }, 8000);
   </script>
-  <script src="wines.js?v=73"></script>
-  <script src="bodegas.js?v=73"></script>
-  <script src="dossiers.js?v=73"></script>
-  <script src="providers/wineProvider.js?v=73"></script>
-  <script src="pairings.js?v=73"></script>
-  <script src="app.js?v=73"></script>
+  <script src="wines.js?v=74"></script>
+  <script src="bodegas.js?v=74"></script>
+  <script src="dossiers.js?v=74"></script>
+  <script src="providers/wineProvider.js?v=74"></script>
+  <script src="pairings.js?v=74"></script>
+  <script src="app.js?v=74"></script>
   <script>
     document.querySelectorAll(".tab").forEach((t, i) => {
       const icons = [
@@ -473,7 +502,7 @@
         const current = (document.querySelector('meta[name="app-version"]') || {}).content || "";
         if (data.version && current && data.version !== current) reloadForSw();
       });
-      navigator.serviceWorker.register("sw.js?v=73").catch(() => {});
+      navigator.serviceWorker.register("sw.js?v=74").catch(() => {});
     }
   </script>
 </body>

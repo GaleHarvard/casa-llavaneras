@@ -28,7 +28,7 @@ function dossierOf(w) {
 const NOW = new Date(2026, 8, 22);
 const YEAR = NOW.getFullYear();
 const STORE = "vinoteca.pro.max.v3";
-const APP_VERSION = "v73";
+const APP_VERSION = "v74";
 const PRICE_CFG_KEY = "vinoteca-jgc-provider";
 
 const ICONS = {
@@ -107,6 +107,7 @@ let tesseractReady = null;
 function load() {
   try {
     const raw = localStorage.getItem(STORE) || localStorage.getItem("vinoteca.pro.max.v1") || localStorage.getItem("vinoteca.pro.max.v2");
+    keepPreMigrationSnapshot(raw);
     if (!raw) return defaultState();
     const parsed = JSON.parse(raw);
     if (!parsed.vinotecas || !parsed.bottles) return defaultState();
@@ -126,6 +127,7 @@ function load() {
     if (!parsed.customWines) parsed.customWines = [];
     if (!parsed.inbox) parsed.inbox = [];
     ensureConsumption(parsed);
+    ensureExitReasons(parsed);
     parsed.vinotecas.forEach(v => { if (!v.houseId) v.houseId = "h1"; });
     return parsed;
   } catch {
@@ -204,6 +206,19 @@ function totalBottles() {
 function cellarValue() {
   return state.bottles.reduce((n, b) => n + (Number(b.price) || 0) * b.qty, 0);
 }
+function euro(n) {
+  const v = Math.round(Number(n) || 0);
+  try { return v.toLocaleString("es-ES") + " €"; }
+  catch (e) { return v + " €"; }
+}
+function keepPreMigrationSnapshot(raw) {
+  if (!raw) return;
+  const key = STORE + ".antes-v74";
+  try {
+    if (localStorage.getItem(key)) return;
+    localStorage.setItem(key, raw);
+  } catch (err) {}
+}
 
 function bottlesReady() {
   return state.bottles.filter(b => {
@@ -249,6 +264,7 @@ function show(id, opts) {
   if (id === "zonas") renderZonas();
   if (id === "catas") renderCatas();
   if (id === "bebidas") renderBebidas();
+  if (id === "balance") renderBalance();
   mountLabelThumbs(document.getElementById(id));
 }
 function backCaption() {
@@ -257,7 +273,7 @@ function backCaption() {
   const names = {
     home: "Inicio", caves: "Vinotecas", "cave-detail-screen": "Vinoteca",
     cellar: "Botellas", calendar: "Fechas", pairings: "Mesa", scan: "Escanear", inbox: "Entradas",
-    perfil: "Perfil", "perfil-sub": "Perfil", zonas: "Zonas", catas: "Catas", bebidas: "Bebidas",
+    perfil: "Perfil", "perfil-sub": "Perfil", zonas: "Zonas", catas: "Catas", bebidas: "Bebidas", balance: "Balance",
     dish: "Plato", wine: "Ficha", "wine-sub": "Ficha"
   };
   if (p.id === "wine" && p.wineId) {
@@ -298,7 +314,7 @@ function renderHome() {
   const cap = state.vinotecas.reduce((n, v) => n + (v.capacity || 0), 0);
   $("#home-kpis").innerHTML = `
     <div class="kpi"><b>${totalBottles()}/${cap}</b><span>En cava</span></div>
-    <div class="kpi"><b>${state.prefs.hideValue ? "—" : cellarValue() + " €"}</b><span>Valor</span></div>
+    <div class="kpi" role="button" onclick="show('balance')"><b>${state.prefs.hideValue ? "—" : euro(cellarValue())}</b><span>${state.prefs.hideValue ? "Valor" : ("Coste · " + euro(cellarMarketValue()) + " mercado")}</span></div>
     <div class="kpi"><b>${ready.reduce((n,b)=>n+b.qty,0)}</b><span>Para servir</span></div>
     <div class="kpi"><b>${main && Number.isFinite(Number(main.tHigh)) ? Number(main.tHigh).toFixed(1) + "°" : "—"}</b><span>VIP 185</span></div>`;
 
@@ -487,9 +503,24 @@ function maybeStockPush() {
   pushNote("Última botella", "Queda 1 botella de " + w.producer + " " + w.name + extra, "stock-" + w.id, "home");
 }
 function typeLabel(t) {
-  const map = { tinto: "Tinto", blanco: "Blanco", espumoso: "Espumoso", rosado: "Rosado", otro: "Otro" };
+  const map = { tinto: "Tinto", blanco: "Blanco", espumoso: "Espumoso", rosado: "Rosado", dulce: "Dulce", generoso: "Generoso", otro: "Otro" };
   return map[t] || (t ? String(t).charAt(0).toUpperCase() + String(t).slice(1) : "Otro");
 }
+const EXIT_REASONS = [
+  { id: "bebida", label: "Bebida" },
+  { id: "regalada", label: "Regalada" },
+  { id: "defecto", label: "Defectuosa / corcho" },
+  { id: "vendida", label: "Vendida" },
+  { id: "otro", label: "Otro" }
+];
+function reasonLabel(c) {
+  const id = c && c.reason ? String(c.reason) : "bebida";
+  const hit = EXIT_REASONS.find(r => r.id === id);
+  if (hit) return hit.label;
+  if (id === "Bebida") return "Bebida";
+  return id;
+}
+let bebidaFilter = "todas";
 const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
 function consumptionThumb(c) {
   const live = c.wineId && wineById(c.wineId);
@@ -500,11 +531,18 @@ function consumptionThumb(c) {
 function renderBebidas() {
   const el = $("#bebidas-body");
   if (!el) return;
-  const list = (state.consumption || []).slice().sort((a, b) => (b.at || 0) - (a.at || 0));
+  const all = (state.consumption || []).slice().sort((a, b) => (b.at || 0) - (a.at || 0));
+  const filters = [{ id: "todas", label: "Todas" }].concat(EXIT_REASONS);
+  const chips = `<div class="chip-row" style="margin-top:12px">${filters.map(f => `<button type="button" class="chip ${bebidaFilter === f.id ? "on" : ""}" onclick="setBebidaFilter('${f.id}')">${f.label}</button>`).join("")}</div>`;
   const head = `<button class="back" onclick="goBack()">‹ ${backCaption()}</button>
-    <div class="hero"><p class="eyebrow">Historial</p><h1>Bebidas</h1><p>Lo servido se queda aquí aunque el lote se acabe.</p></div>`;
+    <div class="hero"><p class="eyebrow">Historial</p><h1>Bebidas</h1><p>Lo que sale de la cava se queda aquí, con su motivo.</p></div>${chips}`;
+  const list = all.filter(c => bebidaFilter === "todas" || (c.reason || "bebida") === bebidaFilter);
+  if (!all.length) {
+    el.innerHTML = head + `<p class="empty">Aún no hay salidas de la cava.</p>`;
+    return;
+  }
   if (!list.length) {
-    el.innerHTML = head + `<p class="empty">Aún no hay botellas servidas.</p>`;
+    el.innerHTML = head + `<p class="empty">Nada con ese motivo.</p>`;
     return;
   }
   const byYear = {};
@@ -516,12 +554,12 @@ function renderBebidas() {
   const blocks = years.map(y => {
     const rows = byYear[y];
     const n = rows.reduce((s, c) => s + (Number(c.qty) || 1), 0);
-    const types = {};
+    const reasons = {};
     rows.forEach(c => {
-      const t = c.type || "otro";
-      types[t] = (types[t] || 0) + (Number(c.qty) || 1);
+      const r = reasonLabel(c);
+      reasons[r] = (reasons[r] || 0) + (Number(c.qty) || 1);
     });
-    const typeLine = Object.keys(types).map(t => typeLabel(t) + " " + types[t]).join(" · ");
+    const reasonLine = Object.keys(reasons).map(r => r + " " + reasons[r]).join(" · ");
     const byMonth = {};
     rows.forEach(c => {
       const mk = String(c.date || isoFromTs(c.at)).slice(0, 7);
@@ -531,12 +569,12 @@ function renderBebidas() {
       const monthIndex = Math.max(0, (parseInt(mk.slice(5, 7), 10) || 1) - 1);
       const cards = byMonth[mk].map(c => {
         const when = (c.date || "").split("-").reverse().join("/");
-        const bits = [when, c.occasion, c.people, c.rating ? starsRow(c.rating) : ""].filter(Boolean).join(" · ");
+        const bits = [when, reasonLabel(c), c.reason === "bebida" || !c.reason ? c.occasion : "", c.people, c.rating ? starsRow(c.rating) : ""].filter(Boolean).join(" · ");
         return `<div class="card" style="margin-top:8px">
           <div class="bottle-row">
             ${consumptionThumb(c)}
             <div class="meta">
-              <h3>${escHtml(c.producer || "Bodega")}</h3>
+              <div class="row"><h3>${escHtml(c.producer || "Bodega")}</h3><span class="badge">${escHtml(reasonLabel(c))}</span></div>
               <p>${escHtml(c.name || "Vino")} ${escHtml(String(c.vintage || ""))}${c.qty > 1 ? " · " + c.qty + " botellas" : ""}</p>
               <p class="tiny">${escHtml(bits)}</p>
               ${c.note ? `<p class="muted">${escHtml(c.note)}</p>` : ""}
@@ -550,10 +588,143 @@ function renderBebidas() {
       }).join("");
       return `<h2 class="cal-h">${MESES[monthIndex] || mk}</h2>${cards}`;
     }).join("");
-    return `<div class="card" style="margin-top:12px"><div class="row"><h3>${escHtml(y)}</h3><span class="badge">${n} botella${n > 1 ? "s" : ""}</span></div><p class="muted" style="margin-top:6px">${escHtml(typeLine)}</p></div>${months}`;
+    return `<div class="card" style="margin-top:12px"><div class="row"><h3>${escHtml(y)}</h3><span class="badge">${n} botella${n > 1 ? "s" : ""}</span></div><p class="muted" style="margin-top:6px">${escHtml(reasonLine)}</p></div>${months}`;
   }).join("");
   el.innerHTML = head + blocks;
   mountLabelThumbs(el);
+}
+function setBebidaFilter(id) {
+  bebidaFilter = id || "todas";
+  renderBebidas();
+}
+function balanceTypeOf(w) {
+  const t = String((w && w.type) || "").toLowerCase();
+  if (t === "rose") return "rosado";
+  if (["tinto", "blanco", "espumoso", "rosado", "dulce", "generoso"].indexOf(t) >= 0) return t;
+  return "otro";
+}
+function unitMarket(w) {
+  if (!w) return 0;
+  const over = state.marketOverrides && state.marketOverrides[w.id];
+  const custom = over && Number(over.mid);
+  if (custom > 0) return custom;
+  const band = typeof marketBand === "function" ? marketBand(w) : null;
+  const mid = band && Number(band.mid);
+  return mid > 0 ? mid : 0;
+}
+function cellarMarketValue() {
+  return (state.bottles || []).reduce((n, b) => n + unitMarket(wineById(b.wineId)) * (Number(b.qty) || 0), 0);
+}
+function balanceRows() {
+  const byWine = {};
+  (state.bottles || []).forEach(b => {
+    const w = wineById(b.wineId);
+    if (!w) return;
+    const row = byWine[w.id] || (byWine[w.id] = {
+      id: w.id, wine: w, qty: 0, cost: 0, marketEach: unitMarket(w)
+    });
+    const qty = Number(b.qty) || 0;
+    row.qty += qty;
+    row.cost += (Number(b.price) || 0) * qty;
+  });
+  return Object.keys(byWine).map(id => byWine[id]);
+}
+function renderBalance() {
+  const el = $("#balance-body");
+  if (!el) return;
+  const hidden = !!(state.prefs && state.prefs.hideValue);
+  const rows = balanceRows();
+  const bottles = rows.reduce((n, r) => n + r.qty, 0);
+  const cost = rows.reduce((n, r) => n + r.cost, 0);
+  const market = rows.reduce((n, r) => n + (r.marketEach > 0 ? r.marketEach * r.qty : 0), 0);
+  const diff = market - cost;
+  const pct = cost > 0 ? Math.round((diff / cost) * 100) : null;
+  const money = n => hidden ? "—" : euro(n);
+  const types = ["tinto", "blanco", "espumoso", "rosado", "dulce", "generoso", "otro"];
+  const byType = {};
+  rows.forEach(r => {
+    const key = balanceTypeOf(r.wine);
+    const box = byType[key] || (byType[key] = { qty: 0, cost: 0, market: 0 });
+    box.qty += r.qty;
+    box.cost += r.cost;
+    if (r.marketEach > 0) box.market += r.marketEach * r.qty;
+  });
+  const typeHtml = types.filter(t => byType[t]).map(t => {
+    const box = byType[t];
+    const d = box.market - box.cost;
+    return `<div class="card" style="margin-top:8px"><div class="row"><h3>${typeLabel(t)}</h3><span class="tiny">${box.qty} bot.</span></div><p class="muted" style="margin-top:6px">Coste ${money(box.cost)} · mercado ${money(box.market)} · ${hidden ? "—" : ((d >= 0 ? "+" : "") + euro(d))}</p></div>`;
+  }).join("");
+  const gains = rows.filter(r => r.marketEach > 0 && r.cost > 0).map(r => {
+    const m = r.marketEach * r.qty;
+    return { row: r, gain: m - r.cost, pct: Math.round(((m - r.cost) / r.cost) * 100) };
+  }).sort((a, b) => b.gain - a.gain).slice(0, 5);
+  const gainHtml = gains.length ? gains.map(g => `<div class="card" style="margin-top:8px"><div class="row"><h3>${escHtml(g.row.wine.producer)}</h3><span class="badge ${g.gain >= 0 ? "ok" : "late"}">${hidden ? "—" : ((g.gain >= 0 ? "+" : "") + euro(g.gain))}</span></div><p class="muted">${escHtml(g.row.wine.name)} ${escHtml(String(g.row.wine.vintage || ""))} · ${hidden ? "" : (g.pct >= 0 ? "+" : "") + g.pct + "%"}</p></div>`).join("") : `<p class="empty">Aún no hay compras con valor de mercado.</p>`;
+  const missing = rows.filter(r => !(r.marketEach > 0));
+  const missingQty = missing.reduce((n, r) => n + r.qty, 0);
+  const missingHtml = missing.length ? `<div class="card" style="margin-top:12px"><h3>${missingQty} botella${missingQty > 1 ? "s" : ""} sin valor de mercado</h3><p class="muted" style="margin-top:6px">${missing.map(r => escHtml(r.wine.producer + " " + r.wine.name)).join(" · ")}</p><div class="btn-row"><button class="btn btn-gold" onclick="estimateMissingMarket()">Estimar con Gemini</button><button class="btn btn-ghost" onclick="editMissingMarket()">Editar</button></div><div id="balance-edit"></div></div>` : `<p class="tiny" style="margin-top:12px">Todas las botellas tienen valor de mercado.</p>`;
+  el.innerHTML = `
+    <button class="back" onclick="goBack()">‹ ${backCaption()}</button>
+    <div class="hero"><p class="eyebrow">Colección</p><h1>Balance</h1><p>Coste de compra frente al valor de mercado estimado.</p></div>
+    <div class="temp-grid">
+      <div class="temp"><span class="tiny">En cava</span><b>${bottles}</b></div>
+      <div class="temp"><span class="tiny">Coste</span><b>${money(cost)}</b></div>
+      <div class="temp"><span class="tiny">Mercado</span><b>${money(market)}</b></div>
+      <div class="temp"><span class="tiny">Diferencia</span><b>${hidden ? "—" : ((diff >= 0 ? "+" : "") + euro(diff))}</b></div>
+    </div>
+    <p class="tiny" style="margin:8px 0 0">${pct == null || hidden ? "Sin porcentaje: falta el coste." : ((pct >= 0 ? "+" : "") + pct + "% sobre el coste")}</p>
+    <h2 style="margin-top:16px">Por tipo</h2>
+    ${typeHtml || `<p class="empty">La cava está vacía.</p>`}
+    <h2 style="margin-top:16px">Mayores diferencias</h2>
+    ${gainHtml}
+    ${missingHtml}`;
+}
+function editMissingMarket() {
+  const box = document.getElementById("balance-edit");
+  if (!box) return;
+  const missing = balanceRows().filter(r => !(r.marketEach > 0));
+  if (!missing.length) return toast("Todas tienen valor de mercado");
+  box.innerHTML = missing.map(r => `<label class="field"><span>${escHtml(r.wine.producer)} ${escHtml(r.wine.name)}</span><input id="mkt-${r.id}" type="number" min="1" step="1" placeholder="€ por botella"></label>`).join("") + `<button class="btn btn-gold" style="width:100%" onclick="saveMarketEdits()">Guardar valores</button>`;
+}
+function saveMarketEdits() {
+  state.marketOverrides = state.marketOverrides || {};
+  let n = 0;
+  balanceRows().forEach(r => {
+    const el = document.getElementById("mkt-" + r.id);
+    const mid = el ? Math.round(Number(el.value)) : 0;
+    if (mid > 0) {
+      state.marketOverrides[r.id] = Object.assign({}, state.marketOverrides[r.id] || {}, { mid: mid, source: "manual" });
+      n += 1;
+    }
+  });
+  if (!n) return toast("Escribe un precio");
+  save();
+  toast("Valores guardados");
+  renderBalance();
+}
+async function estimateMissingMarket() {
+  const missing = balanceRows().filter(r => !(r.marketEach > 0));
+  if (!missing.length) return toast("Todas tienen valor de mercado");
+  if (!window.WineDataProvider || typeof storedGeminiKey !== "function" || !storedGeminiKey()) {
+    toast("Activa Gemini en Avisos para estimar");
+    openNotify();
+    return;
+  }
+  toast("Estimando con Gemini…");
+  let got = 0;
+  for (const r of missing) {
+    try {
+      const quote = await WineDataProvider.priceOf(r.wine);
+      const mid = quote && Math.round(Number(quote.mid));
+      if (mid > 0 && quote.source === "gemini") {
+        state.marketOverrides = state.marketOverrides || {};
+        state.marketOverrides[r.id] = { low: quote.low || null, mid: mid, high: quote.high || null, trend: quote.note || quote.trend || "", source: "gemini" };
+        got += 1;
+      }
+    } catch (err) {}
+  }
+  if (got) save();
+  renderBalance();
+  toast(got ? ("Estimadas " + got) : "Gemini no ha dado un precio. Puedes editarlo.");
 }
 function editConsumption(id) {
   const row = (state.consumption || []).find(c => c.id === id);
@@ -568,6 +739,7 @@ function editConsumption(id) {
     people: row.people || "",
     note: row.note || "",
     rating: row.rating || null,
+    reason: row.reason || "bebida",
     fallback: ((row.producer || "") + " " + (row.name || "")).trim()
   });
 }
@@ -1189,7 +1361,7 @@ function syncUsed() {
   });
 }
 
-function openCave(id) {
+function openCave(id, highlightBin) {
   const v = state.vinotecas.find(x => x.id === id);
   if (!v) return;
   ensureCaveSlots(v);
@@ -1206,10 +1378,21 @@ function openCave(id) {
     <label class="field"><span>Humedad %</span><input id="cave-hr" type="number" value="${v.humidity || 65}" /></label>
     <button class="btn btn-gold" style="width:100%;margin:8px 0" onclick="saveCaveTemp('${v.id}')">Modificar temperatura</button>
     <h2>Mapa de huecos</h2>
-    ${rackGrid(id)}
+    ${rackGrid(id, highlightBin || "")}
     <button class="btn btn-ghost" style="width:100%;margin:8px 0" onclick="openSpaceSheet('${v.id}')">Añadir espacios</button>
     <button class="btn btn-ghost" style="width:100%;margin:8px 0" onclick="deleteCave('${v.id}')">Dar de baja esta vinoteca</button>`;
   show("cave-detail-screen");
+  if (highlightBin) {
+    setTimeout(() => {
+      const el = document.querySelector(".rack-focus");
+      if (el && el.scrollIntoView) el.scrollIntoView({ block: "center", inline: "nearest" });
+    }, 40);
+  }
+}
+function showLotInCave() {
+  const b = currentBottle;
+  if (!b || !b.cellarId) return toast("Este vino no está en una vinoteca");
+  openCave(b.cellarId, b.bin || "");
 }
 
 function saveCaveTemp(id) {
@@ -1440,25 +1623,83 @@ function catalogHit(w) {
     </div>
   </div>`;
 }
+let pendingExit = null;
+function exitReasonChips(includeVoid) {
+  const rows = EXIT_REASONS.slice();
+  if (includeVoid) rows.push({ id: "error", label: "Error de registro (no contar)" });
+  return rows.map(r => `<button type="button" class="chip ${r.id === "bebida" ? "on" : ""}" data-reason="${r.id}" onclick="setRemoveReason('${r.id}', this)">${r.label}</button>`).join("");
+}
+function setRemoveReason(id, btn) {
+  if (!pendingExit) return;
+  pendingExit.reason = id;
+  const host = btn && btn.parentElement;
+  if (host) $$(".chip", host).forEach(c => c.classList.toggle("on", c === btn));
+}
+function openExitSheet(job) {
+  pendingExit = job;
+  if (!pendingExit) return;
+  pendingExit.reason = "bebida";
+  if ($("#exit-title")) $("#exit-title").textContent = job.mode === "wine" ? "Quitar del listado" : "Quitar lote";
+  if ($("#exit-hint")) $("#exit-hint").textContent = job.hint || "";
+  if ($("#exit-reasons")) $("#exit-reasons").innerHTML = exitReasonChips(true);
+  if ($("#exit-note")) $("#exit-note").value = "";
+  showSheet("exit-sheet");
+}
 function removeLot(uid) {
   const b = state.bottles.find(x => x.uid === uid);
   if (!b) return;
   const w = wineById(b.wineId);
-  if (!confirm("Quitar este lote" + (w ? " de " + w.name : "") + " del listado?")) return;
-  state.bottles = state.bottles.filter(x => x.uid !== uid);
-  save();
-  renderCellar();
-  toast("Lote quitado");
+  openExitSheet({
+    mode: "lot",
+    uids: [uid],
+    qty: b.qty,
+    wineId: b.wineId,
+    hint: (w ? w.producer + " " + w.name : "Este lote") + " · " + b.qty + " botella" + (b.qty > 1 ? "s" : "")
+  });
 }
 function removeWineLots(wineId) {
-  const w = wineById(wineId);
-  const n = state.bottles.filter(b => b.wineId === wineId).reduce((s, b) => s + b.qty, 0);
+  const lots = state.bottles.filter(b => b.wineId === wineId);
+  const n = lots.reduce((s, b) => s + b.qty, 0);
   if (!n) return;
-  if (!confirm("Quitar " + n + " botella" + (n > 1 ? "s" : "") + (w ? " de " + w.name : "") + " del inventario?")) return;
-  state.bottles = state.bottles.filter(b => b.wineId !== wineId);
+  const w = wineById(wineId);
+  openExitSheet({
+    mode: "wine",
+    uids: lots.map(b => b.uid),
+    qty: n,
+    wineId: wineId,
+    hint: (w ? w.producer + " " + w.name : "Estas botellas") + " · " + n + " botella" + (n > 1 ? "s" : "")
+  });
+}
+function confirmExit() {
+  const job = pendingExit;
+  if (!job) return hideSheets();
+  const reason = job.reason || "bebida";
+  const note = (($("#exit-note") && $("#exit-note").value) || "").trim();
+  const lots = state.bottles.filter(b => job.uids.indexOf(b.uid) >= 0);
+  if (!lots.length) {
+    pendingExit = null;
+    hideSheets();
+    toast("Ese lote ya no está");
+    return;
+  }
+  if (reason !== "error") {
+    const wine = wineById(job.wineId);
+    const entry = makeConsumption(wine, job.qty, { date: todayIso(), note: note, reason: reason });
+    state.consumption = state.consumption || [];
+    state.consumption.unshift(entry);
+    logAct("Salida " + reasonLabel(entry) + " " + job.qty + " · " + (wine ? (wine.producer + " " + wine.name) : "botella"), { type: "exit", qty: job.qty, wineId: job.wineId, reason: reason });
+  }
+  state.bottles = state.bottles.filter(b => job.uids.indexOf(b.uid) < 0);
+  if (currentBottle && job.uids.indexOf(currentBottle.uid) >= 0) currentBottle = null;
   save();
-  renderCellar();
-  toast("Quitado del listado");
+  pendingExit = null;
+  hideSheets();
+  toast(reason === "error" ? "Lote quitado, sin contar" : "Salida registrada");
+  if (screenId === "cellar") renderCellar();
+  else if (screenId === "wine" || screenId === "wine-sub") {
+    if (currentBottle) openWine(currentBottle.wineId, currentBottle);
+    else show("cellar");
+  } else if (screenId === "home") renderHome();
 }
 
 function wineStockCard(lots) {
@@ -1532,7 +1773,39 @@ function rackSlots(cellarId) {
   return [...base, ...extra];
 }
 
-function rackGrid(cellarId) {
+function slotPattern(code) {
+  const m = String(code || "").match(/^([A-Za-z]+)-(\d+)$/);
+  if (!m) return null;
+  return { row: m[1].toUpperCase(), col: parseInt(m[2], 10), code: String(code) };
+}
+function slotsAreGrid(codes) {
+  return codes.length > 0 && codes.every(code => slotPattern(code));
+}
+function rackCell(cellarId, code, highlight, byBin, pending) {
+  const focus = highlight && String(highlight) === String(code) ? " rack-focus" : "";
+  const b = byBin[code];
+  if (b) {
+    const w = wineById(b.wineId) || {};
+    const who = ((w.producer || "").split(" ").slice(-2).join(" ") + " " + (typeof shortWineName === "function" ? shortWineName(w) : "") + " " + (w.vintage || "")).trim();
+    return `<button class="rack-slot${focus}" data-slot="${escHtml(code)}" onclick="openBottle('${b.uid}')">
+      <b>${escHtml(code)}</b>
+      <small>${escHtml(who)}</small>
+      <span class="rack-dot"></span>
+    </button>`;
+  }
+  const p = pending[code];
+  if (p) {
+    const w = wineById(p.wineId);
+    const name = w ? (w.producer.split(" ").slice(-2).join(" ") + " " + w.vintage) : "Alta";
+    return `<button class="rack-slot${focus}" data-slot="${escHtml(code)}" onclick="openWine('${p.wineId}')">
+      <b>${escHtml(code)}</b>
+      <small>${escHtml(name)} · pendiente</small>
+      <span class="rack-dot"></span>
+    </button>`;
+  }
+  return `<div class="rack-slot empty${focus}" data-slot="${escHtml(code)}"><b>${escHtml(code)}</b><small>—</small><span class="rack-dot off"></span></div>`;
+}
+function rackGrid(cellarId, highlight) {
   const list = state.bottles.filter(b => b.cellarId === cellarId);
   const byBin = {};
   list.forEach(b => { if (b.bin) byBin[b.bin] = b; });
@@ -1540,28 +1813,34 @@ function rackGrid(cellarId) {
   (state.inbox || []).forEach(r => {
     if (!r.entered && r.cellarId === cellarId && r.bin && !byBin[r.bin]) pending[r.bin] = r;
   });
-  return `<div class="rack">${rackSlots(cellarId).map(code => {
-    const b = byBin[code];
-    if (b) {
-      const w = wineById(b.wineId);
-      return `<button class="rack-slot" onclick="openBottle('${b.uid}')">
-        <b>${code}</b>
-        <small>${w.producer.split(" ").slice(-2).join(" ")} ${shortWineName(w)} ${w.vintage}</small>
-        <span class="rack-dot"></span>
-      </button>`;
-    }
-    const p = pending[code];
-    if (p) {
-      const w = wineById(p.wineId);
-      const name = w ? (w.producer.split(" ").slice(-2).join(" ") + " " + w.vintage) : "Alta";
-      return `<button class="rack-slot" onclick="openWine('${p.wineId}')">
-        <b>${code}</b>
-        <small>${name} · pendiente</small>
-        <span class="rack-dot"></span>
-      </button>`;
-    }
-    return `<div class="rack-slot empty"><b>${code}</b><small>—</small><span class="rack-dot off"></span></div>`;
-  }).join("")}</div>`;
+  const codes = rackSlots(cellarId);
+  if (!slotsAreGrid(codes)) {
+    return `<div class="rack">${codes.map(code => rackCell(cellarId, code, highlight, byBin, pending)).join("")}</div>`;
+  }
+  const parsed = codes.map(slotPattern);
+  const rows = [];
+  const cols = [];
+  parsed.forEach(p => {
+    if (rows.indexOf(p.row) < 0) rows.push(p.row);
+    if (cols.indexOf(p.col) < 0) cols.push(p.col);
+  });
+  rows.sort();
+  cols.sort((a, b) => a - b);
+  const have = {};
+  parsed.forEach(p => { have[p.row + "-" + p.col] = p.code; });
+  const body = rows.map(row => {
+    const cells = cols.map(col => {
+      const code = have[row + "-" + col];
+      if (!code) return `<div class="rack-slot empty" aria-hidden="true"></div>`;
+      return rackCell(cellarId, code, highlight, byBin, pending);
+    }).join("");
+    return `<div class="rack-row" style="grid-template-columns:repeat(${cols.length},minmax(72px,1fr))">${cells}</div>`;
+  }).join("");
+  return `<div class="rack-rows">${body}</div>`;
+}
+function freeSlotCodes(cellarId) {
+  const used = takenBins(cellarId);
+  return rackSlots(cellarId).filter(code => !used.has(code));
 }
 
 function openBottle(uid) {
@@ -1881,8 +2160,10 @@ function countOwnLabels(map) {
 function prepareOwnLabels() {
   return loadLabelPhotos().then(ok => migrateStoredLabelBytes().then(changed => {
     const dirty = !!(state && state._consumptionDirty);
+    const reasons = !!(state && state._reasonsDirty);
     if (dirty) delete state._consumptionDirty;
-    if (dirty || changed) save();
+    if (reasons) delete state._reasonsDirty;
+    if (dirty || reasons || changed) save();
     if (!ok) {
       setTimeout(() => {
         loadLabelPhotos().then(again => { if (again) repaintAfterLabels(); });
@@ -2243,6 +2524,7 @@ function openWine(wineId, bottle) {
     <button type="button" class="btn btn-ghost label-change" onclick="changeWineLabel()">Cambiar etiqueta</button>
     <div class="peak-pill">${pill}</div>
     ${currentBottle ? `<p class="tiny" style="text-align:center;margin:6px 0 4px">En mi bodega · ${currentBottle.qty} botella${currentBottle.qty>1?"s":""}</p>` : ""}
+    ${currentBottle && currentBottle.cellarId ? `<button class="btn btn-ghost" style="width:100%;margin:8px 0" onclick="showLotInCave()">Ver en la vinoteca</button>` : ""}
     ${pendingPlacementLine(w.id)}
     <div class="wine-tabs">
       <button type="button" onclick="openWineSub('profile')">General</button>
@@ -2584,8 +2866,9 @@ function openWineSub(kind) {
       </div>
       <div class="btn-row">
         <button class="btn btn-ghost" onclick="showSheet('move-sheet')">Mover lote</button>
-        <button class="btn btn-ghost" onclick="showSheet('add-sheet')">Otra ubicación</button>
+        <button class="btn btn-ghost" onclick="showLotInCave()">Ver en la vinoteca</button>
       </div>
+      <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="showSheet('add-sheet')">Otra ubicación</button>
       <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="openWineSub('compras')">Compras e historial ›</button>` : `
       <p class="muted" style="margin-bottom:12px">Este vino aún no está en tu cava.</p>
       <div class="btn-row">
@@ -2819,6 +3102,7 @@ function ensureConsumption(target) {
       producer: wine ? (wine.producer || "") : "",
       type: wine ? (wine.type || "") : "",
       label: "",
+      reason: "bebida",
       sourceAt: at,
       sourceText: text
     });
@@ -2827,6 +3111,21 @@ function ensureConsumption(target) {
   });
   target.consumptionBackfilled = true;
   if (added) target._consumptionDirty = true;
+  return target;
+}
+function ensureExitReasons(target) {
+  if (!target) return target;
+  if (!Array.isArray(target.consumption)) target.consumption = [];
+  let added = 0;
+  target.consumption.forEach(c => {
+    if (!c || c.reason) return;
+    c.reason = "bebida";
+    added += 1;
+  });
+  if (!target.marketOverrides || typeof target.marketOverrides !== "object" || Array.isArray(target.marketOverrides)) {
+    target.marketOverrides = {};
+  }
+  if (added) target._reasonsDirty = true;
   return target;
 }
 function makeConsumption(wine, qty, fields) {
@@ -2846,18 +3145,22 @@ function makeConsumption(wine, qty, fields) {
     vintage: wine ? (wine.vintage || "") : "",
     producer: wine ? (wine.producer || "") : "",
     type: wine ? (wine.type || "") : "",
-    label: labelRefFor(wine)
+    label: labelRefFor(wine),
+    reason: fields.reason || "bebida"
   };
 }
 let pendingServe = null;
 function readServeFields() {
   const rating = parseInt(($("#serve-rating") && $("#serve-rating").value) || "", 10);
+  const reason = (pendingServe && pendingServe.reason) || "bebida";
+  const bebida = reason === "bebida";
   return {
     date: ($("#serve-date") && $("#serve-date").value) || todayIso(),
-    occasion: (($("#serve-occasion") && $("#serve-occasion").value) || "").trim(),
-    people: (($("#serve-people") && $("#serve-people").value) || "").trim(),
+    occasion: bebida ? ((($("#serve-occasion") && $("#serve-occasion").value) || "").trim()) : "",
+    people: bebida ? ((($("#serve-people") && $("#serve-people").value) || "").trim()) : "",
     note: (($("#serve-note") && $("#serve-note").value) || "").trim(),
-    rating: rating >= 1 && rating <= 5 ? rating : null
+    rating: bebida && rating >= 1 && rating <= 5 ? rating : null,
+    reason: reason
   };
 }
 function paintServeStars(rating) {
@@ -2882,15 +3185,24 @@ function setServeRating(n) {
   if ($("#serve-rating")) $("#serve-rating").value = next ? String(next) : "";
   paintServeStars(next);
 }
+function setExitReason(id, btn) {
+  if (!pendingServe) pendingServe = {};
+  pendingServe.reason = id || "bebida";
+  $$("#serve-reasons .chip").forEach(c => c.classList.toggle("on", c.dataset.reason === pendingServe.reason));
+  const extra = $("#serve-bebida");
+  if (extra) extra.hidden = pendingServe.reason !== "bebida";
+  if (btn && btn.dataset && btn.dataset.reason) btn.classList.add("on");
+}
 function openServeSheet(opts) {
   pendingServe = opts || null;
   if (!pendingServe) return;
+  if (!pendingServe.reason) pendingServe.reason = "bebida";
   const editing = pendingServe.mode === "edit";
-  if ($("#serve-title")) $("#serve-title").textContent = editing ? "Editar bebida" : "Servir";
+  if ($("#serve-title")) $("#serve-title").textContent = editing ? "Editar salida" : "Salida de cava";
   const w = pendingServe.wineId ? wineById(pendingServe.wineId) : null;
   const name = w ? (w.producer + " " + w.name) : (pendingServe.fallback || "esta botella");
   if ($("#serve-hint")) {
-    $("#serve-hint").textContent = editing ? name : ("Vas a servir " + pendingServe.qty + " · " + name);
+    $("#serve-hint").textContent = editing ? name : (pendingServe.qty + " · " + name);
   }
   if ($("#serve-date")) $("#serve-date").value = pendingServe.date || todayIso();
   if ($("#serve-occasion")) $("#serve-occasion").value = pendingServe.occasion || "";
@@ -2898,7 +3210,8 @@ function openServeSheet(opts) {
   if ($("#serve-note")) $("#serve-note").value = pendingServe.note || "";
   if ($("#serve-rating")) $("#serve-rating").value = pendingServe.rating ? String(pendingServe.rating) : "";
   if ($("#serve-save")) $("#serve-save").textContent = editing ? "Guardar cambios" : "Guardar";
-  if ($("#serve-skip")) $("#serve-skip").textContent = editing ? "Cancelar" : "Omitir";
+  if ($("#serve-skip")) $("#serve-skip").textContent = editing ? "Cancelar" : "Omitir nota";
+  setExitReason(pendingServe.reason);
   syncServeChip();
   paintServeStars(pendingServe.rating || 0);
   showSheet("serve-sheet");
@@ -2926,19 +3239,24 @@ function skipServe() {
 function confirmServe(keepNote) {
   const job = pendingServe;
   if (!job) return hideSheets();
-  const fields = keepNote ? readServeFields() : { date: todayIso(), occasion: "", people: "", note: "", rating: null };
+  const fields = keepNote ? readServeFields() : {
+    date: ($("#serve-date") && $("#serve-date").value) || todayIso(),
+    occasion: "", people: "", note: "", rating: null,
+    reason: (job && job.reason) || "bebida"
+  };
   if (job.mode === "edit") {
     const row = (state.consumption || []).find(c => c.id === job.id);
     if (row && keepNote) {
       const at = Date.parse((fields.date || row.date) + "T12:00:00");
       row.date = fields.date || row.date;
       if (Number.isFinite(at)) row.at = at;
+      row.reason = fields.reason || "bebida";
       row.occasion = fields.occasion;
       row.people = fields.people;
       row.note = fields.note;
       row.rating = fields.rating;
       save();
-      toast("Bebida actualizada");
+      toast("Salida actualizada");
     }
     pendingServe = null;
     hideSheets();
@@ -2956,7 +3274,9 @@ function confirmServe(keepNote) {
   const used = Math.min(job.qty, bottle.qty);
   const wineId = bottle.wineId;
   const entry = makeConsumption(wine, used, fields);
-  const act = logAct("Servidas " + used + " · " + (wine ? (wine.producer + " " + wine.name) : "botella"), { type: "serve", qty: used, wineId: wineId });
+  const why = reasonLabel(entry);
+  const verb = entry.reason === "bebida" ? "Servidas " : ("Salida " + why + " ");
+  const act = logAct(verb + used + " · " + (wine ? (wine.producer + " " + wine.name) : "botella"), { type: entry.reason === "bebida" ? "serve" : "exit", qty: used, wineId: wineId, reason: entry.reason });
   entry.sourceAt = act.at;
   entry.sourceText = act.text;
   state.consumption = state.consumption || [];
@@ -2970,7 +3290,8 @@ function confirmServe(keepNote) {
   pendingServe = null;
   hideSheets();
   const left = stockOf(wineId);
-  toast(left ? (used + " servida" + (used > 1 ? "s" : "") + " · quedan " + left) : (used + " servida" + (used > 1 ? "s" : "") + " · sin botellas"));
+  const gone = why + " · " + used;
+  toast(left ? (gone + " · quedan " + left) : (gone + " · sin botellas"));
   openWine(wineId, currentBottle);
   if (left === 1) maybeStockPush();
 }
@@ -3039,11 +3360,22 @@ function addToLot(n) {
   openWine(currentBottle.wineId, currentBottle);
 }
 
+function slotTaken(cellarId, bin, exceptUid) {
+  if (!bin) return false;
+  return state.bottles.some(b => b.cellarId === cellarId && (b.bin || "") === bin && b.uid !== exceptUid)
+    || (state.inbox || []).some(r => !r.entered && r.cellarId === cellarId && (r.bin || "") === bin);
+}
 function addCurrentToCellar() {
   if (!currentWine) return;
   const cellarId = $("#add-cellar").value;
   const qty = Math.max(1, parseInt($("#add-qty").value || "1", 10));
   const bin = $("#add-bin").value.trim() || nextBin(cellarId);
+  if (slotTaken(cellarId, bin)) {
+    const who = state.bottles.find(b => b.cellarId === cellarId && (b.bin || "") === bin);
+    const w = who ? wineById(who.wineId) : null;
+    const name = w ? (w.producer + " " + w.name) : "otra botella";
+    if (!confirm("El hueco " + bin + " ya lo ocupa " + name + ". ¿Guardar igualmente?")) return;
+  }
   const price = parseFloat($("#add-price").value || "0");
   const note = $("#add-note").value.trim();
   currentBottle = mergeOrCreateLot({
@@ -3075,6 +3407,9 @@ function moveBottle() {
   const qty = Math.max(1, parseInt(($("#move-qty") && $("#move-qty").value) || currentBottle.qty, 10));
   const take = Math.min(qty, currentBottle.qty);
   const from = cellarName(currentBottle.cellarId) + " " + (currentBottle.bin || "");
+  if (bin && slotTaken(dest, bin, currentBottle.uid)) {
+    if (!confirm("El hueco " + bin + " ya está ocupado. ¿Mover igualmente?")) return;
+  }
   if (take >= currentBottle.qty) {
     const merged = state.bottles.find(b => b.uid !== currentBottle.uid && b.wineId === currentBottle.wineId && b.cellarId === dest && (b.bin || "") === bin);
     if (merged) {
@@ -5376,9 +5711,35 @@ function fillSelects() {
   $("#move-cellar").innerHTML = opts;
 }
 
-function onAddCellarChange() {
+function onAddBinInput() {
+  const input = $("#add-bin");
+  if (input) input.dataset.touched = "1";
+  paintFreeSlots();
+}
+function pickFreeSlot(code) {
+  const input = $("#add-bin");
+  if (!input) return;
+  input.value = code;
+  input.dataset.touched = "1";
+  paintFreeSlots();
+}
+function paintFreeSlots() {
   const id = $("#add-cellar") && $("#add-cellar").value;
-  if ($("#add-bin") && id) $("#add-bin").value = nextBin(id);
+  const input = $("#add-bin");
+  const hint = $("#add-free-hint");
+  const grid = $("#add-free-grid");
+  if (!id || !grid) return;
+  const free = freeSlotCodes(id);
+  const proposed = free[0] || "";
+  if (input && input.dataset.touched !== "1") input.value = proposed;
+  if (hint) hint.textContent = proposed ? ("Hueco libre propuesto: " + proposed) : "No quedan huecos libres en esta vinoteca.";
+  const current = input ? input.value.trim() : "";
+  grid.innerHTML = free.length ? free.map(code => `<button type="button" class="rack-slot rack-free ${code === current ? "on" : ""}" onclick="pickFreeSlot('${code}')"><b>${escHtml(code)}</b><small>libre</small></button>`).join("") : `<p class="muted">Sin huecos libres.</p>`;
+}
+function onAddCellarChange() {
+  const input = $("#add-bin");
+  if (input) input.dataset.touched = "";
+  paintFreeSlots();
   refreshAddKeep();
 }
 function showSheet(id) {
@@ -5387,8 +5748,9 @@ function showSheet(id) {
     if ($("#add-inbox-uid")) $("#add-inbox-uid").value = "";
     const cellar = currentWine ? preferredCellar(currentWine, currentBottle && currentBottle.price) : "v1";
     $("#add-cellar").value = cellar;
-    $("#add-bin").value = nextBin(cellar);
+    if ($("#add-bin")) $("#add-bin").dataset.touched = "";
     $("#add-qty").value = "1";
+    paintFreeSlots();
     refreshAddKeep();
   }
   if (id === "move-sheet" && currentBottle) {
@@ -6114,6 +6476,7 @@ function ensureStateShape(target) {
   if (!target.inbox) target.inbox = [];
   if (!target.notify.dismissedStock) target.notify.dismissedStock = [];
   ensureConsumption(target);
+  ensureExitReasons(target);
   (target.vinotecas || []).forEach(v => { if (v && !v.houseId) v.houseId = "h1"; });
   return target;
 }
@@ -6201,6 +6564,8 @@ function applyRestoredBackup(data) {
     try { localStorage.setItem(PRICE_CFG_KEY, JSON.stringify(data.provider)); } catch (e) {}
   }
   return Promise.all(writes).then(() => migrateStoredLabelBytes()).catch(() => false).then(() => {
+    if (state && state._consumptionDirty) delete state._consumptionDirty;
+    if (state && state._reasonsDirty) delete state._reasonsDirty;
     save();
     return true;
   });
@@ -6324,6 +6689,17 @@ window.openHomeMap = openHomeMap;
 window.openWineThenTaste = openWineThenTaste;
 window.addToLot = addToLot;
 window.consumeMany = consumeMany;
+window.showLotInCave = showLotInCave;
+window.setExitReason = setExitReason;
+window.setRemoveReason = setRemoveReason;
+window.confirmExit = confirmExit;
+window.setBebidaFilter = setBebidaFilter;
+window.estimateMissingMarket = estimateMissingMarket;
+window.editMissingMarket = editMissingMarket;
+window.saveMarketEdits = saveMarketEdits;
+window.pickFreeSlot = pickFreeSlot;
+window.onAddBinInput = onAddBinInput;
+window.paintFreeSlots = paintFreeSlots;
 window.askServe = askServe;
 window.askServeMany = askServeMany;
 window.confirmServe = confirmServe;
