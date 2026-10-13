@@ -20,8 +20,8 @@
   }
   function modelFamily(id) {
     const n = String(id || "").toLowerCase();
-    if (n.indexOf("flash-lite") >= 0) return 1;
-    if (n.indexOf("flash") >= 0) return 0;
+    if (n.indexOf("flash-lite") >= 0) return 0;
+    if (n.indexOf("flash") >= 0) return 1;
     if (n.indexOf("pro") >= 0) return 2;
     return 9;
   }

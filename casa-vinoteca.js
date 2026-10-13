@@ -175,6 +175,7 @@ function winesInZone(z) {
   });
 }
 function renderZonas(q) {
+  zonaName = "";
   const query = (q || "").trim().toLowerCase();
   const list = ZONES.filter(z => !query || (z.name + " " + z.country + " " + z.keys).toLowerCase().includes(query));
   const groups = [];
@@ -220,6 +221,8 @@ function openZona(name) {
     </div>`).join("") || `<p class="empty">${t("zones.empty")}</p>`}
     ${wines[0] ? `<button class="btn btn-ghost" style="width:100%;margin-top:12px" onclick="openWine('${wines[0].id}');setTimeout(()=>openWineSub('mapa'),80)">${t("zones.estateMap")}</button>` : ""}`;
   mountLabelThumbs($("#zonas-body"));
+  zonaName = name;
+  show("zonas", { zone: name });
 }
 function cellarName(id) {
   return (state.vinotecas.find(v => v.id === id) || { name: "—" }).name;
@@ -269,6 +272,7 @@ function openCave(id, highlightBin) {
     ${rackGrid(id, highlightBin || "")}
     <button class="btn btn-ghost" style="width:100%;margin:8px 0" onclick="openSpaceSheet('${v.id}')">${t("caves.addSlots")}</button>
     <button class="btn btn-ghost" style="width:100%;margin:8px 0" onclick="deleteCave('${v.id}')">${t("caves.retire")}</button>`;
+  caveOpen = id;
   show("cave-detail-screen");
   if (highlightBin) {
     setTimeout(() => {

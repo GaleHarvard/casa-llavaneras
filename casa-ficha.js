@@ -157,12 +157,6 @@ function openWine(wineId, bottle) {
   const pill = datesAreReal(w) ? (p.label || "").toUpperCase() : (fieldIsReal(w, "type") && w.type ? typeLabel(w.type).toUpperCase() : t("nodata").toUpperCase());
 
   $("#wine-body").innerHTML = `
-    <div class="wine-top">
-      <button class="back" onclick="goBack()">‹ ${backCaption()}</button>
-      <div class="spacer"></div>
-      <button class="icon-btn fav ${isFav(w.id) ? "on" : ""}" onclick="toggleFav('${w.id}')" aria-label="${t("wine.fav")}">${isFav(w.id) ? "♥" : "♡"}</button>
-      <button type="button" class="icon-btn" onclick="openWineMenu()" aria-label="${t("wine.more")}">···</button>
-    </div>
     <div class="wine-hero">${estateSVG(w)}</div>
     <h1 class="wine-producer">${w.producer}</h1>
     <p class="wine-cuvee">${w.name} ${w.vintage}</p>

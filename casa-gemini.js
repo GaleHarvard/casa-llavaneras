@@ -265,6 +265,7 @@ function setCamLive(on) {
   setScanHint(!!on);
   const hud = $(".scan-hud");
   if (hud) hud.hidden = false;
+  if (typeof syncChrome === "function") syncChrome();
 }
 function revealScanStage() {
   const stage = $(".scan-stage");
@@ -318,7 +319,7 @@ async function startLiveCamera() {
   }
 }
 async function startScan() {
-  show("scan");
+  show("scan", screenId === "scan" ? { replace: true } : {});
   lastList = "scan";
   intakeSource = "camara";
   resetScanPreview();
@@ -1767,9 +1768,75 @@ function geminiPartsText(json) {
 function geminiFinish(json) {
   return (((json || {}).candidates || [])[0] || {}).finishReason || "";
 }
+const gemMem = new Map();
+const gemFlight = new Map();
+function memGet(key) {
+  const hit = gemMem.get(key);
+  if (!hit) return null;
+  if (Date.now() > hit.exp) { gemMem.delete(key); return null; }
+  return hit.val;
+}
+function memSet(key, val, ms) { gemMem.set(key, { val: val, exp: Date.now() + ms }); }
+function retryDelayRawMs(body) {
+  const details = (((body || {}).error || {}).details) || [];
+  for (let i = 0; i < details.length; i++) {
+    const raw = details[i] && (details[i].retryDelay || (details[i].metadata && details[i].metadata.retryDelay));
+    const m = String(raw || "").match(/([\d.]+)\s*s/);
+    if (m) return Math.ceil(parseFloat(m[1]) * 1000);
+  }
+  const msg = String((((body || {}).error || {}).message) || "");
+  const sec = msg.match(/retry in ([\d.]+)\s*s/i);
+  if (sec) return Math.ceil(parseFloat(sec[1]) * 1000);
+  return 0;
+}
+function retryDelayMs(body) {
+  const raw = retryDelayRawMs(body);
+  return raw ? Math.min(60000, raw) : 0;
+}
+function quotaIsDaily(body) {
+  const s = JSON.stringify(body || {});
+  const minute = /perminute|per_minute|PerMinute|RequestsPerMinute/i.test(s);
+  const daily = /perday|per_day|RequestsPerDay|PerDay/i.test(s) || (/generate_content_free_tier_requests/i.test(s) && !minute);
+  if (daily && !minute) return true;
+  if (minute && !daily) return false;
+  return retryDelayRawMs(body) > 120000;
+}
+function madridClock(date) {
+  const parts = {};
+  new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Europe/Madrid",
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", hourCycle: "h23"
+  }).formatToParts(date).forEach(p => { parts[p.type] = p.value; });
+  return parts;
+}
+function nextMadridNine() {
+  let tms = Date.now();
+  const start = madridClock(new Date(tms));
+  const sh = Number(start.hour);
+  const sm = Number(start.minute);
+  if (sh > 9 || (sh === 9 && sm > 0)) tms += 60 * 60 * 1000;
+  for (let n = 0; n < 26; n++) {
+    const p = madridClock(new Date(tms));
+    const h = Number(p.hour);
+    if (h === 9) {
+      const loc = typeof appLang !== "undefined" ? appLang : "es";
+      const tag = { es: "es-ES", ca: "ca-ES", en: "en-GB", fr: "fr-FR", pt: "pt-PT" }[loc] || "es-ES";
+      const label = new Intl.DateTimeFormat(tag, { timeZone: "Europe/Madrid", day: "numeric", month: "short" }).format(new Date(tms));
+      return label.replace(/\.$/, "") + " · 9:00";
+    }
+    tms += ((9 - h + 24) % 24 || 24) * 60 * 60 * 1000;
+  }
+  return "9:00";
+}
+function quotaReason(body) {
+  const wait = retryDelayMs(body);
+  if (quotaIsDaily(body)) return t("gemini.quotaDay", { when: nextMadridNine() });
+  return t("gemini.quotaMin", { n: Math.max(1, Math.round((wait || 30000) / 1000)) });
+}
 function geminiReasonFrom(status, finish, parsed, err) {
   if (status === 401 || status === 403) return "clave rechazada (HTTP " + status + ")";
-  if (status === 429) return "cuota agotada";
+  if (status === 429) return t("gemini.quotaDay", { when: nextMadridNine() });
   if (err && err.name === "AbortError") return "tiempo agotado";
   if (!status && err) return "red o CORS";
   if (status === 404) return "modelo no disponible (HTTP 404)";
@@ -1785,21 +1852,41 @@ function summarizeGeminiProblems(items) {
   return "Gemini: " + items.map(i => i.label + ": " + i.problem).join(" · ");
 }
 async function geminiGenerate(key, model, prompt, schema, signal, maxOutputTokens, extraParts) {
+  const cacheable = String(prompt || "").length > 80 && !(extraParts && extraParts.length);
+  const memKey = model + "|" + (maxOutputTokens || 0) + "|" + String(prompt || "").slice(0, 480);
+  const day = memGet("quota-day");
+  if (day) return day;
+  if (cacheable) {
+    const hit = memGet(memKey);
+    if (hit) return hit;
+    if (gemFlight.has(memKey)) return gemFlight.get(memKey);
+  }
+  const run = geminiGenerateRun(key, model, prompt, schema, signal, maxOutputTokens, extraParts, cacheable ? memKey : "");
+  if (cacheable) {
+    gemFlight.set(memKey, run);
+    run.finally(() => gemFlight.delete(memKey));
+  }
+  return run;
+}
+async function geminiGenerateRun(key, model, prompt, schema, signal, maxOutputTokens, extraParts, memKey) {
   const url = "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent";
   const attempts = [
-    { schema: schema, think: true },
-    { schema: schema, think: false },
-    { schema: null, think: false }
+    { schema: schema },
+    { schema: schema },
+    { schema: null }
   ];
+  let tokens = maxOutputTokens || 2048;
   let last = { parsed: null, reason: "JSON inválido", model };
+  let quotaTries = 0;
+  let bumped = false;
   for (let i = 0; i < attempts.length; i++) {
     const opt = attempts[i];
     const generationConfig = {
       temperature: 0.2,
-      maxOutputTokens: maxOutputTokens || 2048,
-      responseMimeType: "application/json"
+      maxOutputTokens: tokens,
+      responseMimeType: "application/json",
+      thinkingConfig: { thinkingBudget: 0 }
     };
-    if (opt.think) generationConfig.thinkingConfig = { thinkingBudget: 0 };
     if (opt.schema) generationConfig.responseSchema = opt.schema;
     let res;
     try {
@@ -1814,8 +1901,24 @@ async function geminiGenerate(key, model, prompt, schema, signal, maxOutputToken
     }
     if (res.status === 400 && i < attempts.length - 1) continue;
     if (res.status === 404) return { parsed: null, reason: "modelo no disponible (HTTP 404)", model, skipModel: true };
-    if (res.status === 401 || res.status === 403 || res.status === 429) {
+    if (res.status === 401 || res.status === 403) {
       return { parsed: null, reason: geminiReasonFrom(res.status, "", null, null), fatal: true, model };
+    }
+    if (res.status === 429) {
+      let body = {};
+      try { body = await res.json(); } catch (e) {}
+      const wait = retryDelayMs(body);
+      const daily = quotaIsDaily(body);
+      const reason = quotaReason(body);
+      if (!daily && quotaTries < 2 && wait > 0 && wait <= 30000 && !(signal && signal.aborted)) {
+        quotaTries++;
+        await new Promise(r => setTimeout(r, wait));
+        i--;
+        continue;
+      }
+      const fail = { parsed: null, reason: reason, fatal: true, model, quota: daily ? "day" : "minute" };
+      if (daily) memSet("quota-day", fail, 10 * 60 * 1000);
+      return fail;
     }
     if (!res.ok) {
       last = { parsed: null, reason: geminiReasonFrom(res.status, "", null, null), model };
@@ -1828,8 +1931,18 @@ async function geminiGenerate(key, model, prompt, schema, signal, maxOutputToken
     }
     const finish = geminiFinish(json);
     const parsed = extractJsonObject(geminiPartsText(json));
-    if (geminiObjectUseful(parsed)) return { parsed, reason: "", model, finish };
+    if (geminiObjectUseful(parsed)) {
+      const ok = { parsed, reason: "", model, finish };
+      if (memKey) memSet(memKey, ok, 5 * 60 * 1000);
+      return ok;
+    }
     last = { parsed: null, reason: geminiReasonFrom(200, finish, null, null), model, finish };
+    if (finish === "MAX_TOKENS" && !bumped && tokens < 1024) {
+      bumped = true;
+      tokens = 1024;
+      i--;
+      continue;
+    }
     if (finish === "MAX_TOKENS") break;
   }
   return last;
@@ -1880,10 +1993,10 @@ async function geminiProbe(key) {
   const timer = setTimeout(() => ctrl.abort(), 20000);
   const schema = { type: "OBJECT", properties: { ok: { type: "BOOLEAN" } } };
   try {
-    const outcome = await geminiWithModel(key, "Responde solo este JSON: {\"ok\":true}", schema, ctrl.signal, 64);
+    const outcome = await geminiWithModel(key, "Responde solo este JSON: {\"ok\":true}", schema, ctrl.signal, 512);
     if (outcome && outcome.parsed) {
       lastGeminiProbeOk = true;
-      return t("price.works", { m: outcome.model || "" });
+      return t("gemini.keyOk");
     }
     return (outcome && outcome.reason) || "modelo no disponible (HTTP 404)";
   } finally {
@@ -2492,7 +2605,9 @@ function refreshGeminiKeyState() {
   }
   stateEl.textContent = t("price.none");
 }
+let probeBusy = false;
 async function probeGeminiKey() {
+  if (probeBusy) return;
   const el = document.getElementById("gemini-probe");
   const typed = ($("#p-gemini-key") && $("#p-gemini-key").value.trim()) || "";
   const key = typed || storedGeminiKey();
@@ -2502,6 +2617,7 @@ async function probeGeminiKey() {
     return;
   }
   if (el) el.textContent = t("price.probing");
+  probeBusy = true;
   try {
     const msg = await geminiProbe(key);
     if (el) el.textContent = msg;
@@ -2513,6 +2629,8 @@ async function probeGeminiKey() {
     }
   } catch (e) {
     if (el) el.textContent = t("price.net");
+  } finally {
+    probeBusy = false;
   }
   refreshGeminiKeyState();
 }
