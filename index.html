@@ -9,14 +9,14 @@
   <meta name="apple-mobile-web-app-title" content="Casa Llavaneras" />
   <meta name="application-name" content="Casa Llavaneras" />
   <meta name="theme-color" content="#000000" />
-  <meta name="app-version" content="v79" />
+  <meta name="app-version" content="v80" />
   <title>Casa Llavaneras</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="apple-touch-icon" href="apple-touch-icon.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
   <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png" />
-  <link rel="stylesheet" href="styles.css?v=79" />
+  <link rel="stylesheet" href="styles.css?v=80" />
 </head>
 <body>
   <div class="device">
@@ -91,6 +91,14 @@
             <p class="eyebrow" data-i18n="kicker.inventory">Inventario</p>
             <h1 data-i18n="tab.bottles">Botellas</h1>
                       </div>
+          <div class="seg" id="cellar-seg">
+            <button type="button" id="seg-lista" class="on" onclick="setCellarSeg('lista')" data-i18n="cellar.list">Lista</button>
+            <button type="button" id="seg-cuando" onclick="setCellarSeg('cuando')" data-i18n="cellar.when">Cuándo abrir</button>
+          </div>
+          <div id="cellar-when" hidden>
+            <div id="calendar-list"></div>
+          </div>
+          <div id="cellar-lista">
           <form class="search" role="search" action="#" onsubmit="scheduleCellarSearch(); return false;">
             <span aria-hidden="true">⌕</span>
             <input id="cellar-q" type="search" enterkeyhint="search" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-i18n-placeholder="search.cellar" placeholder="Buscar en cava y catálogo…" oninput="scheduleCellarSearch()" onsearch="scheduleCellarSearch()" onchange="scheduleCellarSearch()" onkeyup="scheduleCellarSearch()" oncompositionend="scheduleCellarSearch()" />
@@ -108,6 +116,7 @@
           </div>
           <label class="field"><span data-i18n="grape.label">Uva</span><select id="cellar-grape" onchange="setCellarGrape(this.value)"><option value="" data-i18n="grape.all">Todas las uvas</option></select></label>
           <div id="cellar-list"></div>
+          </div>
         </div>
       </section>
 
@@ -125,15 +134,7 @@
         <div class="scroll" id="balance-body"></div>
       </section>
 
-      <section id="calendar" class="screen">
-        <div class="scroll">
-          <div class="hero">
-            <p class="eyebrow" data-i18n="kicker.when">Consumo</p>
-            <h1 data-i18n="cal.h1">Cuándo abrirlo</h1>
-          </div>
-          <div id="calendar-list"></div>
-        </div>
-      </section>
+      <section id="calendar" class="screen" hidden></section>
 
       <section id="zonas" class="screen">
         <div class="scroll" id="zonas-body"></div>
@@ -233,16 +234,22 @@
         <div class="scroll" id="wine-sub-body"></div>
       </section>
 
-      <button class="scan-fab" onclick="startScan()" data-i18n-aria="scan.aria" aria-label="Escanear">
-        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" width="28" height="28"><path d="M4 8V5a1 1 0 0 1 1-1h3M20 8V5a1 1 0 0 0-1-1h-3M4 16v3a1 1 0 0 0 1 1h3M20 16v3a1 1 0 0 1-1 1h-3"/><path d="M8 12h8"/></svg>
-      </button>
+      <header class="topbar" id="topbar" hidden role="navigation">
+        <button type="button" class="topbar-back" onclick="goBack()">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 5 8 12l7 7"/></svg>
+          <span data-i18n="nav.back">Atrás</span>
+        </button>
+        <p class="topbar-title" id="topbar-title"></p>
+        <div class="topbar-actions" id="topbar-actions"></div>
+      </header>
+      <button type="button" class="cam-close" id="cam-close" hidden onclick="goBack()" data-i18n-aria="scan.close" aria-label="Cerrar">✕</button>
       <button id="update-notice" class="update-notice" type="button" hidden onclick="location.reload()" data-i18n="update.ready">Nueva versión disponible</button>
-      <nav class="tabbar">
-        <button class="tab active" data-go="home" onclick="show('home',{tab:true})"><span></span><span class="tab-label" data-i18n="tab.home">Inicio</span></button>
-        <button class="tab" data-go="caves" onclick="show('caves',{tab:true})"><span></span><span class="tab-label" data-i18n="tab.caves">Vinotecas</span></button>
-        <button class="tab" data-go="cellar" onclick="show('cellar',{tab:true})"><span></span><span class="tab-label" data-i18n="tab.bottles">Botellas</span></button>
-        <button class="tab" data-go="pairings" onclick="show('pairings',{tab:true})"><span></span><span class="tab-label" data-i18n="tab.table">Mesa</span></button>
-        <button class="tab" data-go="calendar" onclick="show('calendar',{tab:true})"><span></span><span class="tab-label" data-i18n="tab.dates">Fechas</span></button>
+      <nav class="tabbar" role="tablist">
+        <button class="tab active" role="tab" data-go="home" onclick="show('home',{tab:true})" aria-selected="true"><span></span><span class="tab-label" data-i18n="tab.home">Inicio</span></button>
+        <button class="tab" role="tab" data-go="caves" onclick="show('caves',{tab:true})" aria-selected="false"><span></span><span class="tab-label" data-i18n="tab.caves">Vinotecas</span></button>
+        <button class="tab tab-scan" role="tab" data-go="scan" onclick="startScan()" aria-selected="false" data-i18n-aria="scan.ariaLabel" aria-label="Escanear etiqueta"><span class="scan-tile"></span><span class="tab-label" data-i18n="nav.scan">Escanear</span></button>
+        <button class="tab" role="tab" data-go="cellar" onclick="show('cellar',{tab:true})" aria-selected="false"><span></span><span class="tab-label" data-i18n="tab.bottles">Botellas</span></button>
+        <button class="tab" role="tab" data-go="pairings" onclick="show('pairings',{tab:true})" aria-selected="false"><span></span><span class="tab-label" data-i18n="tab.table">Mesa</span></button>
       </nav>
     </div>
 
@@ -427,7 +434,7 @@
       </div>
     </div>
 
-    <div id="toast" style="position:absolute;left:24px;right:24px;bottom:96px;background:#111;border:1px solid #2a2a2a;color:#fff;padding:12px 14px;border-radius:14px;opacity:0;transition:opacity .3s;z-index:60;font-size:13px;text-align:center;pointer-events:none;overflow-wrap:anywhere;word-break:break-word;max-width:calc(100% - 48px);box-sizing:border-box"></div>
+    <div id="toast" style="position:absolute;left:24px;right:24px;bottom:calc(var(--bar-h) + 12px);background:#111;border:1px solid #2a2a2a;color:#fff;padding:12px 14px;border-radius:14px;opacity:0;transition:opacity .3s;z-index:60;font-size:13px;text-align:center;pointer-events:none;overflow-wrap:anywhere;word-break:break-word;max-width:calc(100% - 48px);box-sizing:border-box"></div>
   </div>
 
   <script>
@@ -486,35 +493,37 @@
       if (!window.__casaReady) casaShowBootError();
     }, 8000);
   </script>
-  <script src="wines.js?v=79"></script>
-  <script src="bodegas.js?v=79"></script>
-  <script src="dossiers.js?v=79"></script>
-  <script src="providers/wineProvider.js?v=79"></script>
-  <script src="pairings.js?v=79"></script>
-  <script src="catalog-i18n.js?v=79"></script>
-  <script src="i18n.js?v=79"></script>
-  <script src="casa-util.js?v=79"></script>
-  <script src="casa-vino.js?v=79"></script>
-  <script src="casa-estado.js?v=79"></script>
-  <script src="casa-inicio.js?v=79"></script>
-  <script src="casa-vinoteca.js?v=79"></script>
-  <script src="casa-bodega.js?v=79"></script>
-  <script src="casa-ficha.js?v=79"></script>
-  <script src="casa-mesa.js?v=79"></script>
-  <script src="casa-bebidas.js?v=79"></script>
-  <script src="casa-gemini.js?v=79"></script>
-  <script src="casa-ajustes.js?v=79"></script>
-  <script src="app.js?v=79"></script>
+  <script src="wines.js?v=80"></script>
+  <script src="bodegas.js?v=80"></script>
+  <script src="dossiers.js?v=80"></script>
+  <script src="providers/wineProvider.js?v=80"></script>
+  <script src="pairings.js?v=80"></script>
+  <script src="catalog-i18n.js?v=80"></script>
+  <script src="i18n.js?v=80"></script>
+  <script src="casa-util.js?v=80"></script>
+  <script src="casa-vino.js?v=80"></script>
+  <script src="casa-estado.js?v=80"></script>
+  <script src="casa-inicio.js?v=80"></script>
+  <script src="casa-vinoteca.js?v=80"></script>
+  <script src="casa-bodega.js?v=80"></script>
+  <script src="casa-ficha.js?v=80"></script>
+  <script src="casa-mesa.js?v=80"></script>
+  <script src="casa-bebidas.js?v=80"></script>
+  <script src="casa-gemini.js?v=80"></script>
+  <script src="casa-ajustes.js?v=80"></script>
+  <script src="app.js?v=80"></script>
   <script>
     document.querySelectorAll(".tab").forEach((t, i) => {
       const icons = [
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 11.5 12 4l8 7.5V20a1 1 0 0 1-1 1h-5v-6H10v6H5a1 1 0 0 1-1-1z"/></svg>',
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M8 4v16M16 4v16"/></svg>',
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 8V5a1 1 0 0 1 1-1h3M20 8V5a1 1 0 0 0-1-1h-3M4 16v3a1 1 0 0 0 1 1h3M20 16v3a1 1 0 0 1-1 1h-3"/><path d="M8 12h8"/></svg>',
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M8 7h12M8 12h12M8 17h12"/><circle cx="4" cy="7" r="1.2" fill="currentColor"/><circle cx="4" cy="12" r="1.2" fill="currentColor"/><circle cx="4" cy="17" r="1.2" fill="currentColor"/></svg>',
-        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 9h16l-2 11H6L4 9z"/><path d="M8 9V7a4 4 0 0 1 8 0v2"/></svg>',
-        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>'
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 9h16l-2 11H6L4 9z"/><path d="M8 9V7a4 4 0 0 1 8 0v2"/></svg>'
       ];
-      t.querySelector("span").outerHTML = icons[i];
+      const tile = t.querySelector(".scan-tile");
+      if (tile) tile.innerHTML = icons[i];
+      else t.querySelector("span").outerHTML = icons[i];
     });
     if ("serviceWorker" in navigator) {
       const reloadForSw = () => {
@@ -543,7 +552,7 @@
         const current = (document.querySelector('meta[name="app-version"]') || {}).content || "";
         if (data.version && current && data.version !== current) reloadForSw();
       });
-      navigator.serviceWorker.register("sw.js?v=79").catch(() => {});
+      navigator.serviceWorker.register("sw.js?v=80").catch(() => {});
     }
   </script>
 </body>

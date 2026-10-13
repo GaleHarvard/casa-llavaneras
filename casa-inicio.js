@@ -53,7 +53,7 @@ function renderHome() {
     <div class="card" role="button" onclick="openCave('v1')" style="margin-top:8px"><div class="row"><h3>${t("home.vip")}</h3><span class="tiny">›</span></div><p class="muted">${t("home.vipSub")}</p></div>
     <div class="card" role="button" onclick="show('cellar',{tab:true})" style="margin-top:8px"><div class="row"><h3>${t("tab.bottles")}</h3><span class="tiny">›</span></div><p class="muted">${t("home.bottlesSub")}</p></div>
     <div class="card" role="button" onclick="show('pairings',{tab:true})" style="margin-top:8px"><div class="row"><h3>${t("tab.table")}</h3><span class="tiny">›</span></div><p class="muted">${t("home.tableSub")}</p></div>
-    <div class="card" role="button" onclick="show('calendar',{tab:true})" style="margin-top:8px"><div class="row"><h3>${t("tab.dates")}</h3><span class="tiny">›</span></div><p class="muted">${t("home.datesSub")}</p></div>
+    <div class="card" role="button" onclick="show('cellar',{tab:true,seg:'cuando'})" style="margin-top:8px"><div class="row"><h3>${t("cellar.when")}</h3><span class="tiny">›</span></div><p class="muted">${t("home.datesSub")}</p></div>
     <div class="card" role="button" onclick="openHomeMap()" style="margin-top:8px"><div class="row"><h3>${t("home.zones")}</h3><span class="tiny">›</span></div><p class="muted">${t("home.zonesSub")}</p></div>
     <div class="card" role="button" onclick="show('bebidas')" style="margin-top:8px"><div class="row"><h3>${t("home.drinks")}</h3><span class="tiny">${(state.consumption || []).reduce((n, c) => n + (Number(c.qty) || 1), 0) || "›"}</span></div><p class="muted">${t("home.drinksSub")}</p></div>
     <div class="card" role="button" onclick="show('catas')" style="margin-top:8px"><div class="row"><h3>${t("home.notebook")}</h3><span class="tiny">›</span></div><p class="muted">${t("home.notebookSub")}</p></div>
@@ -148,7 +148,7 @@ function monthOpenHtml() {
       <p class="muted">${r.qty} ${nounBottles(r.qty)}</p>
     </div>`;
   }).join("") : `<p class="empty">${t("home.noneMonth")}</p>`;
-  return `<h2 style="margin-top:16px">${t("home.openMonth")}</h2>${body}`;
+  return `<h2 style="margin-top:16px">${t("home.openMonth")}</h2><button type="button" class="cal-link" onclick="show('cellar',{tab:true,seg:'cuando'})">${t("home.fullCal")} ›</button>${body}`;
 }
 function stockByWine() {
   const map = {};

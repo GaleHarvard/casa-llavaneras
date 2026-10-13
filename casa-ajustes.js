@@ -144,20 +144,22 @@ function renderPerfil() {
       <h1>${t("profile.h1")}</h1>
       <p>${t("profile.lead")}</p>
     </div>
-    <div class="card" style="display:flex;gap:14px;align-items:center">
-      <img src="apple-touch-icon.png" alt="" style="width:64px;height:64px;border-radius:32px;border:1px solid rgba(198,163,90,.4)">
-      <div>
-      <p class="tiny">${t("profile.collection")}</p>
-      <h3 style="margin-top:4px">${t("profile.houseLine", { house: house })}</h3>
-      <p class="muted">${t("profile.counts", { b: totalBottles(), w: uniqueWines() })}</p>
+    <div class="card perfil-card">
+      <div class="perfil-id">
+        <img src="apple-touch-icon.png" alt="">
+        <div>
+          <p class="tiny">${t("profile.collection")}</p>
+          <h3 style="margin-top:4px">${t("profile.houseLine", { house: house })}</h3>
+        </div>
       </div>
-      <div class="temp-grid" style="margin-top:12px">
-        <div class="temp"><span class="tiny">${t("profile.bottles")}</span><b>${totalBottles()}</b></div>
-        <div class="temp"><span class="tiny">${t("profile.wines")}</span><b>${uniqueWines()}</b></div>
+      <div class="perfil-stats">
+        <div><span class="tiny">${t("profile.bottles")}</span><b>${totalBottles()}</b></div>
+        <div><span class="tiny">${t("profile.wines")}</span><b>${uniqueWines()}</b></div>
       </div>
-      <p class="tiny" style="margin-top:12px">${t("profile.lastCopy")}</p>
-      <p>${fmtBackup(p.lastBackup)}</p>
-      <p class="tiny app-version" style="margin-top:8px">${t("home.version", { v: APP_VERSION })}</p>
+      <div class="perfil-meta">
+        <p><span class="tiny">${t("profile.lastCopy")}</span><br>${fmtBackup(p.lastBackup)}</p>
+        <p class="tiny app-version">${t("home.version", { v: APP_VERSION })}</p>
+      </div>
     </div>
     ${langPickerHtml()}
     ${p.demo ? `<div class="card"><div class="row"><strong>${t("profile.demo")}</strong><button class="btn btn-ghost" onclick="exitDemo()">${t("profile.demoOut")}</button></div><p class="tiny" style="margin-top:6px">${t("profile.demoHint")}</p></div>` : ""}

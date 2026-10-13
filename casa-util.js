@@ -16,82 +16,253 @@ function euro(n) {
 }
 function $ (sel, root = document) { return root.querySelector(sel); }
 function $$ (sel, root = document) { return [...root.querySelectorAll(sel)]; }
-function snapNav() {
-  return {
-    id: screenId || "home",
-    wineId: currentWine && currentWine.id,
-    bottleUid: currentBottle && currentBottle.uid,
-    sub: currentSub || ""
-  };
+const ROOT_IDS = { home: 1, caves: 1, cellar: 1, pairings: 1 };
+const tabScroll = { home: 0, caves: 0, cellar: 0, pairings: 0 };
+let navReady = false;
+let navSilent = false;
+let pendingTab = null;
+let tabOwner = "home";
+let cellarSeg = "lista";
+let zonaName = "";
+let caveOpen = "";
+function backCaption() { return t("nav.back"); }
+function hashFor(st) {
+  st = st || {};
+  const id = st.screen || "home";
+  if (id === "cellar" && st.seg === "cuando") return "#cellar/cuando";
+  if ((id === "wine" || id === "wine-sub") && st.wineId) return "#wine/" + encodeURIComponent(st.wineId) + (id === "wine-sub" && st.sub ? "/" + encodeURIComponent(st.sub) : "");
+  if (id === "dish" && st.dish) return "#dish/" + encodeURIComponent(st.dish);
+  if (id === "zonas" && st.zone) return "#zonas/" + encodeURIComponent(st.zone);
+  if (id === "perfil-sub" && st.perfil) return "#perfil/" + encodeURIComponent(st.perfil);
+  if (id === "cave-detail-screen" && st.cave) return "#cave/" + encodeURIComponent(st.cave);
+  return "#" + id;
+}
+function stateNow(id, extra) {
+  return Object.assign({
+    screen: id,
+    tab: tabOwner,
+    seg: cellarSeg,
+    wineId: currentWine && currentWine.id || "",
+    bottleUid: currentBottle && currentBottle.uid || "",
+    sub: currentSub || "",
+    dish: typeof pairingDish !== "undefined" ? (pairingDish || "") : "",
+    perfil: typeof perfilKind !== "undefined" ? (perfilKind || "") : "",
+    zone: zonaName || "",
+    cave: caveOpen || "",
+    depth: (history.state && history.state.depth) || 0,
+    scroll: 0
+  }, extra || {});
+}
+function rememberScroll() {
+  if (!history.state) return;
+  const sc = document.querySelector("#" + screenId + " .scroll");
+  const st = Object.assign({}, history.state, { scroll: sc ? sc.scrollTop : 0 });
+  try { history.replaceState(st, "", location.hash || hashFor(st)); } catch (e) {}
 }
 function show(id, opts) {
   opts = opts || {};
   if (typeof langRefresh !== "undefined" && langRefresh) opts.replace = true;
   if (!id) id = "home";
-  if (opts.tab) navStack = [];
-  else if (!opts.replace && !opts.pop && screenId && screenId !== id) {
-    navStack.push(snapNav());
-    if (navStack.length > 24) navStack.shift();
+  if (id === "calendar") {
+    id = "cellar";
+    opts.tab = true;
+    opts.seg = "cuando";
+  }
+  if (opts.seg) cellarSeg = opts.seg === "cuando" ? "cuando" : "lista";
+  if (opts.zone != null) zonaName = opts.zone || "";
+  if (id === "zonas" && opts.zone == null && !navSilent) zonaName = "";
+  if (navSilent || !navReady) {
+    reveal(id);
+    return;
+  }
+  if (opts.tab && ROOT_IDS[id]) {
+    const depth = (history.state && history.state.depth) || 0;
+    const sameRoot = screenId === id && depth === 0 && !(id === "cellar" && opts.seg && opts.seg !== ((history.state && history.state.seg) || cellarSeg));
+    if (sameRoot && !opts.seg) {
+      const sc = document.querySelector("#" + id + " .scroll");
+      if (sc) sc.scrollTop = 0;
+      return;
+    }
+    rememberScroll();
+    tabOwner = id;
+    const st = stateNow(id, { tab: id, depth: 0, zone: "", scroll: 0 });
+    if (depth > 0) {
+      pendingTab = st;
+      history.go(-depth);
+      return;
+    }
+    history.replaceState(st, "", hashFor(st));
+    reveal(id);
+    focusScreen();
+    return;
+  }
+  rememberScroll();
+  const prevZone = history.state && history.state.zone;
+  const sameScreen = screenId === id && !opts.zone && id !== "wine" && id !== "wine-sub" && id !== "dish" && id !== "perfil-sub" && id !== "cave-detail-screen";
+  const sameWine = (id === "wine" || id === "wine-sub") && history.state && history.state.wineId && currentWine && history.state.wineId === currentWine.id && (id !== "wine-sub" || history.state.sub === (currentSub || ""));
+  const st = stateNow(id);
+  if (opts.replace || sameScreen || sameWine) {
+    st.depth = (history.state && history.state.depth) || (ROOT_IDS[id] ? 0 : 1);
+    history.replaceState(st, "", hashFor(st));
+  } else {
+    if (opts.zone && prevZone === opts.zone && screenId === "zonas") st.depth = (history.state && history.state.depth) || 1;
+    else st.depth = ((history.state && history.state.depth) || 0) + 1;
+    st.tab = tabOwner;
+    if (opts.zone && prevZone === opts.zone && screenId === "zonas") history.replaceState(st, "", hashFor(st));
+    else history.pushState(st, "", hashFor(st));
+  }
+  reveal(id);
+  focusScreen();
+}
+function reveal(id) {
+  if (ROOT_IDS[screenId]) {
+    const prev = document.querySelector("#" + screenId + " .scroll");
+    if (prev) tabScroll[screenId] = prev.scrollTop;
   }
   screenId = id;
-  if (!["wine", "wine-sub", "dish"].includes(id)) lastList = id;
+  if (ROOT_IDS[id]) {
+    tabOwner = id;
+    lastList = id;
+  } else if (id === "scan") lastList = "scan";
+  else if (!["wine", "wine-sub", "dish"].includes(id)) lastList = id;
   $$(".screen").forEach(s => s.classList.toggle("active", s.id === id));
-  const tabId = id === "cave-detail-screen" ? "caves" : id === "wine" || id === "wine-sub" ? lastList : id;
-  $$(".tab").forEach(t => t.classList.toggle("active", t.dataset.go === tabId || t.dataset.go === id));
   document.querySelector(".app")?.classList.toggle("fiche", id === "wine" || id === "wine-sub" || id === "dish");
-  if (id !== "scan") stopCam();
+  if (id !== "scan" && typeof stopCam === "function") stopCam();
   if (id === "home") renderHome();
   if (id === "inbox") renderInbox();
   if (id === "caves") renderCaves();
-  if (id === "cellar") renderCellar();
-  if (id === "calendar") renderCalendar();
+  if (id === "cellar") {
+    renderCellar();
+    applyCellarSeg();
+    if (cellarSeg === "cuando" && typeof renderCalendar === "function") renderCalendar();
+  }
   if (id === "pairings") renderPairings();
   if (id === "perfil") renderPerfil();
-  if (id === "zonas") renderZonas();
+  if (id === "zonas" && !zonaName) renderZonas();
   if (id === "catas") renderCatas();
   if (id === "bebidas") renderBebidas();
   if (id === "balance") renderBalance();
-  mountLabelThumbs(document.getElementById(id));
+  if (typeof mountLabelThumbs === "function") mountLabelThumbs(document.getElementById(id));
+  syncChrome();
+  const sc = document.querySelector("#" + id + " .scroll");
+  if (sc && ROOT_IDS[id] && !(history.state && history.state.scroll)) sc.scrollTop = tabScroll[id] || 0;
 }
-function backCaption() {
-  const p = navStack[navStack.length - 1];
-  if (!p) return t("nav.home");
-  const names = {
-    home: "nav.home", caves: "nav.caves", "cave-detail-screen": "nav.cave",
-    cellar: "nav.bottles", calendar: "nav.dates", pairings: "nav.table", scan: "nav.scan", inbox: "nav.inbox",
-    perfil: "nav.profile", "perfil-sub": "nav.profile", zonas: "nav.zones", catas: "nav.tastings", bebidas: "nav.drinks", balance: "nav.balance",
-    dish: "nav.dish", wine: "nav.wine", "wine-sub": "nav.wine"
-  };
-  if (p.id === "wine" && p.wineId) {
-    const w = wineById(p.wineId);
-    return w ? w.producer.split(" ").slice(0, 2).join(" ") : t("nav.wine");
+function focusScreen() {
+  const h = document.querySelector("#" + screenId + " h1");
+  if (!h) return;
+  h.setAttribute("tabindex", "-1");
+  try { h.focus({ preventScroll: true }); } catch (e) {}
+}
+function syncChrome() {
+  const bar = document.getElementById("topbar");
+  const live = !!(document.querySelector(".app") && document.querySelector(".app").classList.contains("cam-live"));
+  const pushed = !ROOT_IDS[screenId];
+  if (bar) bar.hidden = !pushed || live;
+  document.querySelector(".app")?.classList.toggle("show-top", pushed && !live);
+  const h1 = document.querySelector("#" + screenId + " h1");
+  const title = document.getElementById("topbar-title");
+  if (title) {
+    title.textContent = h1 ? h1.textContent.trim() : "";
+    title.classList.remove("on");
   }
-  return names[p.id] ? t(names[p.id]) : t("nav.back");
+  const actions = document.getElementById("topbar-actions");
+  if (actions) {
+    if (screenId === "wine" && currentWine && typeof isFav === "function") {
+      const wid = currentWine.id;
+      const on = isFav(wid);
+      actions.innerHTML = `<button type="button" class="icon-btn fav ${on ? "on" : ""}" onclick="toggleFav('${wid}')" aria-label="${t("wine.fav")}">${on ? "♥" : "♡"}</button><button type="button" class="icon-btn" onclick="openWineMenu()" aria-label="${t("wine.more")}">···</button>`;
+    } else actions.innerHTML = "";
+  }
+  const hi = screenId === "scan" ? "scan" : (ROOT_IDS[screenId] ? screenId : (tabOwner || "home"));
+  document.querySelectorAll(".tab").forEach(btn => {
+    const on = btn.dataset.go === hi;
+    btn.classList.toggle("active", on);
+    btn.setAttribute("aria-selected", on ? "true" : "false");
+  });
+  const close = document.getElementById("cam-close");
+  if (close) close.hidden = !live;
+  onBarScroll();
+}
+function onBarScroll() {
+  const title = document.getElementById("topbar-title");
+  const bar = document.getElementById("topbar");
+  const h1 = document.querySelector(".screen.active h1");
+  if (!title || !bar || bar.hidden || !h1) return;
+  title.classList.toggle("on", h1.getBoundingClientRect().bottom < bar.getBoundingClientRect().bottom + 2);
+}
+function applyCellarSeg() {
+  const when = cellarSeg === "cuando";
+  const lista = document.getElementById("cellar-lista");
+  const box = document.getElementById("cellar-when");
+  if (lista) lista.hidden = when;
+  if (box) box.hidden = !when;
+  const a = document.getElementById("seg-lista");
+  const b = document.getElementById("seg-cuando");
+  if (a) a.classList.toggle("on", !when);
+  if (b) b.classList.toggle("on", when);
+}
+function setCellarSeg(seg) {
+  cellarSeg = seg === "cuando" ? "cuando" : "lista";
+  applyCellarSeg();
+  if (cellarSeg === "cuando" && typeof renderCalendar === "function") renderCalendar();
+  if (!navReady || navSilent) return;
+  const st = stateNow("cellar", { tab: "cellar", depth: (history.state && history.state.depth) || 0 });
+  try { history.replaceState(st, "", hashFor(st)); } catch (e) {}
 }
 function goBack() {
-  hideSheets();
-  const prev = navStack.pop();
-  if (!prev) return show("home", { replace: true });
-  restoreNav(prev);
+  if (typeof hideSheets === "function") hideSheets();
+  if (history.state && history.state.depth > 0) history.back();
+  else show(tabOwner || "home", { tab: true });
 }
-function restoreNav(p) {
-  if (!p) return show("home", { replace: true });
-  if ((p.id === "wine" || p.id === "wine-sub") && p.wineId) {
-    const bot = p.bottleUid ? state.bottles.find(b => b.uid === p.bottleUid) : null;
-    currentWine = wineById(p.wineId);
-    currentBottle = bot || state.bottles.find(b => b.wineId === p.wineId) || null;
-    if (p.id === "wine-sub" && p.sub) {
-      openWine(p.wineId, currentBottle);
-      openWineSub(p.sub);
-      navStack.pop();
-      return;
-    }
-    openWine(p.wineId, currentBottle);
-    navStack.pop();
+function restoreFromState(st) {
+  st = st || { screen: "home", tab: "home", depth: 0 };
+  tabOwner = st.tab || (ROOT_IDS[st.screen] ? st.screen : "home");
+  cellarSeg = st.seg === "cuando" ? "cuando" : "lista";
+  zonaName = st.zone || "";
+  caveOpen = st.cave || "";
+  navSilent = true;
+  try {
+    if ((st.screen === "wine" || st.screen === "wine-sub") && st.wineId && typeof openWine === "function") {
+      const bot = st.bottleUid && state.bottles ? state.bottles.find(b => b.uid === st.bottleUid) : null;
+      currentBottle = bot || null;
+      if (st.screen === "wine-sub" && st.sub && typeof openWineSub === "function") {
+        openWine(st.wineId, currentBottle);
+        openWineSub(st.sub);
+      } else openWine(st.wineId, currentBottle);
+    } else if (st.screen === "dish" && st.dish && typeof openDish === "function") openDish(st.dish);
+    else if (st.screen === "perfil-sub" && st.perfil && typeof openPerfilSub === "function") openPerfilSub(st.perfil);
+    else if (st.screen === "zonas" && st.zone && typeof openZona === "function") openZona(st.zone);
+    else if (st.screen === "cave-detail-screen" && st.cave && typeof openCave === "function") openCave(st.cave);
+    else reveal(st.screen || "home");
+  } finally {
+    navSilent = false;
+  }
+  syncChrome();
+  const sc = document.querySelector("#" + (screenId || "home") + " .scroll");
+  if (sc) sc.scrollTop = Number(st.scroll) || 0;
+}
+function onPopState(ev) {
+  if (pendingTab) {
+    const st = pendingTab;
+    pendingTab = null;
+    tabOwner = st.tab || "home";
+    cellarSeg = st.seg === "cuando" ? "cuando" : "lista";
+    zonaName = "";
+    try { history.replaceState(st, "", hashFor(st)); } catch (e) {}
+    navSilent = true;
+    try { reveal(st.screen); } finally { navSilent = false; }
     return;
   }
-  show(p.id, { replace: true });
+  restoreFromState(ev.state || { screen: "home", tab: "home", depth: 0, seg: "lista" });
 }
+window.addEventListener("popstate", onPopState);
+document.addEventListener("scroll", onBarScroll, true);
+document.addEventListener("DOMContentLoaded", () => {
+  navReady = true;
+  if (!history.state) {
+    history.replaceState(stateNow("home", { depth: 0, tab: "home", seg: "lista" }), "", "#home");
+  }
+});
 function typeLabel(kind) {
   const key = "type." + typeKey(kind || "otro");
   const hit = t(key);
