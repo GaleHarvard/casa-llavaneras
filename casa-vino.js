@@ -371,20 +371,134 @@ const BODEGA_GEO = {
   "Marqués de Murrieta": { lat: 42.430, lng: -2.445, zone: "Ygay · Rioja", web: "https://www.marquesdemurrieta.com" },
   "Bodegas Alejandro Fernández": { lat: 41.641, lng: -4.158, zone: "Pesquera de Duero", address: "Pesquera de Duero, Valladolid", web: "https://www.grupopesquera.com" }
 };
+const ESTATE_MORE = [
+  {
+    name: "Bodegas y Viñedos García Figuero",
+    aliases: ["García Figuero", "Garcia Figuero", "Tinto Figuero", "Figuero"],
+    lat: 41.729, lng: -3.884,
+    zone: "La Horra",
+    address: "Ctra. La Horra a Roa, km 2,2, 09311 La Horra, Burgos",
+    web: "https://figuero.es"
+  },
+  {
+    name: "CARM",
+    aliases: ["Casa Agrícola Roboredo Madeira", "Roboredo Madeira"],
+    lat: 41.016, lng: -7.055,
+    zone: "Almendra · Douro",
+    address: "Almendra, 5150 Vila Nova de Foz Côa",
+    web: "https://www.carm.pt"
+  }
+];
+function foldEstate(s) {
+  return String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, " ").trim();
+}
+function estateNeedle(hay, label) {
+  const needle = foldEstate(label);
+  if (needle.length < 4) return false;
+  const re = new RegExp("(^| )" + needle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "( |$)");
+  return re.test(hay);
+}
+function estateHit(w) {
+  if (!w) return null;
+  if (BODEGA_GEO[w.producer]) return BODEGA_GEO[w.producer];
+  const hay = foldEstate((w.producer || "") + " " + (w.name || ""));
+  if (!hay) return null;
+  let best = null;
+  let bestLen = 0;
+  const take = (label, rec) => {
+    const n = foldEstate(label).length;
+    if (n <= bestLen || !estateNeedle(hay, label)) return;
+    best = rec;
+    bestLen = n;
+  };
+  ESTATE_MORE.forEach(rec => {
+    take(rec.name, rec);
+    (rec.aliases || []).forEach(alias => take(alias, rec));
+  });
+  Object.keys(BODEGA_GEO).forEach(name => take(name, BODEGA_GEO[name]));
+  return best;
+}
+function isShopUrl(url) {
+  return /vinissimus|decantalo|decántalo|bigshopper|vivino\.com|wine-searcher|google\.|amazon\.|duckduckgo|instagram|facebook/i.test(String(url || ""));
+}
+function textShop(s) {
+  return /vinissimus|dec[aá]ntalo|vivino|wine-searcher|amazon\.|€/i.test(String(s || ""));
+}
+function pinOk(lat, lng) {
+  if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) <= 0.2) return false;
+  if (Math.abs(lat - 40.4) < 0.02 && Math.abs(lng + 3.7) < 0.02) return false;
+  return true;
+}
 function bodegaGeo(w) {
-  const known = BODEGA_GEO[w && w.producer];
-  if (known) return known;
+  const lib = estateHit(w) || {};
   const g = (w && w.geo) || {};
   const lat = Number(g.lat);
   const lng = Number(g.lng);
-  const pin = Number.isFinite(lat) && Number.isFinite(lng) && Math.abs(lat) > 0.2;
+  const storedPin = pinOk(lat, lng);
+  const storedAddress = !textShop(g.address) && String(g.address || "").trim().length > 8 ? String(g.address).trim() : "";
+  const storedWeb = g.web && !isShopUrl(g.web) ? g.web : "";
+  const region = String((w && (w.appellation || w.region)) || "").trim();
+  const storedZone = g.zone && !textShop(g.zone) && foldEstate(g.zone) !== foldEstate(region) ? g.zone : "";
+  const nodata = typeof t === "function" ? t("nodata") : "Sin dato";
   return {
-    lat: pin ? lat : null,
-    lng: pin ? lng : null,
-    zone: g.zone || (w && (w.appellation || w.region || w.country)) || (typeof t === "function" ? t("nodata") : "Sin dato"),
-    address: g.address || "",
-    web: g.web || ""
+    lat: storedPin ? lat : (lib.lat != null ? lib.lat : null),
+    lng: storedPin ? lng : (lib.lng != null ? lib.lng : null),
+    zone: storedZone || lib.zone || region || (w && w.country) || nodata,
+    address: storedAddress || lib.address || "",
+    web: storedWeb || lib.web || ""
   };
+}
+function repairShopWinery(w) {
+  if (!w) return false;
+  const lib = estateHit(w);
+  w.geo = w.geo || {};
+  let changed = false;
+  if (isShopUrl(w.geo.web) || textShop(w.geo.web)) {
+    const url = String(w.geo.web || "");
+    w.shops = Array.isArray(w.shops) ? w.shops : [];
+    if (url && !w.shops.some(s => s && s.url === url)) w.shops.push({ url: url, source: "Tienda", price: "", title: "" });
+    w.geo.web = (lib && lib.web) || "";
+    changed = true;
+  }
+  if (textShop(w.geo.address)) {
+    w.geo.address = (lib && lib.address) || "";
+    changed = true;
+  }
+  if (textShop(w.geo.zone)) {
+    w.geo.zone = (lib && lib.zone) || "";
+    changed = true;
+  }
+  const lat = Number(w.geo.lat);
+  const lng = Number(w.geo.lng);
+  if (!pinOk(lat, lng) && lib && lib.lat != null) {
+    w.geo.lat = lib.lat;
+    w.geo.lng = lib.lng;
+    changed = true;
+  }
+  if (!String(w.geo.address || "").trim() && lib && lib.address) {
+    w.geo.address = lib.address;
+    changed = true;
+  }
+  if (!String(w.geo.web || "").trim() && lib && lib.web) {
+    w.geo.web = lib.web;
+    changed = true;
+  }
+  if ((!String(w.geo.zone || "").trim() || textShop(w.geo.zone)) && lib && lib.zone) {
+    w.geo.zone = lib.zone;
+    changed = true;
+  }
+  if (textShop(w.producer) && lib && lib.name) {
+    w.producer = lib.name;
+    changed = true;
+  }
+  return changed;
+}
+function repairStoredWineries(bag) {
+  let changed = false;
+  ((bag && bag.customWines) || []).forEach(w => {
+    if (repairShopWinery(w)) changed = true;
+  });
+  return changed;
 }
 function marketBand(w) {
   const d = dossierOf(w);

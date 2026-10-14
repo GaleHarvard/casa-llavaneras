@@ -1338,9 +1338,16 @@ function markWineSource(wine, field, source) {
   wine.provenance = wine.provenance || {};
   wine.provenance[field] = source;
 }
-function applyPageFacts(wine, facts) {
+function pageMayReplace(wine, field, shop) {
+  if (!shop) return true;
+  if (field === "producer") return !String(wine.producer || "").trim() || textShop(wine.producer);
+  if (field === "region" || field === "country") return !String(wine[field] || "").trim();
+  return true;
+}
+function applyPageFacts(wine, facts, url) {
   if (!facts) return;
-  if (facts.type) {
+  const shop = isShopUrl(url);
+  if (facts.type && pageMayReplace(wine, "type", shop)) {
     wine.type = facts.type;
     wine.color = colorForWineType(facts.type);
     markWineSource(wine, "type", "página");
@@ -1350,7 +1357,7 @@ function applyPageFacts(wine, facts) {
     if (facts.grapePct && Object.keys(facts.grapePct).length) wine.grapePct = facts.grapePct;
     markWineSource(wine, "grapes", "página");
   }
-  if (facts.region) {
+  if (facts.region && pageMayReplace(wine, "region", shop)) {
     const z = detectZone(facts.region + " " + (facts.country || ""));
     wine.region = z ? z.name : facts.region;
     wine.appellation = z ? z.name : (facts.appellation || facts.region);
@@ -1359,7 +1366,7 @@ function applyPageFacts(wine, facts) {
       facts.country = z.country;
     }
   }
-  if (facts.country) {
+  if (facts.country && pageMayReplace(wine, "country", shop)) {
     wine.country = facts.country;
     markWineSource(wine, "country", "página");
   }
@@ -1367,7 +1374,7 @@ function applyPageFacts(wine, facts) {
     wine.abv = facts.abv;
     markWineSource(wine, "abv", "página");
   }
-  if (facts.producer && !titleLooksDirty(facts.producer)) {
+  if (facts.producer && !titleLooksDirty(facts.producer) && !textShop(facts.producer) && pageMayReplace(wine, "producer", shop)) {
     wine.producer = facts.producer;
     markWineSource(wine, "producer", "página");
   }
@@ -1703,7 +1710,7 @@ function applyGeminiRecord(wine, raw) {
     if (raw.geo.zone) wine.geo.zone = clipText(raw.geo.zone, 80);
     if (raw.geo.address) wine.geo.address = clipText(raw.geo.address, 120);
     const web = clipText(raw.geo.web, 140);
-    if (/^https?:\/\//i.test(web) && !/google\.|duckduckgo\.|search-result/i.test(web) && !wine.geo.web) {
+    if (/^https?:\/\//i.test(web) && !/google\.|duckduckgo\.|search-result/i.test(web) && !isShopUrl(web) && !wine.geo.web) {
       wine.geo.web = web;
       if (wine.provenance.web !== "página") markWineSource(wine, "web", "estimación Gemini");
     }
@@ -1790,7 +1797,7 @@ async function readFactsFromUrl(wine, url) {
   if (!product || !isReadableWineUrl(product)) return false;
   const page = await readPageQuiet(product);
   if (!page) return false;
-  applyPageFacts(wine, parseWinePage(page));
+  applyPageFacts(wine, parseWinePage(page), product);
   const pageImage = pageLabelUrl(page, wine);
   if (pageImage && !ownLabel(wine)) wine.labelUrl = pageImage;
   wine.provenance = wine.provenance || {};
@@ -2408,6 +2415,7 @@ async function completeWineRecord(wine, pageUrl) {
   } else if (!wine.provenance.geminiNote) {
     wine.provenance.geminiNote = "";
   }
+  repairShopWinery(wine);
   sealWineProvenance(wine);
   save();
   return wine;

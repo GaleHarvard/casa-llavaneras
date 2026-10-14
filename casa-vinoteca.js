@@ -123,6 +123,129 @@ const ZONES = [
   { name: "Paso Robles", country: "California", map: "mapa-paso.jpg", keys: "paso robles" },
   { name: "Santa Barbara", country: "California", map: "mapa-santabarbara.jpg", keys: "santa barbara sta. rita hills" }
 ];
+const ZONE_DO = {
+  "Rioja": { surface: "Unas 66.000 ha de viñedo.", climate: "Transición atlántico-mediterránea. Veranos secos e inviernos fríos, con el cierzo en Rioja Alta y Alavesa.", soils: "Arcillo-calcáreos en terrazas y aluviones del Ebro.", grapes: "Tempranillo, Garnacha, Graciano y Mazuelo. Blancos de Viura." },
+  "Ribera del Duero": { surface: "Unas 26.100 ha de viñedo.", climate: "Continental extremo: veranos cortos y calurosos, inviernos largos y gran oscilación entre el día y la noche. El viñedo está alto, hacia 750–1.000 m.", soils: "Arcilla, caliza, arena y cascajo del Duero, según el pago.", grapes: "Tinto Fino (Tempranillo). También Cabernet Sauvignon, Merlot, Malbec, Garnacha y Albillo Mayor." },
+  "Priorat": { surface: "Unas 2.000 ha de viñedo.", climate: "Mediterráneo de interior, seco y con calor de día y frescor de noche en los costers.", soils: "Llicorella: pizarra descompuesta en laderas muy pendientes.", grapes: "Garnacha y Cariñena, con algo de Cabernet, Syrah y Merlot." },
+  "Montsant": { climate: "Mediterráneo, algo más abierto y fresco que el Priorat vecino.", soils: "Arcilla, caliza y pizarra en el valle que rodea el Priorat.", grapes: "Garnacha y Cariñena." },
+  "Rías Baixas": { surface: "Unas 4.300 ha de viñedo.", climate: "Atlántico, húmedo y templado, con influencia del océano.", soils: "Granito y suelos ácidos, a menudo en pérgola.", grapes: "Albariño. También Loureiro, Treixadura y Caiño." },
+  "Ribeiro": { climate: "Atlántico de interior, en el valle del Miño, Avia y Arnoia.", soils: "Granito arenoso, sábrego.", grapes: "Treixadura, Torrontés, Godello y Loureira. Tintos de Brancellao y Caíño." },
+  "Ribeira Sacra": { climate: "Atlántico con cañones abruptos del Sil y del Miño.", soils: "Pizarra y granito en bancales heroicos.", grapes: "Mencía, y blancos de Godello." },
+  "Valdeorras": { climate: "Continental con influencia atlántica, en el valle del Sil.", soils: "Pizarra.", grapes: "Godello y Mencía." },
+  "Monterrei": { climate: "Continental, más seco que el resto de Galicia, en el valle de Monterrei.", soils: "Granito, pizarra y sedimentos.", grapes: "Godello, Treixadura y Mencía." },
+  "Toro": { climate: "Continental extremo, con calor de meseta y noches frías.", soils: "Arena y arcilla sobre el Duero.", grapes: "Tinta de Toro." },
+  "Rueda": { surface: "Unas 20.000 ha de viñedo.", climate: "Continental, inviernos largos y veranos secos.", soils: "Cantos y caliza de la meseta.", grapes: "Verdejo. También Sauvignon Blanc." },
+  "Bierzo": { climate: "Atlántico de transición, húmedo y con microclimas de valle.", soils: "Pizarra y arcilla en laderas.", grapes: "Mencía y Godello." },
+  "Cigales": { climate: "Continental, entre el Pisuerga y el Duero.", soils: "Cantos, arena y arcilla.", grapes: "Tempranillo y Verdejo. Rosados clásicos de la zona." },
+  "Arlanza": { climate: "Continental, fresco y de altitud.", soils: "Arena, arcilla y caliza del Arlanza.", grapes: "Tempranillo y Mencía. Blancos de Albillo." },
+  "Arribes": { climate: "Continental con el cañón del Duero, más suave junto al río.", soils: "Granito, pizarra y arena.", grapes: "Juan García, Rufete y Bruñal. Blancos de Malvasía y Puesta en Cruz." },
+  "Tierra de León": { climate: "Continental de meseta, frío y seco.", soils: "Cantos y arcilla.", grapes: "Prieto Picudo y Mencía. Blancos de Albarín y Verdejo." },
+  "Tierra del Vino de Zamora": { climate: "Continental extremo, en la meseta zamorana.", soils: "Arena y arcilla.", grapes: "Tempranillo y algo de Garnacha." },
+  "Sierra de Salamanca": { climate: "De sierra, más fresco y húmedo que la meseta.", soils: "Granito y pizarra.", grapes: "Rufete, y blancos de Rufete Serrano." },
+  "Navarra": { climate: "De norte húmedo a sur seco, según la subzona.", soils: "Aluvión, arcilla y caliza.", grapes: "Garnacha y Tempranillo. Rosados de Garnacha." },
+  "Somontano": { climate: "De pie de monte pirenaico, con contraste de día y noche.", soils: "Arcilla, arena y cantos.", grapes: "Moristel, Parraleta, Tempranillo, Cabernet y Merlot. Blancos de Gewürztraminer y Chardonnay." },
+  "Calatayud": { climate: "Continental, seco y de altitud.", soils: "Pizarra y arcilla en laderas.", grapes: "Garnacha." },
+  "Campo de Borja": { climate: "Continental, con el cierzo.", soils: "Arcilla y cantos.", grapes: "Garnacha." },
+  "Cariñena": { climate: "Continental seco, en el valle del Ebro.", soils: "Cascajo y arcilla.", grapes: "Garnacha y Cariñena." },
+  "Costers del Segre": { climate: "Continental seco del interior de Lleida.", soils: "Caliza y arcilla.", grapes: "Tempranillo, Cabernet, Garnacha y Macabeo." },
+  "Penedès": { climate: "Mediterráneo, de costa a interior.", soils: "Caliza, arcilla y arena.", grapes: "Xarel·lo, Macabeo y Parellada. Tintos de Garnacha y Ull de Llebre." },
+  "Corpinnat": { climate: "El del Alt Penedès: mediterráneo, con noches frescas.", soils: "Caliza y arcilla de viña propia.", grapes: "Xarel·lo, Macabeo y Parellada, con crianza larga en botella." },
+  "Cava": { climate: "El de cada zona de elaboración; el corazón histórico es el Penedès.", soils: "Los de la viña de origen.", grapes: "Macabeo, Xarel·lo y Parellada. También Chardonnay y Pinot Noir." },
+  "Empordà": { climate: "Mediterráneo con tramontana.", soils: "Pizarra, arena y granito.", grapes: "Garnacha y Cariñena. Blancos de Garnacha Blanca y Macabeo." },
+  "Alella": { climate: "Mediterráneo de costa, entre la sierra y el mar.", soils: "Sauló: granito arenoso.", grapes: "Pansa Blanca (Xarel·lo)." },
+  "Conca de Barberà": { climate: "Mediterráneo de interior, fresco por la altitud.", soils: "Caliza y arcilla.", grapes: "Trepat, Garnacha y Macabeo." },
+  "Pla de Bages": { climate: "Mediterráneo de interior, en la Cataluña central.", soils: "Arcilla y caliza.", grapes: "Picapoll, Mandó y Garnacha." },
+  "Tarragona": { climate: "Mediterráneo de costa.", soils: "Caliza y aluvión.", grapes: "Garnacha, Cariñena y Macabeo." },
+  "Terra Alta": { climate: "Mediterráneo de interior, seco y ventoso.", soils: "Arcilla y caliza, con panal.", grapes: "Garnacha Blanca y Garnacha Tinta." },
+  "Catalunya": { climate: "El de la viña: de costa mediterránea a interior.", soils: "Los del pago de origen.", grapes: "Las variedades autorizadas en Cataluña, según el vino." },
+  "Alicante": { climate: "Mediterráneo seco, de costa a la montaña de la Marina.", soils: "Caliza y arcilla.", grapes: "Monastrell. Blancos de Moscatel y, en la costa, Chardonnay." },
+  "Utiel-Requena": { climate: "Continental, meseta alta y seca.", soils: "Caliza y arcilla.", grapes: "Bobal." },
+  "Valencia": { climate: "Mediterráneo, de huerta a interior.", soils: "Caliza, arena y arcilla.", grapes: "Monastrell, Garnacha y Moscatel." },
+  "Jumilla": { climate: "Continental seco, de mucha luz.", soils: "Caliza y arena.", grapes: "Monastrell." },
+  "Yecla": { climate: "Continental seco, en el altiplano murciano.", soils: "Caliza.", grapes: "Monastrell." },
+  "Bullas": { climate: "Mediterráneo de altitud, más fresco que el litoral.", soils: "Caliza y arcilla.", grapes: "Monastrell." },
+  "Jerez": { surface: "Unas 7.000 ha de viñedo.", climate: "Atlántico del suroeste, con poniente húmedo y levante seco.", soils: "Albariza: creta que guarda el agua.", grapes: "Palomino, Pedro Ximénez y Moscatel." },
+  "Manzanilla-Sanlúcar": { climate: "Atlántico de la desembocadura del Guadalquivir, más húmedo que Jerez.", soils: "Albariza.", grapes: "Palomino." },
+  "Montilla-Moriles": { climate: "Continental andaluz, muy caluroso.", soils: "Albariza y albero.", grapes: "Pedro Ximénez." },
+  "Málaga": { climate: "Mediterráneo, de costa a la Axarquía y a Ronda.", soils: "Pizarra en la Axarquía y caliza en Ronda.", grapes: "Pedro Ximénez y Moscatel." },
+  "Condado de Huelva": { climate: "Atlántico del Condado, suave.", soils: "Arena, albariza y arcilla.", grapes: "Zalema." },
+  "La Mancha": { surface: "La mayor extensión de viñedo de España.", climate: "Continental extremo, seco y de mucha luz.", soils: "Caliza y arcilla de la llanura.", grapes: "Airén y Tempranillo (Cencibel)." },
+  "Valdepeñas": { climate: "Continental, en el campo de Calatrava.", soils: "Caliza y arena.", grapes: "Tempranillo y Airén." },
+  "Manchuela": { climate: "Continental, entre los ríos Júcar y Cabriel.", soils: "Arcilla y caliza.", grapes: "Bobal y Macabeo." },
+  "Almansa": { climate: "Continental seco, puerta de Levante.", soils: "Caliza.", grapes: "Garnacha Tintorera y Monastrell." },
+  "Méntrida": { climate: "Continental, al pie de Gredos.", soils: "Arena granítica.", grapes: "Garnacha." },
+  "Uclés": { climate: "Continental, entre la Alcarria y la Mancha.", soils: "Caliza y arcilla.", grapes: "Tempranillo, Garnacha y Verdejo." },
+  "Vinos de Madrid": { climate: "Continental, con tres subzonas distintas.", soils: "Granito en San Martín, arcilla en Arganda y Navalcarnero.", grapes: "Garnacha, Albillo y Malvar." },
+  "Ribera del Guadiana": { climate: "Continental cálido de Extremadura.", soils: "Arcilla, arena y pizarra.", grapes: "Tempranillo, Garnacha, Cayetana y Pardina." },
+  "Txakoli": { climate: "Atlántico, húmedo y fresco, junto al Cantábrico.", soils: "Margas y arenisca en ladera.", grapes: "Hondarrabi Zuri y Hondarrabi Beltza." },
+  "Cangas": { climate: "Atlántico de montaña, en el suroccidente de Asturias.", soils: "Pizarra en bancales.", grapes: "Albarín Negro, Carrasquín y Verdejo Negro." },
+  "Binissalem": { climate: "Mediterráneo mallorquín, caluroso y seco.", soils: "Caliza y arcilla.", grapes: "Manto Negro y Moll (Prensal)." },
+  "Pla i Llevant": { climate: "Mediterráneo, en el este de Mallorca.", soils: "Caliza y arcilla.", grapes: "Callet, Manto Negro y Prensal." },
+  "Islas Canarias": { climate: "Atlántico subtropical, de costa a ladera volcánica.", soils: "Volcánicos, a menudo en pie franco.", grapes: "Listán Negro, Listán Blanco y Malvasía." },
+  "Lanzarote": { climate: "Seco, con alisio y muy poca lluvia.", soils: "Lapilli volcánico, en hoyos protegidos del viento.", grapes: "Malvasía Volcánica." },
+  "Sierras de Málaga": { climate: "De sierra, más fresco que la costa malagueña.", soils: "Pizarra y caliza, según el pago.", grapes: "Pedro Ximénez, Moscatel y tintos de altura." },
+  "Lebrija": { climate: "Atlántico del bajo Guadalquivir, parecido al marco de Jerez.", soils: "Albariza.", grapes: "Palomino." },
+  "Mondéjar": { climate: "Continental, en la Alcarria de Guadalajara.", soils: "Caliza y arcilla roja.", grapes: "Tempranillo, Malvar y Airén." },
+  "Ribera del Júcar": { climate: "Continental, en el valle del Júcar.", soils: "Cantos y arcilla.", grapes: "Tempranillo, Bobal y Airén." },
+  "Valtiendas": { climate: "Continental, en las laderas segovianas del Duero.", soils: "Arena, arcilla y caliza.", grapes: "Tempranillo y Albillo." },
+  "Valles de Benavente": { climate: "Continental de meseta.", soils: "Cantos y arcilla.", grapes: "Tempranillo, Prieto Picudo y Verdejo." },
+  "Douro": { surface: "Unas 40.000 ha de viñedo.", climate: "Continental de valle, con veranos muy calurosos y laderas que miran al río.", soils: "Esquisto, en socalcos.", grapes: "Touriga Nacional, Touriga Franca, Tinta Roriz y Tinta Barroca." },
+  "Porto": { climate: "El del Douro, donde nace; el vino envejece en Vila Nova de Gaia.", soils: "Esquisto del Douro.", grapes: "Las mismas castas del Douro: Touriga Nacional, Touriga Franca y Tinta Roriz." },
+  "Vinho Verde": { climate: "Atlántico, húmedo y fresco.", soils: "Granito.", grapes: "Alvarinho, Loureiro, Trajadura y Arinto." },
+  "Dão": { climate: "Continental de interior, protegido por sierras.", soils: "Granito.", grapes: "Touriga Nacional, Tinta Roriz, Alfrocheiro y Encruzado." },
+  "Bairrada": { climate: "Atlántico, húmedo, entre la costa y el interior.", soils: "Arcilla y caliza.", grapes: "Baga. Blancos de Maria Gomes y Bical." },
+  "Alentejo": { climate: "Continental cálido y seco.", soils: "Granito, esquisto y arcilla, según la subregión.", grapes: "Aragonez, Trincadeira y Alicante Bouschet. Blancos de Antão Vaz." },
+  "Lisboa": { climate: "Atlántico, de costa a colina.", soils: "Caliza y arcilla.", grapes: "Arinto, Fernão Pires y Castelão." },
+  "Setúbal": { climate: "Mediterráneo atlántico, en la península de Setúbal.", soils: "Arena y caliza.", grapes: "Moscatel de Setúbal y Castelão." },
+  "Palmela": { climate: "Mediterráneo, entre la Arrábida y el Sado.", soils: "Arena.", grapes: "Castelão." },
+  "Tejo": { climate: "Mediterráneo de ribera, cálido.", soils: "Aluvión del Tajo y arena.", grapes: "Fernão Pires, Castelão y Touriga." },
+  "Algarve": { climate: "Mediterráneo del sur, luminoso.", soils: "Arena y arcilla.", grapes: "Negra Mole, Castelão y Sirah." },
+  "Madeira": { climate: "Atlántico subtropical, de ladera.", soils: "Volcánicos, en poios.", grapes: "Sercial, Verdelho, Bual, Malvasía y Tinta Negra." },
+  "Trás-os-Montes": { climate: "Continental de montaña, frío.", soils: "Esquisto y granito.", grapes: "Bastardo, Rufete y blancos de Gouveio y Códega." },
+  "Beira Interior": { climate: "Continental de altitud, en la frontera.", soils: "Granito y esquisto.", grapes: "Rufete, Marufo y Siria." },
+  "Távora-Varosa": { climate: "Continental fresco, entre el Dão y el Douro.", soils: "Granito.", grapes: "Malvasia Fina, Cerceal y Touriga." },
+  "Açores": { climate: "Atlántico oceánico, húmedo y ventoso.", soils: "Volcánicos, en currais de piedra.", grapes: "Verdelho y Arinto dos Açores." },
+  "Colares": { climate: "Atlántico de la costa de Sintra.", soils: "Arena sobre arcilla, en pie franco.", grapes: "Ramisco y Malvasia de Colares." },
+  "Bucelas": { climate: "Atlántico, al norte de Lisboa.", soils: "Caliza.", grapes: "Arinto." },
+  "Champagne": { surface: "Unas 34.000 ha.", climate: "Fresco y límite para la viña, con heladas de primavera.", soils: "Creta, sobre todo en la Côte des Blancs y la Montagne de Reims.", grapes: "Chardonnay, Pinot Noir y Pinot Meunier." },
+  "Médoc": { climate: "Oceánico templado del estuario de la Gironda.", soils: "Gravas del Garona y del Atlántico.", grapes: "Cabernet Sauvignon, Merlot, Cabernet Franc y Petit Verdot." },
+  "Sauternes": { climate: "Oceánico, con nieblas del Ciron que favorecen la podredumbre noble.", soils: "Gravas y arcilla.", grapes: "Sémillon, Sauvignon Blanc y Muscadelle." },
+  "Borgoña": { climate: "Semicontinental, fresco, de la Côte de Nuits a la Côte de Beaune.", soils: "Caliza y marga.", grapes: "Pinot Noir y Chardonnay." },
+  "Chablis": { climate: "Fresco y continental, con riesgo de helada.", soils: "Kimmeridgiense: marga y caliza con fósiles.", grapes: "Chardonnay." },
+  "Ródano": { climate: "Continental en el norte y mediterráneo en el sur, con el mistral.", soils: "Granito en el norte; galets y arcilla en el sur.", grapes: "Syrah en el norte. Garnacha, Syrah y Mourvèdre en el sur." },
+  "Loira": { climate: "Oceánico, fresco, de Nantes a Sancerre.", soils: "Pizarra, toba, sílex y gravas, según el tramo.", grapes: "Melon de Bourgogne, Chenin, Sauvignon y Cabernet Franc." },
+  "Alsacia": { climate: "Semicontinental y seco, a resguardo de los Vosgos.", soils: "Granito, caliza y marga, en un mosaico de pueblos.", grapes: "Riesling, Gewürztraminer, Pinot Gris y Pinot Blanc." },
+  "Provenza": { climate: "Mediterráneo, con mistral.", soils: "Caliza y esquisto, de Bandol a la costa.", grapes: "Garnacha, Cinsault, Mourvèdre y Syrah. En Bandol, Mourvèdre." },
+  "Languedoc": { climate: "Mediterráneo, seco y luminoso.", soils: "Pizarra, caliza y arcilla, de viña a viña.", grapes: "Garnacha, Syrah, Mourvèdre y Cariñena." },
+  "Beaujolais": { climate: "Semicontinental, más suave que la Côte d'Or.", soils: "Granito y, al sur, arcilla y caliza.", grapes: "Gamay." },
+  "Piemonte": { climate: "Continental, con nieblas de otoño en las Langhe.", soils: "Marga calcárea.", grapes: "Nebbiolo, Barbera y Dolcetto. Blancos de Moscato y Arneis." },
+  "Bolgheri": { climate: "Mediterráneo de costa, templado por el Tirreno.", soils: "Aluvión, arcilla y arena.", grapes: "Cabernet Sauvignon, Cabernet Franc y Merlot." },
+  "Toscana": { climate: "Mediterráneo de colina, con contrastes de altitud.", soils: "Galestro, alberese y arcilla.", grapes: "Sangiovese. En Chianti y Montalcino es la casta central." },
+  "Veneto": { climate: "De llanura húmeda a colina fresca, según el valle.", soils: "Morrena, caliza y aluvión.", grapes: "Corvina, Rondinella y Garganega. Prosecco de Glera." },
+  "Sicilia": { climate: "Mediterráneo, de costa cálida a ladera del Etna.", soils: "Volcánicos en el Etna; caliza en otras zonas.", grapes: "Nero d'Avola, Nerello Mascalese y Carricante." },
+  "Mendoza": { climate: "Desértico de altura, con riego de deshielo y mucha luz.", soils: "Aluvión de los Andes.", grapes: "Malbec. También Cabernet y Bonarda." },
+  "Salta": { climate: "De gran altitud, seco y con amplitud térmica.", soils: "Arena y canto de los valles Calchaquíes.", grapes: "Torrontés y Malbec." },
+  "Patagonia": { climate: "Fresco, ventoso y de días largos.", soils: "Aluvión de río.", grapes: "Pinot Noir y Malbec." },
+  "San Juan": { climate: "Desértico y muy luminoso, más cálido que Mendoza.", soils: "Aluvión.", grapes: "Syrah y Bonarda. También Pedro Giménez." },
+  "Barossa": { climate: "Mediterráneo cálido, de valle.", soils: "Arcilla y arena antigua.", grapes: "Shiraz y Grenache. Blancos de Semillon y Riesling en Eden Valley." },
+  "Margaret River": { climate: "Marítimo, templado por el Índico.", soils: "Gravas y marga.", grapes: "Cabernet Sauvignon y Chardonnay." },
+  "Hunter Valley": { climate: "Húmedo y cálido, con lluvias de vendimia.", soils: "Arcilla y aluvión.", grapes: "Semillon y Shiraz." },
+  "McLaren Vale": { climate: "Mediterráneo, entre la costa y las colinas.", soils: "Arena, arcilla y caliza.", grapes: "Shiraz y Grenache." },
+  "Mosel": { climate: "Fresco, en laderas que miran al río.", soils: "Pizarra.", grapes: "Riesling." },
+  "Rheingau": { climate: "Fresco, en la orilla derecha del Rin.", soils: "Pizarra, cuarcita y loess.", grapes: "Riesling y Spätburgunder." },
+  "Pfalz": { climate: "El más soleado de Alemania, al resguardo del Haardt.", soils: "Caliza, loess y arenisca.", grapes: "Riesling y Spätburgunder." },
+  "Baden": { climate: "El más cálido del país, de norte a sur del Rin.", soils: "Volcánicos en Kaiserstuhl; loess y caliza en el resto.", grapes: "Spätburgunder, Riesling y Grauburgunder." },
+  "Napa Valley": { climate: "Mediterráneo de valle, más fresco hacia la bahía.", soils: "Aluvión, volcánicos y gravas, de viña a viña.", grapes: "Cabernet Sauvignon." },
+  "Sonoma": { climate: "De costa fresca a valle más cálido.", soils: "Volcánicos y aluvión.", grapes: "Pinot Noir y Chardonnay en la costa; Zinfandel en viñas viejas." },
+  "Paso Robles": { climate: "De días calurosos y noches frías, en el paso de la costa.", soils: "Caliza y marga.", grapes: "Cabernet, Syrah y Zinfandel." },
+  "Santa Barbara": { climate: "Fresco, con los valles abiertos al Pacífico.", soils: "Caliza y marga marina.", grapes: "Pinot Noir y Chardonnay." }
+};
+function zoneFactsFor(w) {
+  const blob = [w && w.appellation, w && w.region, w && w.country].filter(Boolean).join(" ");
+  const z = typeof detectZone === "function" ? detectZone(blob) : null;
+  if (!z || !ZONE_DO[z.name]) return null;
+  return { name: z.name, country: z.country, facts: ZONE_DO[z.name] };
+}
 const ZONE_PLATE = Object.fromEntries(ZONES.map(z => [z.name, z.map]));
 function foldZone(s) {
   return String(s || "").toLowerCase().normalize("NFD").replace(/\p{M}/gu, "");
@@ -570,10 +693,13 @@ function mapaBlock(w) {
   const gmaps = hasPin ? `https://www.google.com/maps?q=${pin}` : "";
   const apple = hasPin ? `https://maps.apple.com/?ll=${pin}&q=${pin}` : "";
   const mapLinks = hasPin ? `
+    <p class="muted" style="margin:0 0 4px;font-size:13px">${t("map.coords")}: ${Number(g.lat).toFixed(3)}, ${Number(g.lng).toFixed(3)}</p>
     <a class="btn btn-ghost" style="width:100%;margin-top:10px;display:block;text-align:center" href="${gmaps}" target="_blank" rel="noopener noreferrer" onclick="return openExternal(this.href)">Google Maps</a>
     <a class="btn btn-ghost" style="width:100%;margin-top:8px;display:block;text-align:center" href="${apple}" target="_blank" rel="noopener noreferrer" onclick="return openExternal(this.href)">${t("map.apple")}</a>
     <a class="btn btn-ghost" style="width:100%;margin-top:8px;display:block;text-align:center" href="${osm}" target="_blank" rel="noopener noreferrer" onclick="return openExternal(this.href)">OpenStreetMap</a>` : `<p class="muted" style="margin-top:10px">${t("map.noPin")}</p>`;
-  const shops = (w.shops || []).map(s => `<a class="btn btn-ghost" style="width:100%;margin-top:8px;display:block;text-align:center" href="${escHtml(s.url)}" target="_blank" rel="noopener noreferrer" onclick="return openExternal(this.href)">${escHtml(s.source || t("shop.word"))}${s.price ? " · " + escHtml(s.price) : ""}</a>`).join("");
+  const zd = zoneFactsFor(w);
+  const factRow = (label, value) => value ? `<p style="margin:8px 0 0"><span class="tiny">${escHtml(label)}</span><br>${escHtml(value)}</p>` : "";
+  const zoneCard = zd ? `<div class="card" style="margin-top:14px"><p class="tiny">${t("map.zone")}</p><h3 style="margin:4px 0 0;font-size:17px">${escHtml(zd.name)}</h3>${factRow(t("map.surface"), zd.facts.surface)}${factRow(t("map.climate"), zd.facts.climate)}${factRow(t("map.soils"), zd.facts.soils)}${factRow(t("map.grapes"), zd.facts.grapes)}</div>` : "";
   return `
     ${mapImg}
     <p class="tiny" style="margin:0 0 10px;text-align:center">${g.zone || w.region}</p>
@@ -582,5 +708,8 @@ function mapaBlock(w) {
     <p class="muted" style="margin:0 0 12px;font-size:13px">${placeLine(w, g)}</p>
     ${mapLinks}
     ${bodegaWeb(g.web) ? `<a class="btn btn-gold" style="width:100%;margin-top:8px;display:block;text-align:center" href="${bodegaWeb(g.web)}" target="_blank" rel="noopener noreferrer" onclick="return openExternal(this.href)">${t("map.webBtn")}</a>` : (w.provenance ? `<p class="muted" style="margin-top:8px">${t("map.webNone")}</p>` : "")}
-    ${shops}`;
+    ${zoneCard}`;
+}
+function shopLinks(w) {
+  return (w && w.shops || []).map(s => `<a class="btn btn-ghost" style="width:100%;margin-top:8px;display:block;text-align:center" href="${escHtml(s.url)}" target="_blank" rel="noopener noreferrer" onclick="return openExternal(this.href)">${escHtml(s.source || t("shop.word"))}${s.price ? " · " + escHtml(s.price) : ""}</a>`).join("");
 }
