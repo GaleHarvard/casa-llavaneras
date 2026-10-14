@@ -1330,7 +1330,18 @@ addI18n([
   ["tag.crema", "crema", "crema", "cream", "crème", "creme"],
   ["tag.amargo", "amargo", "amarg", "bitter", "amer", "amargo"],
   ["tag.cacao", "cacao", "cacau", "cocoa", "cacao", "cacau"],
-  ["tag.grasa-fina", "grasa-fina", "greix fi", "fine fat", "gras fin", "gordura fina"]
+  ["tag.grasa-fina", "grasa-fina", "greix fi", "fine fat", "gras fin", "gordura fina"],
+  ["wine.retire", "Dar de baja", "Donar de baixa", "Remove from cellar", "Sortir de la cave", "Dar baixa"],
+  ["wine.missing", "Faltan datos", "Falten dades", "Missing details", "Données manquantes", "Faltam dados"],
+  ["wine.missingLead", "La etiqueta no trae la añada, o es la contraetiqueta. No he inventado el año.", "L'etiqueta no porta l'anyada, o és la contraetiqueta. No he inventat l'any.", "The label has no vintage, or it is the back label. The year was not invented.", "L'étiquette n'a pas de millésime, ou c'est la contre-étiquette. L'année n'a pas été inventée.", "O rótulo não traz a colheita, ou é o contra-rótulo. O ano não foi inventado."],
+  ["wine.complete", "Completar ficha", "Completar la fitxa", "Complete the sheet", "Compléter la fiche", "Completar a ficha"],
+  ["wine.scanFront", "Escanear etiqueta delantera", "Escanejar l'etiqueta del davant", "Scan the front label", "Scanner l'étiquette avant", "Digitalizar o rótulo da frente"],
+  ["evo.drink", "Beber desde", "Beure des de", "Drink from", "À boire dès", "Beber desde"],
+  ["evo.drinkText", "A partir de este año se puede abrir.", "A partir d'aquest any es pot obrir.", "It can be opened from this year.", "On peut l'ouvrir à partir de cette année.", "A partir deste ano pode abrir-se."],
+  ["evo.peak", "Apogeo", "Apogeu", "Peak", "Apogée", "Apogeu"],
+  ["evo.peakText", "Empieza la mejor ventana.", "Comença la millor finestra.", "The best window starts.", "La meilleure fenêtre commence.", "Começa a melhor janela."],
+  ["evo.limit", "Límite", "Límit", "Limit", "Limite", "Limite"],
+  ["evo.limitText", "Fin de la ventana prudente.", "Fi de la finestra prudent.", "End of the prudent window.", "Fin de la fenêtre prudente.", "Fim da janela prudente."]
 ]);
 window.I18N = I18N;
 if (document.body) {

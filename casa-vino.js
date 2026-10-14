@@ -52,11 +52,15 @@ function userLocked(wine, field) {
 function phaseOf(wine) {
   if (!wine || !wine.aging) return { key: "wait", label: t("phase.nodata"), hint: "" };
   const a = wine.aging;
-  const pr = progressOf(wine);
-  if (YEAR < a.drinkFrom || pr.pct < 38) return { key: "wait", label: t("phase.wait"), hint: t("phase.waitHint") };
-  if (YEAR > a.holdTo || pr.pct >= 82) return { key: "late", label: t("phase.late"), hint: t("phase.lateHint") };
-  if (YEAR >= a.peakEnd - 1 || pr.pct >= 62) return { key: "warn", label: t("phase.warn"), hint: t("phase.warnHint") };
-  if (YEAR < a.peakStart) return { key: "ok", label: t("phase.open"), hint: t("phase.openHint") };
+  const from = Number(a.drinkFrom);
+  const peak0 = Number(a.peakStart);
+  const peak1 = Number(a.peakEnd);
+  const hold = Number(a.holdTo);
+  if (!from || !peak0 || !peak1 || !hold) return { key: "wait", label: t("phase.nodata"), hint: "" };
+  if (YEAR < from) return { key: "wait", label: t("phase.wait"), hint: t("phase.waitHint") };
+  if (YEAR > hold) return { key: "late", label: t("phase.late"), hint: t("phase.lateHint") };
+  if (YEAR > peak1) return { key: "warn", label: t("phase.warn"), hint: t("phase.warnHint") };
+  if (YEAR < peak0) return { key: "ok", label: t("phase.open"), hint: t("phase.openHint") };
   return { key: "ok", label: t("phase.peak"), hint: t("phase.peakHint") };
 }
 function progressOf(wine) {
@@ -284,6 +288,40 @@ function currentAdvice(w, p) {
   if (p.key === "ok") return t("advice.peak", { a: c.serveMin, b: c.serveMax });
   if (p.key === "warn") return t("advice.warn");
   return t("advice.late");
+}
+function noteAgrees(note, wine) {
+  const a = (wine && wine.aging) || {};
+  const y = Number(note && note.year);
+  if (!y) return false;
+  if (Number(wine.vintage) && y < Number(wine.vintage) - 1) return false;
+  if (Number(a.holdTo) && y > Number(a.holdTo)) return false;
+  const blob = normTxt((note.phase || "") + " " + (note.text || ""));
+  const peakWord = /integracion|apogeo|meseta|cotidiano|mejor momento/.test(blob);
+  if (peakWord && Number(a.peakStart) && y > Number(a.peakStart)) return false;
+  return true;
+}
+function windowTimeline(w) {
+  if (!w || !datesAreReal(w) || !w.aging) return [];
+  const a = w.aging;
+  const notes = (typeof catalogEvolution === "function" ? catalogEvolution(w) : (w.evolutionNotes || [])).filter(n => noteAgrees(n, w));
+  const items = notes.map(n => ({ year: Number(n.year), kind: "note", phase: n.phase, text: n.text }));
+  const have = y => items.some(it => it.year === Number(y));
+  if (Number(a.drinkFrom) && !have(a.drinkFrom)) items.push({ year: Number(a.drinkFrom), kind: "anchor", phase: t("evo.drink"), text: t("evo.drinkText") });
+  if (Number(a.peakStart) && Number(a.peakStart) !== Number(a.drinkFrom) && !have(a.peakStart)) items.push({ year: Number(a.peakStart), kind: "anchor", phase: t("evo.peak"), text: t("evo.peakText") });
+  if (Number(a.holdTo) && !have(a.holdTo)) items.push({ year: Number(a.holdTo), kind: "anchor", phase: t("evo.limit"), text: t("evo.limitText") });
+  const p = phaseOf(w);
+  items.push({ year: YEAR, kind: "now", phase: t("fact.state"), text: currentAdvice(w, p) });
+  items.sort((x, y) => x.year - y.year || (x.kind === "now") - (y.kind === "now"));
+  return items;
+}
+function shownYear(w) {
+  const y = Number(w && w.vintage);
+  return y >= 1950 && y <= YEAR + 1 ? String(y) : "";
+}
+function wineNeedsData(w) {
+  if (!w || !w.provenance) return false;
+  if (w.provenance.incomplete) return true;
+  return !shownYear(w) && (w.style === "internet" || w.style === "escaneo");
 }
 function stockOf(wineId) {
   return state.bottles.filter(b => b.wineId === wineId).reduce((n, b) => n + b.qty, 0);

@@ -159,11 +159,13 @@ function openWine(wineId, bottle) {
   $("#wine-body").innerHTML = `
     <div class="wine-hero">${estateSVG(w)}</div>
     <h1 class="wine-producer">${w.producer}</h1>
-    <p class="wine-cuvee">${w.name} ${w.vintage}</p>
+    <p class="wine-cuvee">${escHtml(w.name)}${shownYear(w) ? " " + shownYear(w) : ""}</p>
     <button type="button" class="btn btn-ghost label-change" onclick="changeWineLabel()">${t("label.change")}</button>
     <div class="peak-pill">${pill}</div>
-    ${wineTranslateCard(w)}
     ${currentBottle ? `<p class="tiny" style="text-align:center;margin:6px 0 4px">${t("wine.inCellar", { n: currentBottle.qty, noun: nounBottles(currentBottle.qty) })}</p>` : ""}
+    ${currentBottle ? `<button type="button" class="btn btn-ghost baja-btn" onclick="askServe(1)">${t("wine.retire")}</button>` : ""}
+    ${wineNeedsData(w) ? `<div class="card miss-card"><p class="tiny">${t("wine.missing")}</p><p class="muted" style="margin-top:6px">${t("wine.missingLead")}</p><button type="button" class="btn btn-gold" onclick="completeExistingWine('${w.id}')">${t("wine.complete")}</button><button type="button" class="btn btn-ghost" onclick="startScan()">${t("wine.scanFront")}</button></div>` : ""}
+    ${wineTranslateCard(w)}
     ${currentBottle && currentBottle.cellarId ? `<button class="btn btn-ghost" style="width:100%;margin:8px 0" onclick="showLotInCave()">${t("wine.seeCave")}</button>` : ""}
     ${pendingPlacementLine(w.id)}
     <div class="wine-tabs">
@@ -651,15 +653,18 @@ function openWineSub(kind) {
   } else if (kind === "evolve") {
     const when = datesAreReal(w)
       ? t("fact.vintageLine", { v: w.vintage, from: w.aging.drinkFrom, a: w.aging.peakStart, b: w.aging.peakEnd, h: w.aging.holdTo })
-      : t("fact.vintageUnknown", { v: w.vintage });
+      : t("fact.vintageUnknown", { v: shownYear(w) || "—" });
+    const stages = datesAreReal(w) ? windowTimeline(w) : [];
     body = `
       <p class="muted" style="margin:6px 0">${when}</p>
       <div class="peak-pill">${datesAreReal(w) ? (p.label || "").toUpperCase() : t("nodata").toUpperCase()}</div>
       ${datesAreReal(w) ? `<div class="bar"><i style="width:${pr.pct}%"></i></div>
       <div class="row tiny"><span>${w.vintage}</span><span>${t("fact.now", { y: YEAR })}</span><span>${w.aging.holdTo}</span></div>` : ""}
       <div class="timeline">
-        ${(typeof catalogEvolution === "function" ? catalogEvolution(w) : (w.evolutionNotes || [])).map(n => `<div class="tl-item"><em>${n.year} · ${escHtml(n.phase)}</em><strong>${escHtml(n.text)}</strong></div>`).join("")}
-        <div class="tl-item"><em>${YEAR} · ${t("fact.state")}</em><strong>${datesAreReal(w) ? currentAdvice(w, p) : t("fact.noWindow")}</strong></div>
+        ${stages.map(n => {
+          const cls = n.year < YEAR ? "past" : (n.year > YEAR ? "future" : "now");
+          return `<div class="tl-item ${cls}"><em>${n.year} · ${escHtml(n.phase)}</em><strong>${escHtml(n.text)}</strong></div>`;
+        }).join("") || `<div class="tl-item now"><em>${YEAR} · ${t("fact.state")}</em><strong>${t("fact.noWindow")}</strong></div>`}
       </div>`;
   } else if (kind === "profile") {
     body = `
@@ -774,7 +779,7 @@ function openWineSub(kind) {
   $("#wine-sub-body").innerHTML = `
     <button class="back" onclick="goBack()">‹ ${backCaption()}</button>
     ${bodegaImg}
-    <p class="eyebrow" style="${eyeCss}">${w.name} ${w.vintage}</p>
+    <p class="eyebrow" style="${eyeCss}">${escHtml(w.name)}${shownYear(w) ? " " + shownYear(w) : ""}</p>
     <h1 style="${titleCss}">${titles[kind] || t("sub.sheet")}</h1>
     ${body}`;
   show("wine-sub");
