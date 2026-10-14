@@ -2051,6 +2051,52 @@ function quotaReason(body) {
   if (quotaIsDaily(body)) return t("gemini.quotaDay", { when: nextMadridNine() });
   return t("gemini.quotaMin", { n: Math.max(1, Math.round((wait || 30000) / 1000)) });
 }
+function clipGeminiMessage(msg) {
+  const s = String(msg || "").replace(/\s+/g, " ").trim();
+  if (s.length <= 160) return s;
+  return s.slice(0, 157) + "…";
+}
+function geminiErrorText(body) {
+  const err = (body && body.error) || {};
+  const direct = clipGeminiMessage(err.message || "");
+  if (direct) return direct;
+  const details = err.details || [];
+  const bits = [];
+  details.forEach(d => {
+    ((d && d.fieldViolations) || []).forEach(v => { if (v && v.description) bits.push(v.description); });
+  });
+  return clipGeminiMessage(bits.join(" "));
+}
+async function readGeminiFailure(res) {
+  let body = {};
+  try { body = await res.json(); } catch (e) {}
+  return { body, message: geminiErrorText(body) };
+}
+function geminiStatusReason(status, message) {
+  const text = clipGeminiMessage(message);
+  if (!text) return "HTTP " + status;
+  if (text.indexOf(String(status)) >= 0) return text;
+  return "HTTP " + status + " · " + text;
+}
+/* thinkingBudget 0 apaga el razonamiento en Gemini 2.5 Flash y Flash-Lite.
+   Gemini 3 y 4 (el flash-lite que devuelve ListModels, p. ej. gemini-3.5-flash-lite)
+   responden 400 si llega thinkingBudget. 2.0 no tiene el campo. 2.5 Pro no puede apagarlo. */
+function thinkingConfigFor(model) {
+  const id = String(model || "").toLowerCase();
+  if (id.indexOf("gemini-2.5-flash") >= 0) return { thinkingBudget: 0 };
+  return null;
+}
+function generationConfigFor(model, tokens, schema) {
+  const generationConfig = {
+    temperature: 0.2,
+    maxOutputTokens: tokens,
+    responseMimeType: "application/json"
+  };
+  const thinking = thinkingConfigFor(model);
+  if (thinking) generationConfig.thinkingConfig = thinking;
+  if (schema) generationConfig.responseSchema = schema;
+  return generationConfig;
+}
 function geminiReasonFrom(status, finish, parsed, err) {
   if (status === 401 || status === 403) return "clave rechazada (HTTP " + status + ")";
   if (status === 429) return t("gemini.quotaDay", { when: nextMadridNine() });
@@ -2097,27 +2143,42 @@ async function geminiGenerateRun(key, model, prompt, schema, signal, maxOutputTo
   let quotaTries = 0;
   let bumped = false;
   let serverTries = 0;
+  let minimalTried = false;
+  const contents = [{ role: "user", parts: [{ text: prompt }].concat(extraParts || []) }];
+  async function postGenerate(generationConfig) {
+    return fetch(url, {
+      method: "POST",
+      signal,
+      headers: { "Content-Type": "application/json", "x-goog-api-key": key },
+      body: JSON.stringify({ contents, generationConfig })
+    });
+  }
   for (let i = 0; i < attempts.length; i++) {
     const opt = attempts[i];
-    const generationConfig = {
-      temperature: 0.2,
-      maxOutputTokens: tokens,
-      responseMimeType: "application/json",
-      thinkingConfig: { thinkingBudget: 0 }
-    };
-    if (opt.schema) generationConfig.responseSchema = opt.schema;
+    const generationConfig = generationConfigFor(model, tokens, opt.schema);
     let res;
     try {
-      res = await fetch(url, {
-        method: "POST",
-        signal,
-        headers: { "Content-Type": "application/json", "x-goog-api-key": key },
-        body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: prompt }].concat(extraParts || []) }], generationConfig })
-      });
+      res = await postGenerate(generationConfig);
     } catch (err) {
       return { parsed: null, reason: geminiReasonFrom(0, "", null, err), fatal: true, model };
     }
-    if (res.status === 400 && i < attempts.length - 1) continue;
+    if (res.status === 400) {
+      const fail = await readGeminiFailure(res);
+      if (!minimalTried && !(signal && signal.aborted)) {
+        minimalTried = true;
+        try {
+          res = await postGenerate({ temperature: 0.2, maxOutputTokens: tokens });
+        } catch (err) {
+          return { parsed: null, reason: geminiStatusReason(400, fail.message), fatal: true, model };
+        }
+        if (res.status === 400) {
+          const again = await readGeminiFailure(res);
+          return { parsed: null, reason: geminiStatusReason(400, again.message || fail.message), model };
+        }
+      } else {
+        return { parsed: null, reason: geminiStatusReason(400, fail.message), model };
+      }
+    }
     if (res.status === 404) return { parsed: null, reason: "modelo no disponible (HTTP 404)", model, skipModel: true };
     if (res.status === 401 || res.status === 403) {
       return { parsed: null, reason: geminiReasonFrom(res.status, "", null, null), fatal: true, model };
@@ -2145,10 +2206,12 @@ async function geminiGenerateRun(key, model, prompt, schema, signal, maxOutputTo
         i--;
         continue;
       }
-      return { parsed: null, reason: "HTTP " + res.status, model, retryable: true };
+      const fail = await readGeminiFailure(res);
+      return { parsed: null, reason: geminiStatusReason(res.status, fail.message), model, retryable: true };
     }
     if (!res.ok) {
-      last = { parsed: null, reason: geminiReasonFrom(res.status, "", null, null), model };
+      const fail = await readGeminiFailure(res);
+      last = { parsed: null, reason: fail.message ? geminiStatusReason(res.status, fail.message) : geminiReasonFrom(res.status, "", null, null), model };
       continue;
     }
     let json;

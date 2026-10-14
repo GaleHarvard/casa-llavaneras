@@ -260,6 +260,17 @@
     };
   }
 
+  function clipApiMessage(msg) {
+    const s = String(msg || "").replace(/\s+/g, " ").trim();
+    if (s.length <= 160) return s;
+    return s.slice(0, 157) + "…";
+  }
+  async function apiErrorMessage(res) {
+    let body = {};
+    try { body = await res.json(); } catch (e) {}
+    const err = (body && body.error) || {};
+    return clipApiMessage(err.message || "");
+  }
   function geminiBody(nombre, anada, region) {
     const user = [
       "Estima la horquilla de precio al público en España y Europa, botella 75 cl, hoy.",
@@ -316,6 +327,7 @@
     const timer = setTimeout(function () { controller.abort(); }, TIMEOUT_MS);
     let last = "Gemini no disponible";
     const skip = [];
+    let minimalTried = false;
     try {
       for (let i = 0; i < 4; i++) {
         let model = "";
@@ -343,17 +355,31 @@
             },
             body: JSON.stringify(body)
           });
-          if (res.status === 400 && body.generationConfig && body.generationConfig.thinkingConfig) {
-            delete body.generationConfig.thinkingConfig;
-            res = await fetch(url, {
-              method: "POST",
-              signal: controller.signal,
-              headers: {
-                "Content-Type": "application/json",
-                "x-goog-api-key": key
-              },
-              body: JSON.stringify(body)
-            });
+          if (res.status === 400 && !minimalTried) {
+            const message = await apiErrorMessage(res);
+            minimalTried = true;
+            const slim = geminiBody(nombre, anada, region);
+            slim.generationConfig = { temperature: 0.2, maxOutputTokens: 300 };
+            try {
+              res = await fetch(url, {
+                method: "POST",
+                signal: controller.signal,
+                headers: {
+                  "Content-Type": "application/json",
+                  "x-goog-api-key": key
+                },
+                body: JSON.stringify(slim)
+              });
+            } catch (err) {
+              if (err && err.name === "AbortError") {
+                return emptyEstimate("Tiempo agotado (12 s). Sin red o Gemini lento. Se mantiene el dossier.");
+              }
+              return emptyEstimate(message || "Gemini HTTP 400");
+            }
+            if (res.status === 400) {
+              const again = await apiErrorMessage(res);
+              return emptyEstimate(again || message || "Gemini HTTP 400");
+            }
           }
         } catch (err) {
           if (err && err.name === "AbortError") {
@@ -369,7 +395,11 @@
           last = "modelo no disponible (HTTP 404)";
           continue;
         }
-        if (!res.ok) { last = "Gemini HTTP " + res.status; continue; }
+        if (!res.ok) {
+          const message = await apiErrorMessage(res);
+          last = message ? ("Gemini HTTP " + res.status + " · " + message) : ("Gemini HTTP " + res.status);
+          continue;
+        }
         let json;
         try { json = await res.json(); } catch (e) { last = "Respuesta no JSON"; continue; }
         const parts = (((json.candidates || [])[0] || {}).content || {}).parts || [];
