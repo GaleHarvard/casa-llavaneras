@@ -441,6 +441,14 @@ label.field span {
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
+.tl-item.past { opacity: .45; }
+.tl-item.past::before { background: #5c5c5c; }
+.tl-item.now em { color: #fff; }
+.tl-item.now::before { background: #e8c97a; box-shadow: 0 0 0 3px rgba(232, 201, 122, .28); }
+.tl-item.future { opacity: .75; }
+.tl-item.future::before { background: transparent; box-shadow: inset 0 0 0 1.5px #8a7040; }
+.baja-btn { width: 100%; margin: 4px 0 12px; border-color: #8a5a3a; color: #f0d7b0; }
+.miss-card .btn { width: 100%; margin-top: 8px; }
 
 .ratings { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .rate {
