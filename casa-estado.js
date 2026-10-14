@@ -48,6 +48,7 @@ const defaultState = () => ({
   inbox: []
 });
 let state = load();
+if (typeof repairStoredWineries === "function" && repairStoredWineries(state)) save();
 let currentWine = null;
 let currentBottle = null;
 let stream = null;

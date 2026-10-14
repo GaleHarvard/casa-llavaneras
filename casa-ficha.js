@@ -828,7 +828,8 @@ function mercadoSkeleton(w) {
       <div class="temp"><span class="tiny">${t("fact.yourCost")}</span><b>${mine}</b></div>
     </div>
     <p class="tiny" id="mercado-src">${src} · EUR</p>
-    ${priceHistoryBlock(w)}`;
+    ${priceHistoryBlock(w)}
+    ${shopLinks(w)}`;
 }
 async function fillMercado(w) {
   const box = document.getElementById("mercado-box");
@@ -863,6 +864,7 @@ async function fillMercado(w) {
     <div class="card"><p class="tiny">${tag} · ${quote.currency || "EUR"}${quote.confianza ? " · " + t("fact.confidence") + " " + quote.confianza : ""}</p>
       <p class="muted" style="margin-top:6px">${quote.trend || ""}</p></div>
     ${priceHistoryBlock(w)}
+    ${shopLinks(w)}
     ${d.similar && d.similar.length ? `<h2 style="margin:16px 0 8px">${t("fact.similar")}</h2>${d.similar.map(id => {
       const s = wineById(id);
       if (!s) return "";
