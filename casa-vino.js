@@ -43,7 +43,8 @@ function applyStoredWineEdit(w) {
     w.ratings = w.ratings || {};
     Object.keys(e.ratings).forEach(k => {
       const block = e.ratings[k];
-      if (block && scoreIsUser(block)) w.ratings[k] = Object.assign({}, w.ratings[k] || {}, block);
+      const origin = scoreOrigin(block);
+      if (block && (scoreIsUser(block) || origin === "web" || origin === "verificada")) w.ratings[k] = Object.assign({}, w.ratings[k] || {}, block);
     });
   }
   w.provenance = w.provenance || {};
@@ -141,19 +142,26 @@ function producerShort(w) {
   return p.split(/\s+/).slice(0, 3).join(" ");
 }
 function parkerMark(w) {
-  const block = userScore(w, "parker");
-  return block ? ("★ " + block.score) : t("nodata");
+  const block = publishedScore(w, "parker");
+  return block ? ("★ " + block.score) : "";
+}
+function scoreOrigin(block) {
+  return String((block && (block.origin || block.origen)) || "");
 }
 function scoreIsUser(block) {
   if (!block || typeof block !== "object") return false;
   if (block.estimate === true) return false;
-  if (block.manual === true || block.by === "usuario" || block.origin === "usuario" || block.origen === "usuario") return true;
+  const origin = scoreOrigin(block);
+  if (origin === "web" || origin === "verificada" || origin === "catalogo") return false;
+  if (block.manual === true || block.by === "usuario" || origin === "usuario") return true;
   const src = String(block.source || "").trim();
   if (src && !/gemini|estimaci/i.test(src)) return true;
   return false;
 }
 function scoreIsAi(block, wine) {
   if (!block || typeof block !== "object") return false;
+  const origin = scoreOrigin(block);
+  if (origin === "web" || origin === "verificada" || origin === "catalogo") return false;
   if (scoreIsUser(block)) return false;
   if (block.estimate === true) return true;
   const by = String(block.by || block.origin || block.origen || "");
@@ -168,6 +176,76 @@ function userScore(w, key) {
   const n = Number(String(block.score == null ? "" : block.score).replace(",", "."));
   if (!(n > 0)) return null;
   return block;
+}
+function publishedScore(w, key) {
+  const block = w && w.ratings && w.ratings[key];
+  if (!block || typeof block !== "object" || block.estimate === true) return null;
+  if (scoreIsAi(block, w)) return null;
+  const n = Number(String(block.score == null ? "" : block.score).replace(",", "."));
+  if (!(n > 0)) return null;
+  return block;
+}
+function scoreTagKey(block) {
+  if (!block) return "";
+  const origin = scoreOrigin(block);
+  if (origin === "web") return "score.web";
+  if (origin === "verificada" || block.verified === true) return "score.verified";
+  if (block.manual === true || block.by === "usuario" || origin === "usuario") return "score.yours";
+  return "score.catalog";
+}
+function isNodataText(s) {
+  const n = String(s == null ? "" : s).trim();
+  if (!n || n === "—" || n === "-" || n === "–") return true;
+  if (typeof t === "function") {
+    try { if (n === t("nodata")) return true; } catch (e) {}
+  }
+  return /^(sin dato|sense dada|no data|sans donnee|sans donnée|sem dado)$/i.test(n);
+}
+function indicativeFacts(w) {
+  const kind = bottleKind(w || {});
+  const style = normTxt(((w && w.style) || "") + " " + ((w && w.name) || "") + " " + ((w && w.appellation) || ""));
+  const year = Number(w && w.vintage) || 0;
+  const age = year ? (yearNow() - year) : 0;
+  const agedRed = kind === "red" && (/gran|reserva|crianza|icono/.test(style) || age >= 4);
+  let serve = [15, 17];
+  let cellar = [12, 14];
+  let decantKey = "fact.decantYoung";
+  let glassKey = "fact.glassRed";
+  let positionKey = "fact.posHoriz";
+  let humidity = "65–75%";
+  let crianzaKey = "fact.crianzaYoung";
+  let fromOff = 2;
+  let holdOff = 8;
+  if (kind === "spark") {
+    serve = [8, 10]; cellar = [8, 12]; decantKey = "fact.noDecant"; glassKey = "fact.glassSpark"; crianzaKey = "fact.crianzaSpark"; fromOff = 1; holdOff = 10;
+  } else if (kind === "white" || kind === "slim") {
+    const aged = age >= 5 || /crianza|reserva|barrica|gran/.test(style);
+    serve = aged ? [10, 12] : [8, 10];
+    cellar = aged ? [10, 13] : [8, 12];
+    decantKey = "fact.noDecant"; glassKey = "fact.glassWhite"; crianzaKey = aged ? "fact.crianzaOak" : "fact.crianzaYoung";
+    fromOff = aged ? 2 : 1; holdOff = aged ? 10 : 4;
+  } else if (kind === "rose") {
+    serve = [8, 12]; cellar = [8, 12]; decantKey = "fact.noDecant"; glassKey = "fact.glassRose"; fromOff = 1; holdOff = 3;
+  } else if (kind === "generoso") {
+    serve = [12, 14]; cellar = [12, 16]; decantKey = "fact.noDecant"; glassKey = "fact.glassGen"; positionKey = "fact.posVert"; humidity = "60–70%"; fromOff = 0; holdOff = 20;
+  } else if (agedRed) {
+    serve = [16, 18]; cellar = [12, 14]; decantKey = "fact.decantAged"; glassKey = "fact.glassRed"; crianzaKey = "fact.crianzaOak";
+    fromOff = 4; holdOff = (/gran|icono/.test(style) || age >= 10) ? 18 : 12;
+  }
+  return {
+    serve: serve, cellar: cellar, decantKey: decantKey, glassKey: glassKey,
+    positionKey: positionKey, humidity: humidity, crianzaKey: crianzaKey,
+    drinkFrom: year ? year + fromOff : 0,
+    holdTo: year ? year + holdOff : 0
+  };
+}
+function shownDrinkRange(w) {
+  if (datesAreReal(w) && w && w.aging && w.aging.drinkFrom && (w.aging.peakEnd || w.aging.holdTo)) {
+    return w.aging.drinkFrom + "–" + (w.aging.peakEnd || w.aging.holdTo);
+  }
+  const hint = indicativeFacts(w);
+  if (!hint.drinkFrom || !hint.holdTo) return "";
+  return hint.drinkFrom + "–" + hint.holdTo;
 }
 function clearAiScoreBlock(block) {
   let changed = false;
@@ -304,16 +382,16 @@ function fieldIsReal(w, key) {
 }
 function rateScore(score, digits) {
   const n = Number(score);
-  if (!n) return t("nodata");
+  if (!n) return "";
   return digits ? n.toFixed(digits) : String(n);
 }
 function styleLabel(w) {
-  if (!w) return t("nodata");
+  if (!w) return "";
   const kind = w.kindStyle || "";
   const typ = w.type ? typeLabel(w.type) : "";
-  if (w.provenance && (w.style === "internet" || w.style === "escaneo") && !kind) return typ || t("nodata");
+  if (w.provenance && (w.style === "internet" || w.style === "escaneo") && !kind) return typ || "";
   if (kind) return kind + (typ ? " · " + typ : "");
-  if (!w.style || w.style === "Sin dato") return typ || t("nodata");
+  if (!w.style || isNodataText(w.style)) return typ || "";
   return w.style + (typ ? " · " + typ : "");
 }
 function grapeLine(w) {
@@ -507,11 +585,10 @@ function bodegaGeo(w) {
   const storedWeb = g.web && !isShopUrl(g.web) ? g.web : "";
   const region = String((w && (w.appellation || w.region)) || "").trim();
   const storedZone = g.zone && !textShop(g.zone) && foldEstate(g.zone) !== foldEstate(region) ? g.zone : "";
-  const nodata = typeof t === "function" ? t("nodata") : "Sin dato";
   return {
     lat: storedPin ? lat : (lib.lat != null ? lib.lat : null),
     lng: storedPin ? lng : (lib.lng != null ? lib.lng : null),
-    zone: storedZone || lib.zone || region || (w && w.country) || nodata,
+    zone: storedZone || lib.zone || region || (w && w.country) || "",
     address: storedAddress || lib.address || "",
     web: storedWeb || lib.web || ""
   };

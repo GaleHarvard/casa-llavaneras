@@ -16,10 +16,10 @@ window.WINE_CATALOG = [
     color: "#5a1220",
     ratings: {
       vivino: { score: 4.7, count: 1840, scale: 5 , note: ""},
-      penin: { score: 97, scale: 100 , note: ""},
-      parker: { score: 96, scale: 100, reviewer: "Luis Gutiérrez / WA" , note: ""},
-      spectator: { score: 95, scale: 100 , note: ""},
-      decanter: { score: 96, scale: 100 , note: ""}
+      penin: { score: 97, scale: 100, note: "", origin: "verificada", source: "Guía Peñín", url: "https://www.videgust.com/vega-sicilia-unico-2014/" },
+      parker: { score: 98, scale: 100, reviewer: "Luis Gutiérrez / WA", note: "", origin: "verificada", source: "Robert Parker / Wine Advocate", url: "https://www.millesima.com/vega-sicilia-unico-2014.html" },
+      spectator: { score: 95, scale: 100, note: "", origin: "verificada", source: "Wine Spectator", url: "https://www.millesima.com/vega-sicilia-unico-2014.html" },
+      decanter: { score: 97, scale: 100, note: "", origin: "verificada", source: "Decanter", url: "https://www.decanter.com/premium/spanish-icons-vega-sicilia-unico-550308/" }
     },
     priceHint: "450–650 €",
     tasting: "Ciruela negra, cedro, grafito, cacao y una mineralidad de tiza. Tanino pulido, acidez viva, final interminable.",
@@ -58,6 +58,9 @@ window.WINE_CATALOG = [
         score: 97,
         scale: 100,
         reviewer: "Luis Gutiérrez / WA",
+        source: "Luis Gutiérrez / Wine Advocate",
+        url: "https://bordeauxindex.com/fine-wine/spain/castilla_y_leon/vega-2009",
+        origin: "verificada",
         note: "Catado a ciegas, sorprendió la frescura y la fruta roja, casi borgoñona, en una añada que sobre el papel fue cálida y seca. Tarda en abrir la paleta aromática y se siente más joven de lo que es. En nariz recuerda a los Único antiguos; el tanino va pulido y la boca, suave, aporta elegancia. Añada mejor de lo esperado, para seguir en botella."
       },
       spectator: {
@@ -68,6 +71,9 @@ window.WINE_CATALOG = [
       decanter: {
         score: 97,
         scale: 100,
+        source: "Decanter World Wine Awards",
+        url: "https://bordeauxindex.com/fine-wine/spain/castilla_y_leon/vega-2009",
+        origin: "verificada",
         note: "Pese a la estructura de guarda de Único, esta añada se muestra ya accesible. Nariz de fruta roja, vainilla y cedro; en boca elegante y suple, con el tanino muy bien trabajado. La frescura sostiene un final largo. Gonzalo Iturriaga: es complejidad, juventud y capacidad de envejecer."
       }
     },
@@ -98,9 +104,9 @@ window.WINE_CATALOG = [
     ratings: {
       vivino: { score: 4.8, count: 620, scale: 5 , note: ""},
       penin: { score: 99, scale: 100 , note: ""},
-      parker: { score: 99, scale: 100, reviewer: "Luis Gutiérrez / WA" , note: ""},
+      parker: { score: 100, scale: 100, reviewer: "Luis Gutiérrez / WA", note: "", origin: "verificada", source: "Luis Gutiérrez / Wine Advocate", url: "https://www.frw.co.uk/product/612ec280010000000004accf/2018-pingus-dominio-de-pingus" },
       spectator: { score: 97, scale: 100 , note: ""},
-      decanter: { score: 98, scale: 100 , note: ""}
+      decanter: { score: 98, scale: 100, note: "", origin: "verificada", source: "David Williams / Decanter", url: "https://www.bbr.com/products-20188106120-2018-pingus-ribera-del-duero-spain" }
     },
     priceHint: "1.200–1.800 €",
     tasting: "Concentración casi meditativa: mora, violeta, grafito húmedo, cacao. Textura sedosa pese a la densidad.",
@@ -128,9 +134,9 @@ window.WINE_CATALOG = [
     color: "#7a2430",
     ratings: {
       vivino: { score: 4.4, count: 12600, scale: 5, note: "Media de usuarios: fresa, cuero y naranja confitada. Reserva clásica de Haro, muy bien valorada." },
-      penin: { score: 94, scale: 100, note: "Cereza picota. Nariz compleja de crianza: cedro, té y fruta roja. Boca viva, tanino pulido, final largo." },
-      parker: { score: 94, scale: 100, reviewer: "Luis Gutiérrez / WA", note: "La 2011 está en meseta: acidez brillante, tanino de Rioja Alta, sin maquillaje de roble nuevo." },
-      spectator: { score: 93, scale: 100, note: "Dried cherry, orange peel and cedar. Elegant, traditional Rioja with a long, savory finish." },
+      penin: { score: 93, scale: 100, note: "Cereza picota. Nariz compleja de crianza: cedro, té y fruta roja. Boca viva, tanino pulido, final largo.", origin: "verificada", source: "Guía Peñín", url: "https://www.videgust.com/vina-tondonia-2011/" },
+      parker: { score: 94, scale: 100, reviewer: "Luis Gutiérrez / WA", note: "La 2011 está en meseta: acidez brillante, tanino de Rioja Alta, sin maquillaje de roble nuevo.", origin: "verificada", source: "Robert Parker / Wine Advocate", url: "https://www.videgust.com/vina-tondonia-2011/" },
+      spectator: { score: 93, scale: 100, note: "Dried cherry, orange peel and cedar. Elegant, traditional Rioja with a long, savory finish.", origin: "verificada", source: "Wine Spectator", url: "https://www.winemadeeasy.com/wine/red-wine/tempranillo/r-lopez-de-heredia-vina-tondonia-reserva-750-ml-61520.html" },
       decanter: { score: 95, scale: 100, note: "Classic López de Heredia: tea, wild strawberry, fine leather. Drink now–2036." }
     },
     priceHint: "38–55 €",
@@ -159,7 +165,7 @@ window.WINE_CATALOG = [
     color: "#6e1c28",
     ratings: {
       vivino: { score: 4.2, count: 48200, scale: 5 , note: ""},
-      penin: { score: 92, scale: 100 , note: ""},
+      penin: { score: 93, scale: 100, note: "", origin: "verificada", source: "Guía Peñín", url: "https://www.marquesderiscal.com/public/Attachment/2024/5/marqusderiscalreserva2019esp.pdf" },
       parker: { score: 91, scale: 100, reviewer: "Wine Advocate" , note: ""},
       spectator: { score: 91, scale: 100 , note: ""},
       decanter: { score: 92, scale: 100 , note: ""}
@@ -280,7 +286,7 @@ window.WINE_CATALOG = [
     ratings: {
       vivino: { score: 4.3, count: 3800, scale: 5 , note: ""},
       penin: { score: 96, scale: 100 , note: ""},
-      parker: { score: 94, scale: 100, reviewer: "Wine Advocate" , note: ""},
+      parker: { score: 94, scale: 100, reviewer: "Wine Advocate", note: "", origin: "verificada", source: "Robert Parker / Wine Advocate", url: "https://www.grandcruwijnen.nl/en/2016-gramona-corpinnat-iii-lustros-brut-nature-gran-reserva" },
       spectator: { score: 93, scale: 100 , note: ""},
       decanter: { score: 95, scale: 100 , note: ""}
     },
@@ -430,8 +436,8 @@ window.WINE_CATALOG = [
     ratings: {
       vivino: { score: 4.5, count: 6200, scale: 5 , note: ""},
       penin: { score: 95, scale: 100 , note: ""},
-      parker: { score: 96, scale: 100, reviewer: "Luis Gutiérrez / WA" , note: ""},
-      spectator: { score: 94, scale: 100 , note: ""},
+      parker: { score: 95, scale: 100, reviewer: "Luis Gutiérrez / WA", note: "", origin: "verificada", source: "Robert Parker / Wine Advocate", url: "https://www.millesima.com/vega-sicilia-valbuena-5-ano-2019.html" },
+      spectator: { score: 93, scale: 100, note: "", origin: "verificada", source: "Wine Spectator", url: "https://www.millesima.com/vega-sicilia-valbuena-5-ano-2019.html" },
       decanter: { score: 95, scale: 100 , note: ""}
     },
     priceHint: "140–190 €",
@@ -460,8 +466,8 @@ window.WINE_CATALOG = [
     ratings: {
       vivino: { score: 4.4, count: 7800, scale: 5 , note: ""},
       penin: { score: 96, scale: 100 , note: ""},
-      parker: { score: 95, scale: 100, reviewer: "Luis Gutiérrez / WA" , note: ""},
-      spectator: { score: 94, scale: 100 , note: ""},
+      parker: { score: 97, scale: 100, reviewer: "Luis Gutiérrez / WA", note: "", origin: "verificada", source: "Luis Gutiérrez / Wine Advocate", url: "https://www.vinissimus.co.uk/en/wine/prado-enea-gran-reserva/" },
+      spectator: { score: 94, scale: 100, note: "", origin: "verificada", source: "Wine Spectator", url: "https://www.vinissimus.co.uk/en/wine/prado-enea-gran-reserva/" },
       decanter: { score: 96, scale: 100 , note: ""}
     },
     priceHint: "55–75 €",

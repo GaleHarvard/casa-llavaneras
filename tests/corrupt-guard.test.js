@@ -53,7 +53,7 @@ assert.ok(Array.isArray(good.parsed.bottles));
 
 assert.strictEqual(classifyBag.corruptBackupKey(1710000000000), "vinoteca.pro.max.v3.corrupt-1710000000000");
 
-const scoreSrc = ["scoreIsUser", "scoreIsAi", "clearAiScoreBlock", "stripStoredAiScores"].map(name => extractFunction(vino, name)).join("\n");
+const scoreSrc = ["scoreOrigin", "scoreIsUser", "scoreIsAi", "clearAiScoreBlock", "stripStoredAiScores"].map(name => extractFunction(vino, name)).join("\n");
 const scores = new Function(scoreSrc + "\nreturn { stripStoredAiScores, scoreIsUser };")();
 
 const stored = {

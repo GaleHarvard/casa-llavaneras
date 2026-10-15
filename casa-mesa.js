@@ -11,12 +11,18 @@ function dishArt() {
 }
 function pairingBlock(w) {
   const pack = pairingPackOf(w);
-  if (!pack) return `<p class="muted">${t("nodata")}</p>`;
+  const serve = (pack && pack.serve && !isNodataText(pack.serve)) ? pack.serve : shownTemp(w, "service");
+  const complete = (w && typeof isCatalogWineId === "function" && !isCatalogWineId(w.id))
+    ? `<button type="button" class="btn btn-gold" style="width:100%;margin-top:8px" onclick="completeExistingWine('${w.id}')">${t("score.completeGemini")}</button>`
+    : "";
+  if (!pack || !pack.matches || !pack.matches.length) {
+    return (serve ? `<div class="card"><p class="tiny">${t("pair.service")}</p><p>${escHtml(serve)}</p></div>` : "") + complete;
+  }
   const inCellar = state.bottles.some(b => b.wineId === w.id);
   return `
     <h2 style="margin-top:16px">${t("pair.ofWine")}</h2>
-    <p class="muted" style="margin:6px 0 10px">${pack.logic}</p>
-    <div class="card"><p class="tiny">${t("pair.service")}</p><p>${escHtml(pack.serve || t("nodata"))}</p>
+    ${pack.logic && !isNodataText(pack.logic) ? `<p class="muted" style="margin:6px 0 10px">${pack.logic}</p>` : ""}
+    ${serve ? `<div class="card"><p class="tiny">${t("pair.service")}</p><p>${escHtml(serve)}</p>` : `<div class="card">`}
       ${(pack.avoid && pack.avoid.length) ? `<p class="muted" style="margin-top:8px">${t("pair.avoid", { list: pack.avoid.join(" · ") })}</p>` : ""}</div>
     ${pack.matches.map(m => {
       const d = m.dishId && PAIRING_DISHES.find(x => x.id === m.dishId);

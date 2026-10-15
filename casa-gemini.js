@@ -2236,6 +2236,219 @@ async function geminiGenerateRun(key, model, prompt, schema, signal, maxOutputTo
   }
   return last;
 }
+function canonScoreGuide(raw) {
+  const s = normTxt(raw || "");
+  if (/vivino/.test(s)) return "vivino";
+  if (/penin/.test(s)) return "penin";
+  if (/spectator/.test(s) || s === "ws") return "spectator";
+  if (/decanter|dwwa/.test(s)) return "decanter";
+  if (/parker|advocate/.test(s) || s === "wa") return "parker";
+  return "";
+}
+function groundingChunksOf(json) {
+  const meta = ((((json || {}).candidates || [])[0] || {}).groundingMetadata) || {};
+  return (meta.groundingChunks || []).map(c => ({
+    uri: c && c.web && c.web.uri ? String(c.web.uri) : "",
+    title: c && c.web && c.web.title ? String(c.web.title) : ""
+  }));
+}
+function hostOfUrl(url) {
+  return String(url || "").replace(/^https?:\/\//i, "").split("/")[0].replace(/^www\./, "").toLowerCase();
+}
+function citedScoreUrl(item, chunks, raw) {
+  const url = String(item && item.url || "").trim();
+  if (!/^https:\/\//i.test(url) || !chunks || !chunks.some(c => c && c.uri)) return "";
+  const host = hostOfUrl(url);
+  const direct = chunks.some(c => {
+    const uri = c.uri;
+    const uh = hostOfUrl(uri);
+    if (uri.indexOf(url) >= 0 || url.indexOf(uri) >= 0) return true;
+    return !!(host && uh && (uh === host || uh.endsWith("." + host) || host.endsWith("." + uh)));
+  });
+  if (direct) return url;
+  const meta = ((((raw || {}).candidates || [])[0] || {}).groundingMetadata) || {};
+  const supports = meta.groundingSupports || [];
+  const n = String(item.score == null ? "" : item.score);
+  const hit = supports.find(s => {
+    const text = String((s && s.segment && s.segment.text) || "");
+    return n && text.indexOf(n) >= 0 && s.groundingChunkIndices && s.groundingChunkIndices.length;
+  });
+  if (!hit) return "";
+  const chunk = chunks[hit.groundingChunkIndices[0]];
+  return chunk && /^https:\/\//i.test(chunk.uri) ? chunk.uri : "";
+}
+async function geminiGrounded(key, model, prompt, signal) {
+  const day = memGet("quota-day");
+  if (day) return day;
+  const url = "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent";
+  const contents = [{ role: "user", parts: [{ text: prompt }] }];
+  let quotaTries = 0;
+  let minimalTried = false;
+  let serverTries = 0;
+  async function post(generationConfig) {
+    return fetch(url, {
+      method: "POST",
+      signal,
+      headers: { "Content-Type": "application/json", "x-goog-api-key": key },
+      body: JSON.stringify({ contents: contents, tools: [{ google_search: {} }], generationConfig: generationConfig })
+    });
+  }
+  let res;
+  try {
+    res = await post({ temperature: 0.2, maxOutputTokens: 2048 });
+  } catch (err) {
+    return { parsed: null, raw: null, reason: geminiReasonFrom(0, "", null, err), fatal: true, model: model };
+  }
+  for (let hop = 0; hop < 6; hop++) {
+    if (res.status === 400) {
+      const fail = await readGeminiFailure(res);
+      if (!minimalTried && !(signal && signal.aborted)) {
+        minimalTried = true;
+        try { res = await post({ temperature: 0.2, maxOutputTokens: 2048 }); }
+        catch (err) { return { parsed: null, raw: null, reason: geminiStatusReason(400, fail.message), fatal: true, model: model }; }
+        continue;
+      }
+      return { parsed: null, raw: null, reason: geminiStatusReason(400, fail.message), model: model, skipModel: true };
+    }
+    if (res.status === 404) return { parsed: null, raw: null, reason: "modelo no disponible (HTTP 404)", model: model, skipModel: true };
+    if (res.status === 401 || res.status === 403) return { parsed: null, raw: null, reason: geminiReasonFrom(res.status, "", null, null), fatal: true, model: model };
+    if (res.status === 429) {
+      let body = {};
+      try { body = await res.json(); } catch (e) {}
+      const wait = retryDelayMs(body);
+      const daily = quotaIsDaily(body);
+      const reason = quotaReason(body);
+      if (!daily && quotaTries < 2 && wait > 0 && wait <= 30000 && !(signal && signal.aborted)) {
+        quotaTries++;
+        await new Promise(r => setTimeout(r, wait));
+        try { res = await post({ temperature: 0.2, maxOutputTokens: 2048 }); }
+        catch (err) { return { parsed: null, raw: null, reason: geminiReasonFrom(0, "", null, err), fatal: true, model: model }; }
+        continue;
+      }
+      const fail = { parsed: null, raw: null, reason: reason, fatal: true, model: model, quota: daily ? "day" : "minute" };
+      if (daily) memSet("quota-day", fail, 10 * 60 * 1000);
+      return fail;
+    }
+    if (res.status === 500 || res.status === 503) {
+      if (serverTries < 2 && !(signal && signal.aborted)) {
+        serverTries++;
+        await new Promise(r => setTimeout(r, 600 * serverTries));
+        try { res = await post({ temperature: 0.2, maxOutputTokens: 2048 }); }
+        catch (err) { return { parsed: null, raw: null, reason: geminiReasonFrom(0, "", null, err), model: model, retryable: true }; }
+        continue;
+      }
+      const fail = await readGeminiFailure(res);
+      return { parsed: null, raw: null, reason: geminiStatusReason(res.status, fail.message), model: model, retryable: true };
+    }
+    if (!res.ok) {
+      const fail = await readGeminiFailure(res);
+      return { parsed: null, raw: null, reason: fail.message ? geminiStatusReason(res.status, fail.message) : geminiReasonFrom(res.status, "", null, null), model: model };
+    }
+    let json;
+    try { json = await res.json(); } catch (e) {
+      return { parsed: null, raw: null, reason: "JSON inválido", model: model };
+    }
+    const parsed = extractJsonObject(geminiPartsText(json));
+    return { parsed: parsed, raw: json, reason: parsed ? "" : "JSON inválido", model: model };
+  }
+  return { parsed: null, raw: null, reason: "JSON inválido", model: model };
+}
+async function geminiSearchScores(key, prompt) {
+  const skip = [];
+  let last = { parsed: null, raw: null, reason: "ningún modelo disponible", fatal: true, model: "" };
+  if (!window.WineDataProvider || !WineDataProvider.pickGeminiModel) return last;
+  for (let n = 0; n < 4; n++) {
+    let model = "";
+    try {
+      model = await WineDataProvider.pickGeminiModel(key, { images: false, skip: skip });
+    } catch (err) {
+      const status = err && err.status;
+      const reason = status === 401 || status === 403 ? ("clave rechazada (HTTP " + status + ")") : (status ? ("HTTP " + status) : "red o CORS");
+      return { parsed: null, raw: null, reason: reason, fatal: true, model: "" };
+    }
+    if (!model) return last;
+    const outcome = await geminiGrounded(key, model, prompt, null);
+    if (outcome && (outcome.skipModel || outcome.retryable)) {
+      if (outcome.skipModel && WineDataProvider.forgetGeminiModel) WineDataProvider.forgetGeminiModel(model);
+      skip.push(model);
+      last = outcome;
+      continue;
+    }
+    return outcome || last;
+  }
+  return last;
+}
+function scoreBlockLocked(block) {
+  if (!block) return false;
+  const origin = scoreOrigin(block);
+  if (block.manual === true || block.by === "usuario" || origin === "usuario") return true;
+  if (origin === "verificada" || block.verified === true) return true;
+  return false;
+}
+var scoreSearchBusy = false;
+async function searchPublishedScores(wineId) {
+  if (scoreSearchBusy) return;
+  const w = wineById(wineId);
+  if (!w) return;
+  const key = storedGeminiKey();
+  if (!key) { toast(t("score.needKey")); return; }
+  scoreSearchBusy = true;
+  toast(t("score.searching"));
+  const known = [w.producer, w.name, w.vintage, w.appellation, w.region, w.country].filter(Boolean).join(" · ");
+  const prompt = [
+    "Busca puntuaciones publicadas de este vino en bodegas, Guía Peñín, Wine Spectator, Decanter, Vivino, Robert Parker o tiendas que citen la cifra.",
+    "Responde solo JSON: {\"scores\":[{\"guide\":\"parker|penin|spectator|decanter|vivino\",\"score\":97,\"source\":\"nombre de la guía\",\"url\":\"https://...\"}]}",
+    "No incluyas una puntuación si no tienes una URL https de la página que cita ese número.",
+    "No inventes cifras. Si no hay fuente, omite esa guía.",
+    "Vino: " + known
+  ].join("\n");
+  let outcome;
+  try { outcome = await geminiSearchScores(key, prompt); }
+  finally { scoreSearchBusy = false; }
+  const chunks = groundingChunksOf(outcome && outcome.raw);
+  const rows = outcome && outcome.parsed && Array.isArray(outcome.parsed.scores) ? outcome.parsed.scores : [];
+  if (!chunks.some(c => c && c.uri) || !rows.length) {
+    toast((outcome && outcome.reason) || t("score.noneFound"));
+    return;
+  }
+  state.wineEdits = state.wineEdits || {};
+  const edit = state.wineEdits[w.id] || {};
+  edit.ratings = Object.assign({}, edit.ratings || {});
+  let saved = 0;
+  rows.forEach(item => {
+    const guide = canonScoreGuide(item && (item.guide || item.source));
+    if (!guide) return;
+    const cited = citedScoreUrl(item, chunks, outcome.raw);
+    if (!cited) return;
+    const current = publishedScore(w, guide);
+    if (scoreBlockLocked(current) || scoreBlockLocked(edit.ratings[guide])) return;
+    const max = guide === "vivino" ? 5 : 100;
+    const score = Number(String(item.score == null ? "" : item.score).replace(",", "."));
+    if (!(score > 0 && score <= max)) return;
+    edit.ratings[guide] = {
+      score: guide === "vivino" ? Math.round(score * 10) / 10 : Math.round(score),
+      scale: max,
+      source: String(item.source || "").trim(),
+      url: cited,
+      origin: "web",
+      by: "web",
+      manual: false,
+      estimate: false,
+      note: ""
+    };
+    saved++;
+  });
+  if (!saved) { toast(t("score.noneFound")); return; }
+  state.wineEdits[w.id] = edit;
+  const custom = (state.customWines || []).find(x => x && x.id === w.id);
+  if (custom) {
+    custom.ratings = Object.assign({}, custom.ratings || {}, edit.ratings);
+  }
+  save();
+  toast(t("score.savedWeb"));
+  openWine(w.id, currentBottle);
+  openRatingsList();
+}
 async function readGeminiWineFacts(wine, gaps) {
   const key = storedGeminiKey();
   wine.provenance = wine.provenance || {};

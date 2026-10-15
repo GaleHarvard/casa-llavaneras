@@ -20,7 +20,7 @@ function renderHome() {
           <p class="tiny">${phaseOf(featured).label}</p>
           <h3 style="margin-top:4px">${featured.producer}</h3>
           <p>${featured.name} ${featured.vintage}</p>
-          <p class="muted" style="margin-top:6px">${featured.region} · Parker ${manualScoreText(featured, "parker", 0)}</p>
+          <p class="muted" style="margin-top:6px">${featured.region}${manualScoreText(featured, "parker", 0) ? " · Parker " + manualScoreText(featured, "parker", 0) : ""}</p>
         </div>
       </div>
     </div>` : "";
@@ -290,7 +290,7 @@ function calBlock(title, arr) {
       </div>
       <div class="win-row">
         <span class="tiny">${t("home.window")}</span>
-        <span class="tiny win-left">${datesAreReal(w) ? yearsUntilPeakEnd(w.aging.peakEnd) : t("nodata")}</span>
+        <span class="tiny win-left">${datesAreReal(w) ? yearsUntilPeakEnd(w.aging.peakEnd) : (shownDrinkRange(w) ? shownDrinkRange(w) + " · " + t("fact.orientative") : "")}</span>
       </div>
       <div class="win-bar" role="img" aria-label="${t("cal.peakAria", { a: w.aging.peakStart, b: w.aging.peakEnd, y: yearNow() })}">
         <span class="win-peak" style="left:${mark.left}%;width:${mark.width}%"></span>

@@ -792,7 +792,7 @@ const I18N_ROWS = [
   ["fact.app", "Denominación", "Denominació", "Appellation", "Appellation", "Denominação"],
   ["fact.region", "Región", "Regió", "Region", "Région", "Região"],
   ["fact.country", "País", "País", "Country", "Pays", "País"],
-  ["fact.guides", "Un número solo si lo escribes tú. Si no, Sin dato.", "Un número només si l'escrius tu. Si no, Sense dada.", "A number only if you enter it. Otherwise, no data.", "Un chiffre seulement si vous le saisissez. Sinon, pas de donnée.", "Um número só se o escrever. Se não, Sem dado."],
+  ["fact.guides", "Las del catálogo llevan «según catálogo». Las contrastadas en una página, «verificada». Las que buscas, «según web».", "Les del catàleg porten «segons el catàleg». Les contrastades en una pàgina, «verificada». Les que busques, «segons el web».", "Catalogue figures are marked “from the catalogue”. Ones checked on a page are “verified”. Ones you search are “from the web”.", "Celles du catalogue portent « selon le catalogue ». Celles vérifiées sur une page, « vérifiée ». Celles que vous cherchez, « selon le web ».", "As do catálogo levam «segundo o catálogo». As conferidas numa página, «verificada». As que procura, «segundo a web»."],
   ["fact.estimate", "estimación", "estimació", "estimate", "estimation", "estimativa"],
   ["fact.noGuide", "Sin párrafo propio de esta guía para la añada. La nota de la casa está abajo.", "Sense paràgraf propi d'aquesta guia per a l'anyada. La nota de la casa és a sota.", "This guide has no paragraph of its own for the vintage. The house note is below.", "Ce guide n'a pas de paragraphe propre pour le millésime. La note de la maison est plus bas.", "Este guia não tem parágrafo próprio da colheita. A nota da casa está abaixo."],
   ["fact.users", "usuarios", "usuaris", "users", "utilisateurs", "utilizadores"],
@@ -1393,7 +1393,7 @@ addI18n([
   ["layout.place", "Ubicar", "Ubicar", "Place", "Ranger", "Colocar"],
   ["layout.emptyPile", "Aún no hay botellas en esta zona.", "Encara no hi ha ampolles en aquesta zona.", "No bottles in this zone yet.", "Pas encore de bouteilles dans cette zone.", "Ainda não há garrafas nesta zona."],
   ["layout.noFree", "No queda ningún hueco libre", "No queda cap forat lliure", "No free slot left", "Plus aucun emplacement libre", "Não resta nenhum lugar livre"],
-  ["score.lead", "Sin dato, salvo que la apuntes tú.", "Sense dada, tret que l'apuntis tu.", "No figure unless you enter it.", "Aucune note, sauf si vous la saisissez.", "Sem dado, salvo se a apontar."],
+  ["score.lead", "Cada cifra muestra su guía y su fuente.", "Cada xifra mostra la guia i la font.", "Each figure shows its guide and its source.", "Chaque note indique son guide et sa source.", "Cada número mostra o guia e a fonte."],
   ["score.form", "Añadir una puntuación", "Afegir una puntuació", "Add a score", "Ajouter une note", "Adicionar uma pontuação"],
   ["score.guide", "Guía", "Guia", "Guide", "Guide", "Guia"],
   ["score.value", "Puntuación", "Puntuació", "Score", "Note", "Pontuação"],
@@ -1472,6 +1472,33 @@ addI18n([
   ["home.wishSub", "Lista de compra y botellas apartadas", "Llista de compra i ampolles apartades", "Shopping list and bottles set aside", "Liste d'achat et bouteilles mises de côté", "Lista de compra e garrafas reservadas"],
   ["home.count", "Recuento", "Recompte", "Count", "Inventaire", "Contagem"],
   ["home.countSub", "Balda a balda, o zona a zona", "Lleixa a lleixa, o zona a zona", "Shelf by shelf, or zone by zone", "Clayette par clayette, ou zone par zone", "Prateleira a prateleira, ou zona a zona"]
+]);
+addI18n([
+  ["score.catalog", "según catálogo", "segons el catàleg", "from the catalogue", "selon le catalogue", "segundo o catálogo"],
+  ["score.verified", "verificada", "verificada", "verified", "vérifiée", "verificada"],
+  ["score.web", "según web", "segons el web", "from the web", "selon le web", "segundo a web"],
+  ["score.noneLine", "Sin puntuaciones publicadas · Buscar", "Sense puntuacions publicades · Cercar", "No published scores · Search", "Aucune note publiée · Chercher", "Sem pontuações publicadas · Procurar"],
+  ["score.search", "Buscar puntuaciones", "Cercar puntuacions", "Search scores", "Chercher des notes", "Procurar pontuações"],
+  ["score.add", "+ Añadir", "+ Afegir", "+ Add", "+ Ajouter", "+ Adicionar"],
+  ["score.all", "Todas las guías", "Totes les guies", "All guides", "Tous les guides", "Todos os guias"],
+  ["score.searching", "Buscando puntuaciones…", "Cercant puntuacions…", "Searching scores…", "Recherche des notes…", "A procurar pontuações…"],
+  ["score.needKey", "Hace falta la clave de Gemini en Ajustes.", "Cal la clau de Gemini a Ajustos.", "The Gemini key is needed in Settings.", "La clé Gemini est nécessaire dans Réglages.", "É precisa a chave Gemini em Ajustes."],
+  ["score.noneFound", "No he encontrado una puntuación con una página citada.", "No he trobat una puntuació amb una pàgina citada.", "I did not find a score with a cited page.", "Je n'ai pas trouvé de note avec une page citée.", "Não encontrei uma pontuação com uma página citada."],
+  ["score.savedWeb", "Puntuación guardada según web", "Puntuació desada segons el web", "Score saved from the web", "Note enregistrée selon le web", "Pontuação guardada segundo a web"],
+  ["score.completeGemini", "Completar con Gemini", "Completar amb Gemini", "Complete with Gemini", "Compléter avec Gemini", "Completar com Gemini"],
+  ["fact.glassSpark", "Copa de espumoso", "Copa d'escumós", "Sparkling glass", "Verre à effervescent", "Copo de espumante"],
+  ["fact.glassWhite", "Copa de blanco", "Copa de blanc", "White-wine glass", "Verre à blanc", "Copo de branco"],
+  ["fact.glassRose", "Copa de rosado", "Copa de rosat", "Rosé glass", "Verre à rosé", "Copo de rosé"],
+  ["fact.glassGen", "Copa de generoso", "Copa de generós", "Fortified-wine glass", "Verre à vin muté", "Copo de generoso"],
+  ["fact.glassRed", "Copa de tinto amplia", "Copa de negre ampla", "Large red-wine glass", "Grand verre à rouge", "Copo de tinto largo"],
+  ["fact.decantAged", "30–90 min", "30–90 min", "30–90 min", "30–90 min", "30–90 min"],
+  ["fact.decantYoung", "15–30 min", "15–30 min", "15–30 min", "15–30 min", "15–30 min"],
+  ["fact.crianzaOak", "Crianza en barrica y botella, propia del estilo.", "Criança en bóta i ampolla, pròpia de l'estil.", "Oak and bottle ageing, typical of the style.", "Élevage en fût et en bouteille, propre au style.", "Estágio em barrica e garrafa, próprio do estilo."],
+  ["fact.crianzaSpark", "Crianza en rima, propia de un espumoso.", "Criança en rima, pròpia d'un escumós.", "Ageing on lees, typical of a sparkling wine.", "Élevage sur lies, propre à un effervescent.", "Estágio em rima, próprio de um espumante."],
+  ["fact.crianzaYoung", "Crianza corta o en depósito, según el estilo.", "Criança curta o en dipòsit, segons l'estil.", "Short ageing or tank ageing, depending on the style.", "Élevage court ou en cuve, selon le style.", "Estágio curto ou em depósito, conforme o estilo."],
+  ["fact.posHoriz", "horizontal", "horitzontal", "horizontal", "horizontale", "horizontal"],
+  ["fact.posVert", "vertical", "vertical", "upright", "verticale", "vertical"],
+  ["fact.lightDark", "oscura", "fosca", "dark", "sombre", "escura"]
 ]);
 window.I18N = I18N;
 if (document.body) {
