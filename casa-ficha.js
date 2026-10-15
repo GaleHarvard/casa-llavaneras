@@ -167,6 +167,7 @@ function openWine(wineId, bottle) {
     <div class="wine-hero">${estateSVG(w)}</div>
     <h1 class="wine-producer">${w.producer}</h1>
     <p class="wine-cuvee">${escHtml(w.name)}${shownYear(w) ? " " + shownYear(w) : ""}</p>
+    ${typeof vintageBlockHtml === "function" ? vintageBlockHtml(w) : ""}
     <button type="button" class="btn btn-ghost label-change" onclick="changeWineLabel()">${t("label.change")}</button>
     <div class="peak-pill">${pill}</div>
     ${currentBottle ? `<p class="tiny" style="text-align:center;margin:6px 0 4px">${t("wine.inCellar", { n: currentBottle.qty, noun: nounBottles(currentBottle.qty) })}</p>` : ""}
@@ -779,15 +780,21 @@ function openWineSub(kind) {
         <div class="row"><h3>${s.producer} ${s.name}</h3><span class="badge">${s.vintage}</span></div>
       </div>`).join("") : ""}`;
   } else if (kind === "anadas") {
-    const sibs = WINE_CATALOG.filter(x => x.producer === w.producer && x.name === w.name);
-    const extra = (!sibs.length && Array.isArray(w.vintages)) ? w.vintages : [];
-    body = sibs.length ? sibs.map(s => `<div class="card" role="button" onclick="openWine('${s.id}')">
-      <div class="row"><h3>${s.vintage}</h3><span class="badge">${manualScoreText(s, "parker", 0)}</span></div>
-      <p class="muted">${s.priceHint} · ${t("fact.orientative")} · ${phaseOf(s).label}</p>
-    </div>`).join("") : (extra.length ? extra.map(s => `<div class="card">
+    const cuvee = typeof cuveeOf === "function" ? cuveeOf(w) : null;
+    const sibs = typeof vintageSiblings === "function" ? vintageSiblings(w) : WINE_CATALOG.filter(x => x.producer === w.producer && x.name === w.name);
+    const extra = (Array.isArray(w.vintages) ? w.vintages : []).filter(s => !sibs.some(x => String(x.vintage) === String(s.vintage)));
+    const grapes = ((cuvee && cuvee.grapes && cuvee.grapes.length) ? cuvee.grapes : (w.grapes || [])).join(", ");
+    const head = `<div class="card"><p class="tiny">${t("vintage.wine")}</p><h3 style="margin-top:6px">${escHtml(w.producer)}</h3><p>${escHtml(w.name)}</p><p class="muted">${escHtml((cuvee && cuvee.appellation) || w.appellation || "")}${grapes ? " · " + escHtml(grapes) : ""}</p></div>`;
+    const cards = sibs.map(s => `<div class="card" role="button" onclick="openWine('${s.id}')">
+      <div class="row"><h3>${escHtml(String(s.vintage || "—"))}</h3><span class="badge">${manualScoreText(s, "parker", 0)}</span></div>
+      <p class="muted">${escHtml(s.priceHint || t("nodata"))} · ${t("fact.orientative")} · ${phaseOf(s).label}</p>
+      <p class="tiny">${escHtml(String(s.tasting || "").slice(0, 140))}</p>
+    </div>`).join("");
+    const more = extra.map(s => `<div class="card">
       <div class="row"><h3>${escHtml(String(s.vintage))}</h3></div>
       <p class="muted">${escHtml([s.priceHint, s.note].filter(Boolean).join(" · ") || t("nodata"))}</p>
-    </div>`).join("") : `<p class="muted">${w.provenance ? t("nodata") : t("fact.noOther")}</p>`);
+    </div>`).join("");
+    body = head + (cards || more || `<p class="muted">${t("nodata")}</p>`);
   } else if (kind === "compras") {
     const b = currentBottle;
     const d = dossierOf(w);

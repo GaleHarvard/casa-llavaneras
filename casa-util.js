@@ -155,6 +155,8 @@ function reveal(id) {
   if (id === "catas") renderCatas();
   if (id === "bebidas") renderBebidas();
   if (id === "balance") renderBalance();
+  if (id === "recuento" && typeof renderRecuento === "function") renderRecuento();
+  if (id === "deseos" && typeof renderDeseos === "function") renderDeseos();
   if (typeof mountLabelThumbs === "function") mountLabelThumbs(document.getElementById(id));
   syncChrome();
   const sc = document.querySelector("#" + id + " .scroll");

@@ -58,6 +58,8 @@ function renderHome() {
     <div class="card" role="button" onclick="show('bebidas')" style="margin-top:8px"><div class="row"><h3>${t("home.drinks")}</h3><span class="tiny">${(state.consumption || []).reduce((n, c) => n + (Number(c.qty) || 1), 0) || "›"}</span></div><p class="muted">${t("home.drinksSub")}</p></div>
     <div class="card" role="button" onclick="show('catas')" style="margin-top:8px"><div class="row"><h3>${t("home.notebook")}</h3><span class="tiny">›</span></div><p class="muted">${t("home.notebookSub")}</p></div>
     <div class="card" role="button" onclick="show('perfil')" style="margin-top:8px"><div class="row"><h3>${t("home.profile")}</h3><span class="tiny">›</span></div><p class="muted">${t("home.profileSub")}</p></div>
+    <div class="card" role="button" onclick="openRecuento()" style="margin-top:8px"><div class="row"><h3>${t("home.count")}</h3><span class="tiny">›</span></div><p class="muted">${t("home.countSub")}</p></div>
+    <div class="card" role="button" onclick="openDeseos()" style="margin-top:8px"><div class="row"><h3>${t("home.wish")}</h3><span class="tiny">›</span></div><p class="muted">${t("home.wishSub")}</p></div>
     <div class="card" role="button" onclick="setCellarView('ubicaciones');show('cellar',{tab:true})" style="margin-top:8px"><div class="row"><h3>${t("home.location")}</h3><span class="tiny">›</span></div><p class="muted">${t("home.locationSub")}</p></div>
     <div class="chip-row" style="margin-top:14px">
       <button class="chip on" onclick="startScan()">${t("home.scan")}</button>
@@ -71,6 +73,7 @@ function renderHome() {
         <div class="row"><h2>${t("home.notices")}</h2><span class="badge ${on ? "ok" : "wait"}">${on ? t("home.noticesOn") : t("home.noticesSetup")}</span></div>
         <p class="muted" style="margin-top:6px">${on ? t("home.noticesOnHint") : t("home.noticesOffHint")}</p>
       </div>
+      ${typeof reservationNoticesHtml === "function" ? reservationNoticesHtml() : ""}
       ${stockNoticesHtml()}
     </div>
     <div class="card" role="button" onclick="show('perfil')" style="margin-top:10px">
@@ -81,7 +84,8 @@ function renderHome() {
   mountLabelThumbs(document.getElementById("home"));
 }
 function pickFeaturedWine() {
-  const wines = [...new Set(state.bottles.map(b => b.wineId))].map(wineById).filter(Boolean);
+  const open = state.bottles.filter(b => typeof bottleHeld !== "function" || !bottleHeld(b));
+  const wines = [...new Set(open.map(b => b.wineId))].map(wineById).filter(Boolean);
   if (!wines.length) return null;
   const peak = wines.filter(w => phaseOf(w).key === "ok");
   const pool = peak.length ? peak : wines;
@@ -126,6 +130,7 @@ function openThisMonth() {
   (state.bottles || []).forEach(b => {
     const qty = Number(b && b.qty) || 0;
     if (!b || qty < 1) return;
+    if (typeof bottleHeld === "function" && bottleHeld(b)) return;
     if (seen[b.wineId]) { seen[b.wineId].qty += qty; return; }
     const w = wineById(b.wineId);
     const reason = monthOpenReason(w);

@@ -60,7 +60,7 @@ function renderCellar() {
   } else if (cellarView === "lotes") {
     body = list.map(b => {
       const w = wineById(b.wineId);
-      return `<div class="card" role="button" onclick="openBottle('${b.uid}')"><div class="label-row">${labelThumbHtml(w, "label-thumb", b)}<div class="label-copy"><div class="row"><h3>${w.producer}</h3><span class="tiny">×${b.qty}</span></div><p class="muted">${w.name} ${w.vintage}</p><p class="tiny">${cellarName(b.cellarId)} · ${state.prefs.hideBin ? t("cellar.binHidden") : (b.bin || t("cellar.noBin"))}</p></div></div><button class="btn btn-ghost" style="margin-top:8px" onclick="event.stopPropagation();removeLot('${b.uid}')">${t("cellar.removeLot")}</button></div>`;
+      return `<div class="card" role="button" onclick="openBottle('${b.uid}')"><div class="label-row">${labelThumbHtml(w, "label-thumb", b)}<div class="label-copy"><div class="row"><h3>${w.producer}</h3><span class="tiny">×${b.qty}</span></div><p class="muted">${w.name} ${w.vintage}</p><p class="tiny">${cellarName(b.cellarId)} · ${state.prefs.hideBin ? t("cellar.binHidden") : (b.bin || t("cellar.noBin"))}</p>${typeof heldMark === "function" ? heldMark(b) : ""}</div></div><button class="btn btn-ghost" style="margin-top:8px" onclick="event.stopPropagation();removeLot('${b.uid}')">${t("cellar.removeLot")}</button></div>`;
     }).join("");
   } else if (cellarView === "ubicaciones") {
     const by = {};
@@ -195,6 +195,7 @@ function wineStockCard(lots) {
       <p class="inv-title">${escHtml(w.name)} ${escHtml(w.vintage)}</p>
       <p class="muted">${qty} ${nounBottles(qty)} · ${lots.length} ${nounLots(lots.length)}</p>
       <p class="tiny">${locs}</p>
+      ${lots.some(x => typeof bottleHeld === "function" && bottleHeld(x)) ? `<p style="margin-top:6px">${heldMark(lots.find(x => bottleHeld(x)))}</p>` : ""}
       <button class="btn btn-ghost" style="margin-top:8px" onclick="event.stopPropagation();removeWineLots('${w.id}')">${t("cellar.removeList")}</button>
     </div>
     <div class="inv-score">${parkerMark(w)}</div>
@@ -319,6 +320,7 @@ function addCurrentToCellar() {
 }
 function moveBottle() {
   if (!currentBottle) return;
+  const movedUid = currentBottle.uid;
   const dest = $("#move-cellar").value;
   const bin = $("#move-bin").value.trim();
   const qty = Math.max(1, parseInt(($("#move-qty") && $("#move-qty").value) || currentBottle.qty, 10));
@@ -347,6 +349,13 @@ function moveBottle() {
   logAct(`Traslado ${take} · ${from} → ${cellarName(dest)} ${bin}`);
   save();
   hideSheets();
+  if (screenId === "recuento" && typeof renderRecuento === "function") {
+    if (typeof noteCountMoved === "function") noteCountMoved(movedUid);
+    save();
+    renderRecuento();
+    toast(t("move.moved", { n: take }));
+    return;
+  }
   openBottle(currentBottle.uid);
   toast(t("move.moved", { n: take }));
 }
