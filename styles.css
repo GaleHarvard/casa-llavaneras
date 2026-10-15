@@ -104,6 +104,27 @@ h2 {
   font-weight: 500;
   overflow-wrap: anywhere;
 }
+h1, h2, h3, h4, h5, h6,
+[tabindex="-1"] {
+  outline: none;
+}
+h1:focus, h2:focus, h3:focus, h4:focus, h5:focus, h6:focus,
+h1:focus-visible, h2:focus-visible, h3:focus-visible, h4:focus-visible, h5:focus-visible, h6:focus-visible,
+[tabindex="-1"]:focus,
+[tabindex="-1"]:focus-visible {
+  outline: none;
+}
+button:focus,
+a:focus,
+[role="button"]:focus {
+  outline: none;
+}
+button:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible {
+  outline: 2px solid var(--gold2);
+  outline-offset: 3px;
+}
 h3 {
   font-size: 16px;
   font-weight: 560;
@@ -378,6 +399,22 @@ input, select, textarea {
   font-size: 15px;
   font-family: inherit;
   outline: none;
+}
+select {
+  color-scheme: dark;
+  -webkit-appearance: none;
+  appearance: none;
+  background-color: #0a0a0a;
+  color: #ffffff;
+  padding-right: 36px;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path fill='%23e8c97a' d='M1 1.2 6 6.8 11 1.2'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+}
+select option,
+select optgroup {
+  background-color: #0a0a0a;
+  color: #ffffff;
 }
 textarea { min-height: 80px; resize: vertical; }
 label.field { display: block; margin: 10px 0; }
