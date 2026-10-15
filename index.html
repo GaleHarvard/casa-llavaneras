@@ -9,14 +9,14 @@
   <meta name="apple-mobile-web-app-title" content="Casa Llavaneras" />
   <meta name="application-name" content="Casa Llavaneras" />
   <meta name="theme-color" content="#000000" />
-  <meta name="app-version" content="v83" />
+  <meta name="app-version" content="v84" />
   <title>Casa Llavaneras</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="apple-touch-icon" href="apple-touch-icon.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
   <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png" />
-  <link rel="stylesheet" href="styles.css?v=83" />
+  <link rel="stylesheet" href="styles.css?v=84" />
 </head>
 <body>
   <div class="device">
@@ -69,7 +69,7 @@
             <i class="crest-rule"></i>
           </header>
           <div id="caves-list"></div>
-          <button class="caves-add" type="button" onclick="showSheet('cave-sheet')">
+          <button class="caves-add" type="button" onclick="openCaveComposer()">
             <span>+</span> <em data-i18n="caves.add">Añadir vinoteca</em>
           </button>
           <p class="caves-motto" data-i18n="caves.motto">Colección privada · Control preciso · Conservación perfecta</p>
@@ -285,21 +285,29 @@
     <div id="cave-sheet" class="modal-bg" onclick="if(event.target===this)hideSheets()">
       <div class="sheet">
         <div class="handle"></div>
-        <h3 data-i18n="new.h1">Nueva vinoteca</h3>
-        <label class="field"><span data-i18n="new.house">Casa</span><input id="new-cave-house" data-i18n-placeholder="new.housePh" placeholder="Selecciona o introduce la casa" autocomplete="off" /></label>
+        <h3 id="cave-sheet-title" data-i18n="new.h1">Nueva vinoteca</h3>
         <label class="field"><span data-i18n="new.name">Nombre</span><input id="new-cave-name" data-i18n-placeholder="new.namePh" placeholder="Ej. Bodega principal" autocomplete="off" /></label>
-        <label class="field"><span data-i18n="new.brand">Marca / modelo</span><input id="new-cave-brand" data-i18n-placeholder="new.brandPh" placeholder="Ej. EuroCave Professional" autocomplete="off" /></label>
-        <label class="field"><span data-i18n="new.place">Sitio / estancia</span><input id="new-cave-place" data-i18n-placeholder="new.placePh" placeholder="Ej. cocina, sótano, office" autocomplete="off" /></label>
-        <label class="field"><span data-i18n="new.bins">Huecos (referencia)</span><input id="new-cave-bins" data-i18n-placeholder="new.binsPh" placeholder="Ej. A-01 a C-12" autocomplete="off" /></label>
-        <label class="field"><span data-i18n="new.cap">Capacidad (botellas)</span><input id="new-cave-cap" type="number" placeholder="24" /></label>
+        <label class="field"><span data-i18n="layout.type">Tipo</span>
+          <select id="cave-type">
+            <option value="clima" data-i18n="layout.type.clima">Vinoteca climatizada</option>
+            <option value="botellero" data-i18n="layout.type.botellero">Botellero</option>
+            <option value="estanteria" data-i18n="layout.type.estanteria">Estantería</option>
+            <option value="caja" data-i18n="layout.type.caja">Caja</option>
+            <option value="armario" data-i18n="layout.type.armario">Armario</option>
+            <option value="otro" data-i18n="layout.type.otro">Otro</option>
+          </select>
+        </label>
+        <div id="cave-layout"></div>
+        <div id="layout-preview"></div>
+        <label class="field"><span data-i18n="layout.depth">Fondo (botellas delante/detrás)</span><input id="cave-depth" type="number" min="1" max="8" data-i18n-placeholder="layout.depthPh" placeholder="1, opcional" /></label>
         <label class="field"><span data-i18n="new.t1">Temp. zona 1 °C</span><input id="new-cave-th" type="number" step="0.1" placeholder="13.0" /></label>
         <label class="field"><span data-i18n="new.t2">Temp. zona 2 °C</span><input id="new-cave-tl" type="number" step="0.1" placeholder="10.5" /></label>
         <label class="field"><span data-i18n="new.hr">Humedad relativa %</span><input id="new-cave-hr" type="number" placeholder="68" /></label>
-        <label class="field"><span data-i18n="new.slots">Espacios a crear</span><input id="new-cave-slots" type="number" min="1" value="12" /></label>
-        <button class="btn btn-ghost" style="width:100%;margin-bottom:8px" onclick="previewNewSlots()" data-i18n="new.addSlots">Añadir espacios</button>
-        <p class="tiny" id="new-slots-preview"></p>
-        <button class="btn btn-gold" style="width:100%" onclick="addCave()" data-i18n="new.create">Crear</button>
-        <p class="tiny" style="margin-top:10px;text-align:center" data-i18n="new.hint">Se creará en la casa que indiques. Los huecos sirven para localizar cada botella.</p>
+        <label class="field"><span data-i18n="new.house">Casa</span><input id="new-cave-house" data-i18n-placeholder="new.housePh" placeholder="Selecciona o introduce la casa" autocomplete="off" /></label>
+        <label class="field"><span data-i18n="new.brand">Marca / modelo</span><input id="new-cave-brand" data-i18n-placeholder="new.brandPh" placeholder="Ej. EuroCave Professional" autocomplete="off" /></label>
+        <label class="field"><span data-i18n="new.place">Sitio / estancia</span><input id="new-cave-place" data-i18n-placeholder="new.placePh" placeholder="Ej. cocina, sótano, office" autocomplete="off" /></label>
+        <button id="cave-save" class="btn btn-gold" style="width:100%" onclick="commitCaveForm()" data-i18n="new.create">Crear</button>
+        <p class="tiny" style="margin-top:10px;text-align:center" data-i18n="layout.hint">Las filas pueden tener distinta capacidad. Una caja no lleva rejilla. Quitar un hueco no borra la botella: pasa a Sin ubicar.</p>
       </div>
     </div>
 
@@ -493,25 +501,25 @@
       if (!window.__casaReady) casaShowBootError();
     }, 8000);
   </script>
-  <script src="wines.js?v=83"></script>
-  <script src="bodegas.js?v=83"></script>
-  <script src="dossiers.js?v=83"></script>
-  <script src="providers/wineProvider.js?v=83"></script>
-  <script src="pairings.js?v=83"></script>
-  <script src="catalog-i18n.js?v=83"></script>
-  <script src="i18n.js?v=83"></script>
-  <script src="casa-util.js?v=83"></script>
-  <script src="casa-vino.js?v=83"></script>
-  <script src="casa-estado.js?v=83"></script>
-  <script src="casa-inicio.js?v=83"></script>
-  <script src="casa-vinoteca.js?v=83"></script>
-  <script src="casa-bodega.js?v=83"></script>
-  <script src="casa-ficha.js?v=83"></script>
-  <script src="casa-mesa.js?v=83"></script>
-  <script src="casa-bebidas.js?v=83"></script>
-  <script src="casa-gemini.js?v=83"></script>
-  <script src="casa-ajustes.js?v=83"></script>
-  <script src="app.js?v=83"></script>
+  <script src="wines.js?v=84"></script>
+  <script src="bodegas.js?v=84"></script>
+  <script src="dossiers.js?v=84"></script>
+  <script src="providers/wineProvider.js?v=84"></script>
+  <script src="pairings.js?v=84"></script>
+  <script src="catalog-i18n.js?v=84"></script>
+  <script src="i18n.js?v=84"></script>
+  <script src="casa-util.js?v=84"></script>
+  <script src="casa-vino.js?v=84"></script>
+  <script src="casa-estado.js?v=84"></script>
+  <script src="casa-inicio.js?v=84"></script>
+  <script src="casa-vinoteca.js?v=84"></script>
+  <script src="casa-bodega.js?v=84"></script>
+  <script src="casa-ficha.js?v=84"></script>
+  <script src="casa-mesa.js?v=84"></script>
+  <script src="casa-bebidas.js?v=84"></script>
+  <script src="casa-gemini.js?v=84"></script>
+  <script src="casa-ajustes.js?v=84"></script>
+  <script src="app.js?v=84"></script>
   <script>
     document.querySelectorAll(".tab").forEach((t, i) => {
       const icons = [
@@ -552,7 +560,7 @@
         const current = (document.querySelector('meta[name="app-version"]') || {}).content || "";
         if (data.version && current && data.version !== current) reloadForSw();
       });
-      navigator.serviceWorker.register("sw.js?v=83").catch(() => {});
+      navigator.serviceWorker.register("sw.js?v=84").catch(() => {});
     }
   </script>
 </body>

@@ -191,7 +191,7 @@ function openPerfilSub(kind) {
       return `<div class="card"><p class="tiny">${h.type || t("profile.houseType")}</p><h3>${h.name}</h3>
         ${caves.map(v => `<p class="muted" style="margin-top:6px">· ${v.name} · ${v.used || 0}/${v.capacity} · ${v.tHigh} °C</p>`).join("") || `<p class="muted">${t("profile.noCellars")}</p>`}
       </div>`;
-    }).join("") + `<button class="btn btn-gold" style="width:100%" onclick="showSheet('cave-sheet')">${t("caves.add")}</button>
+    }).join("") + `<button class="btn btn-gold" style="width:100%" onclick="openCaveComposer()">${t("caves.add")}</button>
       <p class="tiny" style="margin-top:10px">${t("profile.houseField")}</p>`;
   } else if (kind === "cata") {
     body = `

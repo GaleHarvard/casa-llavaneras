@@ -260,7 +260,7 @@ function mergeOrCreateLot({ wineId, cellarId, bin, qty, price, note, photo }) {
   const lot = {
     uid: "b" + Date.now() + Math.random().toString(16).slice(2, 6),
     wineId, qty, cellarId, bin: bin || nextBin(cellarId),
-    bought: NOW.toISOString().slice(0, 10),
+    bought: todayIso(),
     price: price || 0, note: note || "", labelPhoto: photo || ""
   };
   state.bottles.push(lot);

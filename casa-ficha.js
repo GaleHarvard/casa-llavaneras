@@ -659,12 +659,13 @@ function openWineSub(kind) {
       <p class="muted" style="margin:6px 0">${when}</p>
       <div class="peak-pill">${datesAreReal(w) ? (p.label || "").toUpperCase() : t("nodata").toUpperCase()}</div>
       ${datesAreReal(w) ? `<div class="bar"><i style="width:${pr.pct}%"></i></div>
-      <div class="row tiny"><span>${w.vintage}</span><span>${t("fact.now", { y: YEAR })}</span><span>${w.aging.holdTo}</span></div>` : ""}
+      <div class="row tiny"><span>${w.vintage}</span><span>${t("fact.now", { when: formatTodayLabel() })}</span><span>${w.aging.holdTo}</span></div>` : ""}
       <div class="timeline">
         ${stages.map(n => {
-          const cls = n.year < YEAR ? "past" : (n.year > YEAR ? "future" : "now");
-          return `<div class="tl-item ${cls}"><em>${n.year} · ${escHtml(n.phase)}</em><strong>${escHtml(n.text)}</strong></div>`;
-        }).join("") || `<div class="tl-item now"><em>${YEAR} · ${t("fact.state")}</em><strong>${t("fact.noWindow")}</strong></div>`}
+          const cls = n.year < yearNow() ? "past" : (n.year > yearNow() ? "future" : "now");
+          const stamp = n.kind === "now" ? formatTodayLabel() : n.year;
+          return `<div class="tl-item ${cls}"><em>${escHtml(stamp)} · ${escHtml(n.phase)}</em><strong>${escHtml(n.text)}</strong></div>`;
+        }).join("") || `<div class="tl-item now"><em>${escHtml(formatTodayLabel())} · ${t("fact.state")}</em><strong>${t("fact.noWindow")}</strong></div>`}
       </div>`;
   } else if (kind === "profile") {
     body = `

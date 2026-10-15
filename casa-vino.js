@@ -57,10 +57,10 @@ function phaseOf(wine) {
   const peak1 = Number(a.peakEnd);
   const hold = Number(a.holdTo);
   if (!from || !peak0 || !peak1 || !hold) return { key: "wait", label: t("phase.nodata"), hint: "" };
-  if (YEAR < from) return { key: "wait", label: t("phase.wait"), hint: t("phase.waitHint") };
-  if (YEAR > hold) return { key: "late", label: t("phase.late"), hint: t("phase.lateHint") };
-  if (YEAR > peak1) return { key: "warn", label: t("phase.warn"), hint: t("phase.warnHint") };
-  if (YEAR < peak0) return { key: "ok", label: t("phase.open"), hint: t("phase.openHint") };
+  if (yearNow() < from) return { key: "wait", label: t("phase.wait"), hint: t("phase.waitHint") };
+  if (yearNow() > hold) return { key: "late", label: t("phase.late"), hint: t("phase.lateHint") };
+  if (yearNow() > peak1) return { key: "warn", label: t("phase.warn"), hint: t("phase.warnHint") };
+  if (yearNow() < peak0) return { key: "ok", label: t("phase.open"), hint: t("phase.openHint") };
   return { key: "ok", label: t("phase.peak"), hint: t("phase.peakHint") };
 }
 function progressOf(wine) {
@@ -68,13 +68,13 @@ function progressOf(wine) {
   const end = wine.aging.holdTo;
   const peak0 = wine.aging.peakStart;
   const peak1 = wine.aging.peakEnd;
-  const pct = Math.max(0, Math.min(100, ((YEAR - start) / (end - start)) * 100));
+  const pct = Math.max(0, Math.min(100, ((yearNow() - start) / (end - start)) * 100));
   const peakPct0 = ((peak0 - start) / (end - start)) * 100;
   const peakPct1 = ((peak1 - start) / (end - start)) * 100;
   return { pct, peakPct0, peakPct1 };
 }
 function yearsUntilPeakEnd(peakEnd) {
-  const left = Number(peakEnd) - YEAR;
+  const left = Number(peakEnd) - yearNow();
   if (!Number.isFinite(left)) return "—";
   if (left > 1) return t("years.many", { n: left });
   if (left === 1) return t("years.one");
@@ -210,7 +210,7 @@ function estateSVG(w) {
 function normalizeWine(w) {
   if (!w || typeof w !== "object") return w;
   if (!w.conservation) w.conservation = { cellarMin: 12, cellarMax: 14, serveMin: 16, serveMax: 18, humidity: "65–75%", position: "horizontal", light: "oscura" };
-  const y = Number(w.vintage) || YEAR;
+  const y = Number(w.vintage) || yearNow();
   if (!w.aging) w.aging = { drinkFrom: y + 1, peakStart: y + 3, peakEnd: y + 10, holdTo: y + 15 };
   if (!w.aging.holdTo) w.aging.holdTo = w.aging.drinkTo || ((Number(w.aging.peakEnd) || y + 10) + 4);
   if (!w.aging.drinkFrom) w.aging.drinkFrom = y + 1;
@@ -284,7 +284,7 @@ function adviseCave(w) {
 function currentAdvice(w, p) {
   const c = w.conservation || {};
   if (p.key === "wait") return t("advice.wait", { a: c.cellarMin, b: c.cellarMax, y: w.aging.drinkFrom });
-  if (p.key === "ok" && YEAR < w.aging.peakStart) return t("advice.early", { y: w.aging.peakStart });
+  if (p.key === "ok" && yearNow() < w.aging.peakStart) return t("advice.early", { y: w.aging.peakStart });
   if (p.key === "ok") return t("advice.peak", { a: c.serveMin, b: c.serveMax });
   if (p.key === "warn") return t("advice.warn");
   return t("advice.late");
@@ -310,13 +310,13 @@ function windowTimeline(w) {
   if (Number(a.peakStart) && Number(a.peakStart) !== Number(a.drinkFrom) && !have(a.peakStart)) items.push({ year: Number(a.peakStart), kind: "anchor", phase: t("evo.peak"), text: t("evo.peakText") });
   if (Number(a.holdTo) && !have(a.holdTo)) items.push({ year: Number(a.holdTo), kind: "anchor", phase: t("evo.limit"), text: t("evo.limitText") });
   const p = phaseOf(w);
-  items.push({ year: YEAR, kind: "now", phase: t("fact.state"), text: currentAdvice(w, p) });
+  items.push({ year: yearNow(), kind: "now", phase: t("fact.state"), text: currentAdvice(w, p) });
   items.sort((x, y) => x.year - y.year || (x.kind === "now") - (y.kind === "now"));
   return items;
 }
 function shownYear(w) {
   const y = Number(w && w.vintage);
-  return y >= 1950 && y <= YEAR + 1 ? String(y) : "";
+  return y >= 1950 && y <= yearNow() + 1 ? String(y) : "";
 }
 function wineNeedsData(w) {
   if (!w || !w.provenance) return false;
@@ -523,4 +523,18 @@ function marketBand(w) {
     }
   }
   return { low: null, mid: null, high: null, note: "Sin precio en la ficha. Activa Gemini en Avisos si quieres una estimación.", source: "vacio" };
+}
+function dateYearSelfCheck() {
+  const sample = { vintage: 2015, aging: { drinkFrom: 2020, peakStart: 2024, peakEnd: 2026, holdTo: 2030 } };
+  const prev = globalThis.__casaToday;
+  try {
+    globalThis.__casaToday = "2026-06-15";
+    const a = { y: yearNow(), phase: phaseOf(sample).key };
+    globalThis.__casaToday = "2027-06-15";
+    const b = { y: yearNow(), phase: phaseOf(sample).key, now: windowTimeline(sample).filter(it => it.kind === "now").map(it => it.year)[0] };
+    return { ok: a.y === 2026 && b.y === 2027 && a.phase === "ok" && b.phase === "warn" && b.now === 2027, a: a, b: b };
+  } finally {
+    if (prev) globalThis.__casaToday = prev;
+    else delete globalThis.__casaToday;
+  }
 }
