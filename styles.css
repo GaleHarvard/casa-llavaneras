@@ -1284,6 +1284,20 @@ a.btn{text-decoration:none}
 @keyframes rack-pulse{0%,100%{box-shadow:0 0 0 2px rgba(196,163,90,.3)}50%{box-shadow:0 0 0 7px rgba(196,163,90,.65)}}
 .rack-free{cursor:pointer}
 .rack-free.on{border-color:#c4a35a;outline:1px solid #c4a35a}
+.layout-zone{border:1px solid #222;border-radius:14px;padding:10px;margin:10px 0}
+.layout-row{display:grid;grid-template-columns:1fr 72px auto;gap:6px;align-items:center;margin-top:6px}
+.layout-row input,.layout-temp input{width:100%}
+.layout-actions{display:flex;gap:4px}
+.layout-actions button{min-width:32px;height:32px;border-radius:8px;border:1px solid #333;background:#111;color:#eee}
+.layout-free{border:1px dashed #6b5a32;border-radius:14px;padding:10px;margin:8px 0}
+#layout-preview .rack-slot{min-height:44px;padding:6px 4px}
+.rack-fit .rack-slot{min-height:42px;padding:4px 1px}
+.rack-fit .rack-slot b{font-size:10px}
+.rack-fit .rack-slot small{font-size:9px}
+.layout-warn{color:#e0b4b4;font-size:13px;margin:6px 0}
+.unplaced{border:1px solid #6a3030;border-radius:14px;padding:12px;margin-top:12px}
+#cave-type{width:100%;background:#0e0e0e;color:#eee;border:1px solid #222;border-radius:12px;padding:12px;font:inherit}
+.backup-remind{border-color:#6b5a32}
 #add-free-grid{grid-template-columns:repeat(4,1fr);max-height:220px;overflow:auto}
 #serve-bebida[hidden]{display:none !important}
 .grape-row{display:flex;gap:8px;margin-top:8px}

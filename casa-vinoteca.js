@@ -381,8 +381,12 @@ function openCave(id, highlightBin) {
   ensureCaveSlots(v);
   $("#cave-house").textContent = v.house || v.brand || "Casa Llavaneras";
   $("#cave-title").textContent = v.name;
+  const typeLine = v.layout && v.layout.type ? t("layout.type." + v.layout.type) : "";
+  const depthLine = v.layout && Number(v.layout.depth) > 1 ? t("layout.depthN", { n: v.layout.depth }) : "";
   $("#cave-detail").innerHTML = `
-    <p class="muted">${v.brand}${v.role === "prestige" ? t("caves.reserve") : ""}</p>
+    <p class="muted">${v.brand || ""}${v.role === "prestige" ? t("caves.reserve") : ""}</p>
+    ${typeLine || depthLine ? `<p class="tiny">${[typeLine, depthLine].filter(Boolean).join(" · ")}</p>` : ""}
+    <button class="btn btn-ghost" style="width:100%;margin:8px 0" onclick="openCaveComposer('${v.id}')">${t("layout.define")}</button>
     <img class="cave-photo" src="${v.photo || "cave-render-sommeliere.jpg"}" alt="${v.name}" onerror="this.src='cave-principal.jpg'" />
     <h2>${t("caves.temp")}</h2>
     <div class="temp-grid" style="margin:12px 0">
@@ -397,7 +401,12 @@ function openCave(id, highlightBin) {
     <button class="btn btn-ghost" style="width:100%;margin:8px 0" onclick="deleteCave('${v.id}')">${t("caves.retire")}</button>`;
   caveOpen = id;
   show("cave-detail-screen");
-  if (highlightBin) {
+  if (highlightBin === "__unplaced__") {
+    setTimeout(() => {
+      const el = document.getElementById("sin-ubicar");
+      if (el && el.scrollIntoView) el.scrollIntoView({ block: "center" });
+    }, 40);
+  } else if (highlightBin) {
     setTimeout(() => {
       const el = document.querySelector(".rack-focus");
       if (el && el.scrollIntoView) el.scrollIntoView({ block: "center", inline: "nearest" });
@@ -407,7 +416,7 @@ function openCave(id, highlightBin) {
 function showLotInCave() {
   const b = currentBottle;
   if (!b || !b.cellarId) return toast(t("caves.notIn"));
-  openCave(b.cellarId, b.bin || "");
+  openCave(b.cellarId, b.bin || "__unplaced__");
 }
 function saveCaveTemp(id) {
   const v = state.vinotecas.find(x => x.id === id);
@@ -431,16 +440,19 @@ function slotNumber(code) {
   return m ? parseInt(m[1], 10) : 0;
 }
 function ensureCaveSlots(v) {
+  if (!v) return [];
+  if (!v.layout || !v.layout.zones) migrateOneCave(v, state.bottles || []);
+  const base = v.layout ? codesFromLayout(v.layout) : [];
+  if (base.length) {
+    const extra = (state.bottles || []).filter(b => b.cellarId === v.id && b.bin && base.indexOf(b.bin) < 0).map(b => b.bin);
+    const next = uniqueCodes(base.concat(extra));
+    const prev = (v.slots || []).join("|");
+    v.slots = next;
+    if (prev !== next.join("|")) save();
+    return v.slots;
+  }
   if (v.slots && v.slots.length) return v.slots;
-  const fromRack = rackSlots(v.id);
-  const seen = new Set();
-  v.slots = fromRack.filter(code => {
-    if (seen.has(code)) return false;
-    seen.add(code);
-    return true;
-  });
-  save();
-  return v.slots;
+  return [];
 }
 function nextSlotNumbers(v, count) {
   const used = new Set((v.slots || []).map(slotNumber));
@@ -482,14 +494,22 @@ function addSequentialSpaces() {
   const v = state.vinotecas.find(x => x.id === currentCaveId);
   if (!v) return;
   ensureCaveSlots(v);
-  const count = Math.max(1, parseInt(($("#space-count") && $("#space-count").value) || "1", 10));
-  const fresh = nextSlotNumbers(v, count);
-  fresh.forEach(code => { if (!v.slots.includes(code)) v.slots.push(code); });
-  v.slots.sort((a, b) => slotNumber(a) - slotNumber(b) || a.localeCompare(b));
-  v.capacity = Math.max(v.capacity || 0, v.slots.length);
+  const count = Math.max(1, Math.min(80, parseInt(($("#space-count") && $("#space-count").value) || "1", 10) || 1));
+  if (!v.layout) migrateOneCave(v, state.bottles || []);
+  const prefix = nextPrefix(v.layout);
+  let zone = (v.layout.zones || []).find(z => z.kind !== "free");
+  if (!zone) {
+    zone = { id: "z" + Date.now(), name: t("layout.sampleZone"), kind: "grid", rows: [] };
+    v.layout.zones.push(zone);
+  }
+  if (!zone.rows) zone.rows = [];
+  zone.rows.push({ id: "r" + Date.now(), name: prefix, prefix: prefix, capacity: count });
+  v.layout.legacy = false;
+  v.slots = codesFromLayout(v.layout);
+  v.capacity = Math.max(Number(v.capacity) || 0, layoutCapacity(v.layout));
   save();
   hideSheets();
-  toast(t("caves.slotsAdded", { n: fresh.length }));
+  toast(t("caves.slotsAdded", { n: count }));
   openCave(v.id);
 }
 function assignExistingSpace() {
@@ -497,32 +517,45 @@ function assignExistingSpace() {
   const code = $("#space-existing") && $("#space-existing").value;
   if (!v || !code) return toast(t("caves.noSlot"));
   ensureCaveSlots(v);
-  if (v.slots.includes(code)) return toast(t("caves.slotExists"));
-  v.slots.push(code);
-  v.slots.sort((a, b) => slotNumber(a) - slotNumber(b) || a.localeCompare(b));
-  v.capacity = Math.max(v.capacity || 0, v.slots.length);
+  if ((v.slots || []).indexOf(code) >= 0) return toast(t("caves.slotExists"));
+  if (!v.layout) migrateOneCave(v, state.bottles || []);
+  const parsed = slotPattern(code);
+  const prefix = parsed ? parsed.row : "X";
+  let zone = (v.layout.zones || []).find(z => z.kind !== "free");
+  if (!zone) {
+    zone = { id: "z" + Date.now(), name: t("layout.sampleZone"), kind: "grid", rows: [] };
+    v.layout.zones.push(zone);
+  }
+  let row = (zone.rows || []).find(r => r.prefix === prefix);
+  if (!row) {
+    row = { id: "r" + Date.now(), name: prefix, prefix: prefix, capacity: 0, slots: [] };
+    zone.rows.push(row);
+  }
+  row.slots = uniqueCodes((row.slots && row.slots.length ? row.slots : rowCodes(row)).concat([code]));
+  row.capacity = row.slots.length;
+  v.slots = codesFromLayout(v.layout);
+  v.capacity = Math.max(Number(v.capacity) || 0, layoutCapacity(v.layout));
   save();
   hideSheets();
   toast(t("caves.slotAssigned", { code: code }));
   openCave(v.id);
 }
 function previewNewSlots() {
-  const n = Math.max(1, parseInt(($("#new-cave-slots") && $("#new-cave-slots").value) || "12", 10));
-  const el = $("#new-slots-preview");
-  if (el) el.textContent = "Se crearán " + Array.from({ length: Math.min(n, 6) }, (_, i) => slotCode(i + 1)).join(", ") + (n > 6 ? "…" : "");
+  if (!caveDraft) return;
+  updateLayoutPreview();
 }
 function rackSlots(cellarId) {
   const v = state.vinotecas.find(x => x.id === cellarId);
-  if (v && v.slots && v.slots.length) {
-    const extra = state.bottles.filter(b => b.cellarId === cellarId && b.bin && !v.slots.includes(b.bin)).map(b => b.bin);
-    return [...v.slots, ...extra.filter((c, i, a) => a.indexOf(c) === i)];
+  if (v && v.layout && v.layout.zones && v.layout.zones.length) {
+    const base = codesFromLayout(v.layout);
+    const extra = state.bottles.filter(b => b.cellarId === cellarId && b.bin && base.indexOf(b.bin) < 0).map(b => b.bin);
+    return uniqueCodes(base.concat(extra));
   }
-  const rows = cellarId === "v1" ? ["A", "B", "C", "D", "E"] : ["A", "B", "C"];
-  const cols = cellarId === "v1" ? [1, 2, 3, 4, 5, 6] : [1, 2, 3, 4];
-  const base = [];
-  rows.forEach(r => cols.forEach(c => base.push(`${r}-${String(c).padStart(2, "0")}`)));
-  const extra = state.bottles.filter(b => b.cellarId === cellarId && b.bin && !base.includes(b.bin)).map(b => b.bin);
-  return [...base, ...extra];
+  if (v && v.slots && v.slots.length) {
+    const extra = state.bottles.filter(b => b.cellarId === cellarId && b.bin && v.slots.indexOf(b.bin) < 0).map(b => b.bin);
+    return uniqueCodes(v.slots.concat(extra));
+  }
+  return legacyRackCodes(v || { id: cellarId }, state.bottles || []);
 }
 function slotPattern(code) {
   const m = String(code || "").match(/^([A-Za-z]+)-(\d+)$/);
@@ -564,9 +597,13 @@ function rackGrid(cellarId, highlight) {
   (state.inbox || []).forEach(r => {
     if (!r.entered && r.cellarId === cellarId && r.bin && !byBin[r.bin]) pending[r.bin] = r;
   });
+  const v = state.vinotecas.find(x => x.id === cellarId);
+  if (v && v.layout && v.layout.zones && v.layout.zones.length && !v.layout.legacy) {
+    return layoutRack(v, highlight, byBin, pending) + unplacedHtml(cellarId, highlight);
+  }
   const codes = rackSlots(cellarId);
   if (!slotsAreGrid(codes)) {
-    return `<div class="rack">${codes.map(code => rackCell(cellarId, code, highlight, byBin, pending)).join("")}</div>`;
+    return `<div class="rack">${codes.map(code => rackCell(cellarId, code, highlight, byBin, pending)).join("")}</div>${unplacedHtml(cellarId, highlight)}`;
   }
   const parsed = codes.map(slotPattern);
   const rows = [];
@@ -587,35 +624,14 @@ function rackGrid(cellarId, highlight) {
     }).join("");
     return `<div class="rack-row" style="grid-template-columns:repeat(${cols.length},minmax(72px,1fr))">${cells}</div>`;
   }).join("");
-  return `<div class="rack-rows">${body}</div>`;
+  return `<div class="rack-rows">${body}</div>${unplacedHtml(cellarId, highlight)}`;
 }
 function freeSlotCodes(cellarId) {
   const used = takenBins(cellarId);
   return rackSlots(cellarId).filter(code => !used.has(code));
 }
 function addCave() {
-  const name = $("#new-cave-name").value.trim();
-  if (!name) return;
-  state.vinotecas.push({
-    id: "v" + Date.now(),
-    name,
-    house: ($("#new-cave-house") && $("#new-cave-house").value.trim()) || "",
-    brand: $("#new-cave-brand").value.trim() || "Vinoteca",
-    capacity: parseInt($("#new-cave-cap").value || "24", 10),
-    used: 0,
-    tHigh: parseFloat($("#new-cave-th").value || "13"),
-    tLow: parseFloat($("#new-cave-tl").value || "11"),
-    humidity: parseInt($("#new-cave-hr").value || "68", 10),
-    bins: ($("#new-cave-bins") && $("#new-cave-bins").value.trim()) || "",
-    slots: nextSlotNumbers({ slots: [], id: "new" }, Math.max(1, parseInt(($("#new-cave-slots") && $("#new-cave-slots").value) || "12", 10))),
-    place: ($("#new-cave-place") && $("#new-cave-place").value.trim()) || "",
-    houseId: ensureHouse(($("#new-cave-house") && $("#new-cave-house").value.trim()) || "Casa Llavaneras"),
-    zones: ["Personalizada"]
-  });
-  save();
-  hideSheets();
-  renderCaves();
-  toast(t("caves.created"));
+  openCaveComposer();
 }
 function deleteCave(id) {
   const v = state.vinotecas.find(x => x.id === id);
@@ -712,4 +728,501 @@ function mapaBlock(w) {
 }
 function shopLinks(w) {
   return (w && w.shops || []).map(s => `<a class="btn btn-ghost" style="width:100%;margin-top:8px;display:block;text-align:center" href="${escHtml(s.url)}" target="_blank" rel="noopener noreferrer" onclick="return openExternal(this.href)">${escHtml(s.source || t("shop.word"))}${s.price ? " · " + escHtml(s.price) : ""}</a>`).join("");
+}
+function pad2(n) { return String(n).padStart(2, "0"); }
+function uniqueCodes(list) {
+  const out = [];
+  (list || []).forEach(code => {
+    if (code && out.indexOf(code) < 0) out.push(code);
+  });
+  return out;
+}
+function rowCodes(r) {
+  if (!r) return [];
+  if (r.slots && r.slots.length) return r.slots.slice();
+  const prefix = r.prefix || "A";
+  const n = Math.max(0, Math.min(80, Number(r.capacity) || 0));
+  const out = [];
+  for (let i = 1; i <= n; i++) out.push(prefix + "-" + pad2(i));
+  return out;
+}
+function zoneCodes(z) {
+  if (!z) return [];
+  if (z.kind === "free") {
+    if (z.slots && z.slots.length) return z.slots.slice();
+    const prefix = z.prefix || "F";
+    const n = Math.max(0, Math.min(400, Number(z.capacity) || 0));
+    const out = [];
+    for (let i = 1; i <= n; i++) out.push(prefix + "-" + pad2(i));
+    return out;
+  }
+  const out = [];
+  (z.rows || []).forEach(r => rowCodes(r).forEach(c => out.push(c)));
+  return out;
+}
+function codesFromLayout(layout) {
+  const out = [];
+  ((layout && layout.zones) || []).forEach(z => zoneCodes(z).forEach(c => out.push(c)));
+  return uniqueCodes(out);
+}
+function layoutCapacity(layout) {
+  const depth = Math.max(1, Number(layout && layout.depth) || 1);
+  return codesFromLayout(layout).length * depth;
+}
+function usedPrefixes(layout) {
+  const used = {};
+  ((layout && layout.zones) || []).forEach(z => {
+    if (z.prefix) used[z.prefix] = 1;
+    (z.rows || []).forEach(r => { if (r.prefix) used[r.prefix] = 1; });
+  });
+  return used;
+}
+function nextPrefix(layout) {
+  const used = usedPrefixes(layout);
+  const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  for (let i = 0; i < letters.length; i++) if (!used[letters[i]]) return letters[i];
+  return "R" + (Object.keys(used).length + 1);
+}
+function legacyRackCodes(v, bottles) {
+  const id = v && v.id || "";
+  let base = [];
+  if (v && v.slots && v.slots.length) base = v.slots.slice();
+  else {
+    const rows = id === "v1" ? ["A", "B", "C", "D", "E"] : ["A", "B", "C"];
+    const cols = id === "v1" ? [1, 2, 3, 4, 5, 6] : [1, 2, 3, 4];
+    rows.forEach(r => cols.forEach(c => base.push(r + "-" + pad2(c))));
+  }
+  const extra = (bottles || []).filter(b => b.cellarId === id && b.bin && base.indexOf(b.bin) < 0).map(b => b.bin);
+  return uniqueCodes(base.concat(extra));
+}
+function guessCaveType(v) {
+  const blob = ((v.name || "") + " " + (v.brand || "") + " " + (v.role || "")).toLowerCase();
+  if (/caja|carton|monton/.test(blob)) return "caja";
+  if (/estanter/.test(blob)) return "estanteria";
+  if (/botellero/.test(blob)) return "botellero";
+  if (/armario/.test(blob)) return "armario";
+  if (v.tHigh != null || /vinoteca|cava|eurocave|sommel/.test(blob)) return "clima";
+  return "otro";
+}
+function migrateOneCave(v, bottles) {
+  if (!v || (v.layout && v.layout.zones && v.layout.zones.length)) return false;
+  const codes = legacyRackCodes(v, bottles);
+  const groups = [];
+  const loose = [];
+  codes.forEach(code => {
+    const parsed = slotPattern(code);
+    if (!parsed) { loose.push(code); return; }
+    let g = groups.find(x => x.prefix === parsed.row);
+    if (!g) { g = { prefix: parsed.row, slots: [] }; groups.push(g); }
+    if (g.slots.indexOf(code) < 0) g.slots.push(code);
+  });
+  groups.forEach(g => g.slots.sort((a, b) => slotNumber(a) - slotNumber(b)));
+  const rows = groups.map((g, i) => ({
+    id: "r" + (i + 1),
+    name: g.prefix,
+    prefix: g.prefix,
+    capacity: g.slots.length,
+    slots: g.slots
+  }));
+  const zones = [{
+    id: "z1",
+    name: (v.zones && v.zones[0]) || "Principal",
+    kind: "grid",
+    rows: rows.length ? rows : [{ id: "r1", name: "A", prefix: "A", capacity: 4, slots: ["A-01", "A-02", "A-03", "A-04"] }]
+  }];
+  if (loose.length) {
+    zones.push({ id: "z2", name: "Libre", kind: "free", prefix: "F", capacity: loose.length, slots: loose });
+  }
+  v.layout = { type: guessCaveType(v), depth: 1, legacy: true, zones: zones };
+  v.slots = codesFromLayout(v.layout);
+  return true;
+}
+function migrateCellarLayouts(st) {
+  const bag = st || state;
+  if (!bag || !bag.vinotecas) return false;
+  let changed = false;
+  bag.vinotecas.forEach(v => {
+    if (migrateOneCave(v, bag.bottles || [])) changed = true;
+  });
+  return changed;
+}
+function cloneLayout(layout) {
+  return JSON.parse(JSON.stringify(layout || { type: "clima", depth: 1, legacy: false, zones: [] }));
+}
+let caveEditing = "";
+let caveDraft = null;
+function freshCaveDraft() {
+  return {
+    name: "",
+    house: "",
+    brand: "",
+    place: "",
+    tHigh: "13",
+    tLow: "11",
+    humidity: "68",
+    layout: {
+      type: "clima",
+      depth: 1,
+      legacy: false,
+      zones: [
+        {
+          id: "z1",
+          name: t("layout.sampleZone"),
+          kind: "grid",
+          rows: [
+            { id: "r1", name: t("layout.sampleRow", { n: 1 }), prefix: "A", capacity: 8 },
+            { id: "r2", name: t("layout.sampleRow", { n: 2 }), prefix: "B", capacity: 4 },
+            { id: "r3", name: t("layout.sampleRow", { n: 3 }), prefix: "C", capacity: 2 }
+          ]
+        },
+        { id: "z2", name: t("layout.sampleFree"), kind: "free", prefix: "K", capacity: 12 }
+      ]
+    }
+  };
+}
+function draftFromCave(v) {
+  migrateOneCave(v, state.bottles || []);
+  return {
+    name: v.name || "",
+    house: v.house || "",
+    brand: v.brand || "",
+    place: v.place || "",
+    tHigh: Number.isFinite(Number(v.tHigh)) ? String(v.tHigh) : "13",
+    tLow: Number.isFinite(Number(v.tLow)) ? String(v.tLow) : "12",
+    humidity: Number.isFinite(Number(v.humidity)) ? String(v.humidity) : "65",
+    layout: cloneLayout(v.layout)
+  };
+}
+function openCaveComposer(id) {
+  caveEditing = id || "";
+  if (id) {
+    const v = state.vinotecas.find(x => x.id === id);
+    if (!v) return;
+    caveDraft = draftFromCave(v);
+  } else caveDraft = freshCaveDraft();
+  paintCaveComposer();
+  showSheet("cave-sheet");
+}
+function readComposerFields() {
+  if (!caveDraft) caveDraft = freshCaveDraft();
+  const name = $("#new-cave-name");
+  if (name) caveDraft.name = name.value;
+  const house = $("#new-cave-house");
+  if (house) caveDraft.house = house.value;
+  const brand = $("#new-cave-brand");
+  if (brand) caveDraft.brand = brand.value;
+  const place = $("#new-cave-place");
+  if (place) caveDraft.place = place.value;
+  const th = $("#new-cave-th");
+  if (th) caveDraft.tHigh = th.value;
+  const tl = $("#new-cave-tl");
+  if (tl) caveDraft.tLow = tl.value;
+  const hr = $("#new-cave-hr");
+  if (hr) caveDraft.humidity = hr.value;
+  const type = $("#cave-type");
+  if (type) caveDraft.layout.type = type.value || "otro";
+  const depthEl = $("#cave-depth");
+  if (depthEl) {
+    const d = parseInt(depthEl.value, 10);
+    caveDraft.layout.depth = Number.isFinite(d) && d > 1 ? Math.min(d, 8) : 1;
+  }
+  (caveDraft.layout.zones || []).forEach((z, zi) => {
+    const zn = document.getElementById("zname-" + zi);
+    if (zn) z.name = zn.value;
+    const zt = document.getElementById("ztemp-" + zi);
+    if (zt) z.temp = zt.value.trim();
+    if (z.kind === "free") {
+      const cap = document.getElementById("zcap-" + zi);
+      if (!cap) return;
+      const n = Math.max(0, Math.min(400, parseInt(cap.value || "0", 10) || 0));
+      if (z.slots && z.slots.length && n !== z.slots.length) {
+        z.slots = null;
+        caveDraft.layout.legacy = false;
+      }
+      z.capacity = n;
+    } else {
+      (z.rows || []).forEach((r, ri) => {
+        const rn = document.getElementById("rname-" + zi + "-" + ri);
+        const rc = document.getElementById("rcap-" + zi + "-" + ri);
+        if (rn) r.name = rn.value;
+        if (!rc) return;
+        const n = Math.max(0, Math.min(80, parseInt(rc.value || "0", 10) || 0));
+        const cur = r.slots && r.slots.length ? r.slots.length : Number(r.capacity) || 0;
+        if (n !== cur) {
+          r.capacity = n;
+          r.slots = null;
+          caveDraft.layout.legacy = false;
+        } else if (!(r.slots && r.slots.length)) r.capacity = n;
+      });
+    }
+  });
+}
+function rowEditorCount(r) {
+  return r.slots && r.slots.length ? r.slots.length : Number(r.capacity) || 0;
+}
+function paintCaveComposer() {
+  if (!caveDraft) caveDraft = freshCaveDraft();
+  const title = $("#cave-sheet-title");
+  if (title) title.textContent = caveEditing ? t("layout.edit") : t("new.h1");
+  const saveBtn = $("#cave-save");
+  if (saveBtn) saveBtn.textContent = caveEditing ? t("layout.save") : t("new.create");
+  if ($("#new-cave-name")) $("#new-cave-name").value = caveDraft.name || "";
+  if ($("#new-cave-house")) $("#new-cave-house").value = caveDraft.house || "";
+  if ($("#new-cave-brand")) $("#new-cave-brand").value = caveDraft.brand || "";
+  if ($("#new-cave-place")) $("#new-cave-place").value = caveDraft.place || "";
+  if ($("#new-cave-th")) $("#new-cave-th").value = caveDraft.tHigh || "";
+  if ($("#new-cave-tl")) $("#new-cave-tl").value = caveDraft.tLow || "";
+  if ($("#new-cave-hr")) $("#new-cave-hr").value = caveDraft.humidity || "";
+  if ($("#cave-type")) $("#cave-type").value = caveDraft.layout.type || "otro";
+  if ($("#cave-depth")) $("#cave-depth").value = Number(caveDraft.layout.depth) > 1 ? String(caveDraft.layout.depth) : "";
+  const box = $("#cave-layout");
+  if (box) box.innerHTML = (caveDraft.layout.zones || []).map((z, zi) => zoneEditorHtml(z, zi)).join("")
+    + `<div class="btn-row">
+      <button type="button" class="btn btn-ghost" onclick="addLayoutZone('grid')">${t("layout.addZone")}</button>
+      <button type="button" class="btn btn-ghost" onclick="addLayoutZone('free')">${t("layout.addFree")}</button>
+    </div>`;
+  updateLayoutPreview();
+}
+function zoneEditorHtml(z, zi) {
+  const moves = `<span class="layout-actions">
+    <button type="button" onclick="moveLayoutZone(${zi},-1)" aria-label="${t("layout.up")}">↑</button>
+    <button type="button" onclick="moveLayoutZone(${zi},1)" aria-label="${t("layout.down")}">↓</button>
+    <button type="button" onclick="removeLayoutZone(${zi})" aria-label="${t("layout.remove")}">×</button>
+  </span>`;
+  const temp = `<label class="field layout-temp"><span>${t("layout.temp")}</span><input id="ztemp-${zi}" type="number" step="0.1" value="${escHtml(z.temp || "")}" oninput="touchCaveDraft()"></label>`;
+  if (z.kind === "free") {
+    const n = z.slots && z.slots.length ? z.slots.length : Number(z.capacity) || 0;
+    return `<section class="layout-zone">
+      <div class="row"><b>${t("layout.free")}</b>${moves}</div>
+      <label class="field"><span>${t("layout.zone")}</span><input id="zname-${zi}" value="${escHtml(z.name || "")}" oninput="touchCaveDraft()"></label>
+      <label class="field"><span>${t("layout.cap")}</span><input id="zcap-${zi}" type="number" min="0" value="${n}" oninput="touchCaveDraft()"></label>
+      ${temp}
+    </section>`;
+  }
+  const rows = (z.rows || []).map((r, ri) => `<div class="layout-row">
+    <input id="rname-${zi}-${ri}" value="${escHtml(r.name || r.prefix || "")}" aria-label="${t("layout.row")}" oninput="touchCaveDraft()">
+    <input id="rcap-${zi}-${ri}" type="number" min="0" value="${rowEditorCount(r)}" aria-label="${t("layout.cap")}" oninput="touchCaveDraft()">
+    <span class="layout-actions">
+      <button type="button" onclick="moveLayoutRow(${zi},${ri},-1)" aria-label="${t("layout.up")}">↑</button>
+      <button type="button" onclick="moveLayoutRow(${zi},${ri},1)" aria-label="${t("layout.down")}">↓</button>
+      <button type="button" onclick="removeLayoutRow(${zi},${ri})" aria-label="${t("layout.remove")}">×</button>
+    </span>
+  </div>`).join("");
+  return `<section class="layout-zone">
+    <div class="row"><b>${t("layout.kindGrid")}</b>${moves}</div>
+    <label class="field"><span>${t("layout.zone")}</span><input id="zname-${zi}" value="${escHtml(z.name || "")}" oninput="touchCaveDraft()"></label>
+    <p class="tiny">${t("layout.rowHint")}</p>
+    ${rows}
+    <button type="button" class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="addLayoutRow(${zi})">${t("layout.addRow")}</button>
+    ${temp}
+  </section>`;
+}
+function touchCaveDraft() {
+  readComposerFields();
+  updateLayoutPreview();
+}
+function updateLayoutPreview() {
+  const prev = $("#layout-preview");
+  if (!prev || !caveDraft) return;
+  const dropped = caveEditing ? occupiedDropCount(caveEditing, caveDraft.layout) : 0;
+  const warn = dropped ? `<p class="layout-warn">${t("layout.pending", { n: dropped })}</p>` : "";
+  prev.innerHTML = `<p class="tiny">${t("layout.preview")}</p>${warn}${layoutPreviewHtml(caveDraft.layout)}`;
+}
+function layoutPreviewHtml(layout) {
+  return (layout.zones || []).map(z => {
+    if (z.kind === "free") {
+      const n = zoneCodes(z).length;
+      return `<div class="layout-free"><b>${escHtml(z.name || t("layout.free"))}</b><span>${t("layout.pile", { n: n })}</span></div>`;
+    }
+    const rows = (z.rows || []).map(r => {
+      const codes = rowCodes(r);
+      const cells = codes.map(c => `<div class="rack-slot empty"><b>${escHtml(c)}</b></div>`).join("") || `<div class="rack-slot empty"><b>—</b></div>`;
+      return `<div class="rack-row" style="grid-template-columns:repeat(${Math.max(codes.length, 1)},minmax(0,1fr))">${cells}</div>`;
+    }).join("");
+    return `<p class="tiny">${escHtml(z.name || "")}</p><div class="rack-rows rack-fit">${rows}</div>`;
+  }).join("");
+}
+function occupiedDropCount(cellarId, layout) {
+  const removed = droppedCodes(cellarId, layout);
+  const hit = state.bottles.filter(b => b.cellarId === cellarId && b.bin && removed.indexOf(b.bin) >= 0);
+  const inbox = (state.inbox || []).filter(r => !r.entered && r.cellarId === cellarId && r.bin && removed.indexOf(r.bin) >= 0);
+  return hit.length + inbox.length;
+}
+function droppedCodes(cellarId, layout) {
+  const v = state.vinotecas.find(x => x.id === cellarId);
+  if (!v) return [];
+  const old = uniqueCodes((v.slots || []).concat(codesFromLayout(v.layout || {})));
+  const next = codesFromLayout(layout);
+  return old.filter(c => next.indexOf(c) < 0);
+}
+function addLayoutZone(kind) {
+  readComposerFields();
+  const prefix = nextPrefix(caveDraft.layout);
+  if (kind === "free") {
+    caveDraft.layout.zones.push({ id: "z" + Date.now(), name: t("layout.sampleFree"), kind: "free", prefix: prefix, capacity: 8 });
+  } else {
+    caveDraft.layout.zones.push({
+      id: "z" + Date.now(),
+      name: t("layout.sampleZone"),
+      kind: "grid",
+      rows: [{ id: "r" + Date.now(), name: prefix, prefix: prefix, capacity: 6 }]
+    });
+  }
+  caveDraft.layout.legacy = false;
+  paintCaveComposer();
+}
+function removeLayoutZone(zi) {
+  readComposerFields();
+  if ((caveDraft.layout.zones || []).length < 2) return toast(t("layout.keepZone"));
+  caveDraft.layout.zones.splice(zi, 1);
+  caveDraft.layout.legacy = false;
+  paintCaveComposer();
+}
+function moveLayoutZone(zi, dir) {
+  readComposerFields();
+  const zones = caveDraft.layout.zones;
+  const j = zi + dir;
+  if (j < 0 || j >= zones.length) return;
+  const tmp = zones[zi];
+  zones[zi] = zones[j];
+  zones[j] = tmp;
+  paintCaveComposer();
+}
+function addLayoutRow(zi) {
+  readComposerFields();
+  const z = caveDraft.layout.zones[zi];
+  if (!z || z.kind === "free") return;
+  const prefix = nextPrefix(caveDraft.layout);
+  z.rows = z.rows || [];
+  z.rows.push({ id: "r" + Date.now(), name: prefix, prefix: prefix, capacity: 6 });
+  caveDraft.layout.legacy = false;
+  paintCaveComposer();
+}
+function removeLayoutRow(zi, ri) {
+  readComposerFields();
+  const z = caveDraft.layout.zones[zi];
+  if (!z || !z.rows || z.rows.length < 2) return toast(t("layout.keepRow"));
+  z.rows.splice(ri, 1);
+  caveDraft.layout.legacy = false;
+  paintCaveComposer();
+}
+function moveLayoutRow(zi, ri, dir) {
+  readComposerFields();
+  const rows = caveDraft.layout.zones[zi] && caveDraft.layout.zones[zi].rows;
+  if (!rows) return;
+  const j = ri + dir;
+  if (j < 0 || j >= rows.length) return;
+  const tmp = rows[ri];
+  rows[ri] = rows[j];
+  rows[j] = tmp;
+  paintCaveComposer();
+}
+function applyDraftToCave(v, codes, structural) {
+  v.name = caveDraft.name.trim();
+  v.house = (caveDraft.house || "").trim();
+  v.brand = (caveDraft.brand || "").trim() || v.brand || "Vinoteca";
+  v.place = (caveDraft.place || "").trim();
+  const hi = parseFloat(caveDraft.tHigh);
+  const lo = parseFloat(caveDraft.tLow);
+  const hr = parseInt(caveDraft.humidity, 10);
+  if (Number.isFinite(hi)) v.tHigh = Math.round(hi * 10) / 10;
+  if (Number.isFinite(lo)) v.tLow = Math.round(lo * 10) / 10;
+  if (Number.isFinite(hr)) v.humidity = hr;
+  if (!Number.isFinite(Number(v.tHigh))) v.tHigh = 13;
+  if (!Number.isFinite(Number(v.tLow))) v.tLow = v.tHigh;
+  v.layout = cloneLayout(caveDraft.layout);
+  v.slots = codes.slice();
+  const cap = layoutCapacity(v.layout);
+  if (structural) v.capacity = Math.max(cap, (state.bottles || []).filter(b => b.cellarId === v.id).reduce((n, b) => n + (Number(b.qty) || 0), 0));
+  else v.capacity = Math.max(Number(v.capacity) || 0, cap);
+  if (!v.houseId) v.houseId = ensureHouse(v.house || "Casa Llavaneras");
+  else if (v.house) v.houseId = ensureHouse(v.house);
+}
+function commitCaveForm() {
+  if (!caveDraft) caveDraft = freshCaveDraft();
+  readComposerFields();
+  const name = (caveDraft.name || "").trim();
+  if (!name) return toast(t("layout.needName"));
+  const codes = codesFromLayout(caveDraft.layout);
+  if (!codes.length) return toast(t("layout.needSlots"));
+  const id = caveEditing;
+  if (id) {
+    const v = state.vinotecas.find(x => x.id === id);
+    if (!v) return;
+    const removed = droppedCodes(id, caveDraft.layout);
+    const hit = state.bottles.filter(b => b.cellarId === id && b.bin && removed.indexOf(b.bin) >= 0);
+    const inbox = (state.inbox || []).filter(r => !r.entered && r.cellarId === id && r.bin && removed.indexOf(r.bin) >= 0);
+    const n = hit.length + inbox.length;
+    if (n && !confirm(t("layout.unplaceWarn", { n: n }))) return;
+    hit.forEach(b => { b.bin = ""; b.unplaced = true; });
+    inbox.forEach(r => { r.bin = ""; });
+    applyDraftToCave(v, codes, removed.length > 0);
+    save();
+    hideSheets();
+    toast(n ? t("layout.unplacedDone", { n: n }) : t("layout.saved"));
+    openCave(id);
+    return;
+  }
+  const v = {
+    id: "v" + Date.now(),
+    name: name,
+    used: 0,
+    bins: "",
+    zones: [(caveDraft.layout.zones[0] && caveDraft.layout.zones[0].name) || "Personalizada"],
+    houseId: ensureHouse((caveDraft.house || "").trim() || "Casa Llavaneras")
+  };
+  applyDraftToCave(v, codes, true);
+  state.vinotecas.push(v);
+  save();
+  hideSheets();
+  renderCaves();
+  toast(t("caves.created"));
+  openCave(v.id);
+}
+function layoutRack(v, highlight, byBin, pending) {
+  return (v.layout.zones || []).map(z => {
+    if (z.kind === "free") return freeZoneHtml(z, highlight, byBin, pending);
+    const temp = z.temp ? `<span class="tiny">${escHtml(String(z.temp))} °C</span>` : "";
+    const rows = (z.rows || []).map(r => {
+      const codes = rowCodes(r);
+      const cells = codes.map(code => rackCell(v.id, code, highlight, byBin, pending)).join("") || `<div class="rack-slot empty"><b>—</b></div>`;
+      return `<div class="rack-row" style="grid-template-columns:repeat(${Math.max(codes.length, 1)},minmax(0,1fr))">${cells}</div>`;
+    }).join("");
+    return `<h3 class="cal-h">${escHtml(z.name || t("layout.kindGrid"))} ${temp}</h3><div class="rack-rows rack-fit">${rows}</div>`;
+  }).join("");
+}
+function freeZoneHtml(z, highlight, byBin, pending) {
+  const codes = zoneCodes(z);
+  const used = codes.filter(c => byBin[c] || pending[c]);
+  const items = used.map(c => rackCell("", c, highlight, byBin, pending)).join("");
+  return `<section class="layout-free">
+    <div class="row"><h3>${escHtml(z.name || t("layout.free"))}</h3><span class="tiny">${t("layout.pile", { n: codes.length - used.length })}</span></div>
+    <div class="rack">${items || `<p class="muted">${t("layout.emptyPile")}</p>`}</div>
+  </section>`;
+}
+function unplacedHtml(cellarId, highlight) {
+  const rows = (state.bottles || []).filter(b => b.cellarId === cellarId && !b.bin);
+  if (!rows.length) return "";
+  const focus = highlight === "__unplaced__" ? " rack-focus" : "";
+  const body = rows.map(b => {
+    const w = wineById(b.wineId) || {};
+    const who = ((w.producer || "") + " " + (w.name || "") + " " + (w.vintage || "")).trim() || b.wineId;
+    return `<div class="row" style="margin-top:8px"><span>${escHtml(who)} · ${b.qty}</span><button type="button" class="btn btn-ghost" onclick="placeUnlocated('${b.uid}')">${t("layout.place")}</button></div>`;
+  }).join("");
+  return `<section id="sin-ubicar" class="unplaced${focus}"><h3>${t("layout.unplaced")}</h3><p class="muted">${t("layout.unplacedLead")}</p>${body}</section>`;
+}
+function placeUnlocated(uid) {
+  const b = state.bottles.find(x => x.uid === uid);
+  if (!b) return;
+  const free = freeSlotCodes(b.cellarId);
+  if (!free.length) return toast(t("layout.noFree"));
+  b.bin = free[0];
+  b.unplaced = false;
+  save();
+  openCave(b.cellarId, b.bin);
+}
+if (typeof state !== "undefined" && state && state.vinotecas) {
+  try {
+    if (migrateCellarLayouts(state) && localStorage.getItem(STORE)) save();
+  } catch (e) {}
 }

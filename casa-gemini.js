@@ -141,7 +141,7 @@ function applyCleanIdentity(wine, raw) {
   }
   if (idn.vintage) {
     const current = Number(wine.vintage) || 0;
-    if (!current || current === YEAR || dirty) wine.vintage = idn.vintage;
+    if (!current || current === yearNow() || dirty) wine.vintage = idn.vintage;
   }
   return idn;
 }
@@ -211,7 +211,7 @@ function applyGeminiIdentity(wine, raw) {
   const year = Math.round(Number(raw.vintage));
   const mentioned = [wine.provenance.rawTitle, wine.provenance.pageExcerpt, wine.provenance.pageUrl, wine.name, String(wine.vintage || "")].join(" ").includes(String(year));
   const currentYear = Number(wine.vintage) || 0;
-  if (year >= 1950 && year <= YEAR + 1 && (mentioned || !currentYear || currentYear === YEAR)) wine.vintage = year;
+  if (year >= 1950 && year <= yearNow() + 1 && (mentioned || !currentYear || currentYear === yearNow())) wine.vintage = year;
   const zone = detectZone([raw.region, raw.country, raw.name].filter(Boolean).join(" "));
   if (wine.provenance.region !== "página") {
     if (zone) {
@@ -671,7 +671,7 @@ function matchBrand(hay, boost) {
 }
 function labelYearFrom(text) {
   const years = String(text || "").match(/\b(?:19|20)\d{2}\b/g) || [];
-  const ys = years.map(n => parseInt(n, 10)).filter(n => n >= 1950 && n <= YEAR + 1);
+  const ys = years.map(n => parseInt(n, 10)).filter(n => n >= 1950 && n <= yearNow() + 1);
   return ys.length ? ys[ys.length - 1] : 0;
 }
 function pushIdentityBit(bits, s) {
@@ -754,7 +754,7 @@ function imageHash(dataUrl) {
 function queryFromLabelFields(obj) {
   if (!obj || typeof obj !== "object") return "";
   const yearNum = Math.round(Number(obj.vintage));
-  const year = yearNum >= 1900 && yearNum <= YEAR + 1 ? String(yearNum) : "";
+  const year = yearNum >= 1900 && yearNum <= yearNow() + 1 ? String(yearNum) : "";
   const bits = [obj.producer, obj.name, obj.region].map(s => String(s || "").replace(/https?:\/\/\S+/gi, " ").replace(/\s+/g, " ").trim()).filter(s => s.length >= 2);
   let phrase = bits.join(" ");
   if (year) phrase = phrase.replace(new RegExp("\\b" + year + "\\b", "g"), " ");
@@ -1465,7 +1465,7 @@ function saneVintageYear(n, vintage) {
 function applyGeminiFacts(wine, raw) {
   if (!raw || typeof raw !== "object") return;
   const gaps = new Set(geminiGaps(wine));
-  const vintage = Number(wine.vintage) || YEAR;
+  const vintage = Number(wine.vintage) || yearNow();
   if (gaps.has("type")) {
     const type = wineTypeFromText(raw.type || "");
     if (type) {
@@ -1663,12 +1663,12 @@ function applyGeminiRecord(wine, raw) {
       const rows = d.priceHistory.map(r => ({
         year: Math.round(Number(r && r.year)),
         mid: Math.round(Number(r && (r.mid != null ? r.mid : r.price)))
-      })).filter(r => r.year >= 2010 && r.year <= YEAR && r.mid >= 4 && r.mid <= 8000).slice(0, 6);
+      })).filter(r => r.year >= 2010 && r.year <= yearNow() && r.mid >= 4 && r.mid <= 8000).slice(0, 6);
       if (rows.length) wine.priceHistory = rows;
     }
   }
   if (gaps.has("evolution") && Array.isArray(raw.evolutionNotes)) {
-    const vintage = Number(wine.vintage) || YEAR;
+    const vintage = Number(wine.vintage) || yearNow();
     const notes = raw.evolutionNotes.map(n => ({
       year: Math.round(Number(n && n.year)),
       phase: clipText(n && n.phase, 32),
@@ -1684,7 +1684,7 @@ function applyGeminiRecord(wine, raw) {
       vintage: Math.round(Number(v && (v.vintage || v.year))),
       note: clipText(v && v.note, 80),
       priceHint: clipText(v && v.priceHint, 24)
-    })).filter(v => v.vintage >= 1950 && v.vintage <= YEAR + 1).slice(0, 5);
+    })).filter(v => v.vintage >= 1950 && v.vintage <= yearNow() + 1).slice(0, 5);
     if (rows.length) {
       wine.vintages = rows;
       markWineSource(wine, "vintages", "estimación Gemini");
@@ -2551,7 +2551,7 @@ async function searchAndShowLabel(text) {
 function geminiLabelQuery(parsed) {
   if (!parsed || typeof parsed !== "object") return "";
   const yearNum = Math.round(Number(parsed.vintage));
-  const year = yearNum >= 1900 && yearNum <= YEAR + 1 ? yearNum : 0;
+  const year = yearNum >= 1900 && yearNum <= yearNow() + 1 ? yearNum : 0;
   const zone = detectLabelRegion(parsed.region || "") || detectLabelRegion(parsed.type || "");
   if (zone) scanRegion = zone;
   const bits = [];

@@ -1,6 +1,19 @@
 /* Utilidades compartidas de Casa Llavaneras. */
-const NOW = new Date(2026, 8, 22);
-const YEAR = NOW.getFullYear();
+function today() {
+  let raw = "";
+  try { raw = globalThis.__casaToday || ""; } catch (e) { raw = ""; }
+  const m = String(raw).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  const n = new Date();
+  return new Date(n.getFullYear(), n.getMonth(), n.getDate());
+}
+function yearNow() { return today().getFullYear(); }
+function formatTodayLabel() {
+  const d = today();
+  const loc = (typeof appLocale === "function" && appLocale()) || "es-ES";
+  try { return d.toLocaleDateString(loc, { day: "numeric", month: "short", year: "numeric" }); }
+  catch (e) { return todayIso(); }
+}
 const ICONS = {
   home: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 11.5 12 4l8 7.5V20a1 1 0 0 1-1 1h-5v-6H10v6H5a1 1 0 0 1-1-1z"/></svg>',
   cave: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M8 4v16M16 4v16"/></svg>',
@@ -283,7 +296,7 @@ function waitMs(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 function todayIso() {
-  const d = new Date();
+  const d = today();
   const p = n => String(n).padStart(2, "0");
   return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate());
 }

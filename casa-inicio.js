@@ -112,11 +112,11 @@ function monthOpenReason(w) {
   const peakEnd = Number(w.aging.peakEnd);
   const holdTo = Number(w.aging.holdTo);
   if (!Number.isFinite(peakStart) || !Number.isFinite(peakEnd)) return null;
-  const past = (Number.isFinite(holdTo) && YEAR > holdTo) || YEAR > peakEnd;
-  const endsThisYear = peakEnd === YEAR || holdTo === YEAR;
-  const atPeak = YEAR >= peakStart && YEAR <= peakEnd;
+  const past = (Number.isFinite(holdTo) && yearNow() > holdTo) || yearNow() > peakEnd;
+  const endsThisYear = peakEnd === yearNow() || holdTo === yearNow();
+  const atPeak = yearNow() >= peakStart && yearNow() <= peakEnd;
   if (past) return { rank: 0, text: t("home.reasonPast") };
-  if (endsThisYear) return { rank: 1, text: t("home.reasonBefore", { y: YEAR }) };
+  if (endsThisYear) return { rank: 1, text: t("home.reasonBefore", { y: yearNow() }) };
   if (atPeak) return { rank: 2, text: t("home.reasonPeak") };
   return null;
 }
@@ -287,9 +287,9 @@ function calBlock(title, arr) {
         <span class="tiny">${t("home.window")}</span>
         <span class="tiny win-left">${datesAreReal(w) ? yearsUntilPeakEnd(w.aging.peakEnd) : t("nodata")}</span>
       </div>
-      <div class="win-bar" role="img" aria-label="${t("cal.peakAria", { a: w.aging.peakStart, b: w.aging.peakEnd, y: YEAR })}">
+      <div class="win-bar" role="img" aria-label="${t("cal.peakAria", { a: w.aging.peakStart, b: w.aging.peakEnd, y: yearNow() })}">
         <span class="win-peak" style="left:${mark.left}%;width:${mark.width}%"></span>
-        <span class="win-now" style="left:${mark.now}%" title="${t("cal.year", { y: YEAR })}"></span>
+        <span class="win-now" style="left:${mark.now}%" title="${t("cal.year", { y: yearNow() })}"></span>
       </div>
     </div>`;
   }).join("");

@@ -1,5 +1,5 @@
 /* Arranque y enlaces con la página. */
-const APP_VERSION = "v83";
+const APP_VERSION = "v84";
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.addEventListener("message", ev => {
     const d = ev.data || {};
@@ -155,4 +155,7 @@ document.addEventListener("DOMContentLoaded", () => {
     paint(true);
   });
   setTimeout(() => { try { runNotifyCheck(false); } catch (e) {} }, 1600);
+  try { window.__casaDateCheck = dateYearSelfCheck(); }
+  catch (e) { window.__casaDateCheck = { ok: false, error: String(e) }; }
+  try { window.__frozenPurchaseCount = frozenPurchaseCount; } catch (e) {}
 });
