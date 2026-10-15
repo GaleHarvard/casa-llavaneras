@@ -69,25 +69,26 @@ function vintageBlockHtml(w) {
   if (!w) return "";
   const cuvee = cuveeOf(w);
   const grapes = (cuvee.grapes && cuvee.grapes.length ? cuvee.grapes : (w.grapes || [])).join(", ");
-  const place = cuvee.appellation || w.appellation || t("nodata");
+  const place = cuvee.appellation || w.appellation || w.region || "";
   const chips = vintageSiblings(w).map(s => `<button type="button" class="chip ${s.id === w.id ? "on" : ""}" onclick="openWine('${s.id}')">${escHtml(String(s.vintage || "—"))}</button>`).join("");
   const taste = String(w.tasting || "").trim();
   const shown = taste.length > 280 ? taste.slice(0, 277) + "…" : taste;
-  const from = w.aging && w.aging.drinkFrom;
-  const hold = w.aging && w.aging.holdTo;
-  const windowTxt = from ? (from + "–" + (hold || "")) : t("nodata");
-  const price = w.priceHint ? (w.priceHint + " · " + t("fact.orientative")) : t("nodata");
+  const realWindow = w.aging && w.aging.drinkFrom && (typeof datesAreReal !== "function" || datesAreReal(w));
+  const windowTxt = realWindow
+    ? (w.aging.drinkFrom + "–" + (w.aging.holdTo || ""))
+    : (typeof shownDrinkRange === "function" && shownDrinkRange(w) ? shownDrinkRange(w) + " · " + t("fact.orientative") : "");
+  const price = w.priceHint && !isNodataText(w.priceHint) ? (w.priceHint + " · " + t("fact.orientative")) : "";
   const lot = (state.bottles || []).find(b => b.wineId === w.id && bottleHeld(b)) || (state.bottles || []).find(b => b.wineId === w.id);
   const mark = lot && bottleHeld(lot) ? `<p style="margin-top:8px">${heldMark(lot)}</p>` : "";
   const reserve = lot ? `<button type="button" class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="openDeseos('${lot.uid}')">${t("wish.reserve")}</button>` : "";
   return `<div id="vintage-block">
     <p class="tiny" style="margin-top:10px">${t("vintage.wine")}</p>
-    <p class="muted">${escHtml(place)}${grapes ? " · " + escHtml(grapes) : ""}</p>
+    ${place || grapes ? `<p class="muted">${escHtml(place)}${grapes ? " · " + escHtml(grapes) : ""}</p>` : ""}
     <div class="chip-row" style="margin-top:8px">${chips}</div>
     <div class="card" style="margin-top:8px">
       <p class="tiny">${t("vintage.this")} ${escHtml(String(w.vintage || "—"))}</p>
-      <p style="margin-top:6px">${shown ? escHtml(shown) : escHtml(t("nodata"))}</p>
-      <p class="muted" style="margin-top:6px">${escHtml(t("vintage.window"))}: ${escHtml(String(windowTxt))} · ${escHtml(t("vintage.price"))}: ${escHtml(price)}</p>
+      ${shown ? `<p style="margin-top:6px">${escHtml(shown)}</p>` : ""}
+      ${windowTxt || price ? `<p class="muted" style="margin-top:6px">${windowTxt ? escHtml(t("vintage.window")) + ": " + escHtml(String(windowTxt)) : ""}${windowTxt && price ? " · " : ""}${price ? escHtml(t("vintage.price")) + ": " + escHtml(price) : ""}</p>` : ""}
       ${mark}
     </div>
     ${reserve}
