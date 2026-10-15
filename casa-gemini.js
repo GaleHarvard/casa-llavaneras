@@ -802,12 +802,34 @@ function preprocessLabel(dataUrl) {
     img.src = dataUrl;
   });
 }
+const TESS_ROOT = "vendor/tesseract/";
+function tessSimd() {
+  try {
+    return WebAssembly.validate(Uint8Array.of(0, 97, 115, 109, 1, 0, 0, 0, 1, 5, 1, 96, 0, 1, 123, 3, 2, 1, 0, 10, 10, 1, 8, 0, 65, 0, 253, 15, 253, 98, 11));
+  } catch (e) {
+    return false;
+  }
+}
+function tessWorkerOptions() {
+  return {
+    workerPath: TESS_ROOT + "worker.min.js",
+    corePath: TESS_ROOT + (tessSimd() ? "tesseract-core-simd-lstm.wasm.js" : "tesseract-core-lstm.wasm.js"),
+    langPath: TESS_ROOT.replace(/\/$/, ""),
+    workerBlobURL: false,
+    gzip: true,
+    logger: m => {
+      if (m.status === "recognizing text" && m.progress) {
+        setScanStatus(t("scan.readingPct", { n: Math.round(m.progress * 100) }));
+      }
+    }
+  };
+}
 function loadTesseract() {
   if (window.Tesseract) return Promise.resolve(window.Tesseract);
   if (tesseractReady) return tesseractReady;
   tesseractReady = new Promise((resolve, reject) => {
     const s = document.createElement("script");
-    s.src = "https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";
+    s.src = TESS_ROOT + "tesseract.min.js";
     s.onload = () => resolve(window.Tesseract);
     s.onerror = () => reject(new Error("ocr"));
     document.head.appendChild(s);
@@ -815,14 +837,14 @@ function loadTesseract() {
   return tesseractReady;
 }
 async function ocrOnce(Tesseract, img, lang) {
-  const result = await Tesseract.recognize(img, lang || "spa", {
-    tessedit_pageseg_mode: "6",
-    logger: m => {
-      if (m.status === "recognizing text" && m.progress) {
-        setScanStatus(t("scan.readingPct", { n: Math.round(m.progress * 100) }));
-      }
-    }
-  });
+  const worker = await Tesseract.createWorker(lang || "spa", 1, tessWorkerOptions());
+  let result;
+  try {
+    await worker.setParameters({ tessedit_pageseg_mode: "6" });
+    result = await worker.recognize(img);
+  } finally {
+    try { await worker.terminate(); } catch (e) {}
+  }
   const data = (result && result.data) || {};
   const rows = (data.lines && data.lines.length) ? data.lines : (data.words || []);
   const lines = rows.map(row => {
@@ -1403,7 +1425,7 @@ const PAIRING_DISH_IDS = ["cordero", "caza", "buey", "aves", "cerdo", "estofado"
 function geminiGaps(wine) {
   const p = (wine && wine.provenance) || {};
   const gaps = [];
-  ["type", "grapes", "region", "country", "abv", "tasting", "crianza", "service", "cellar", "pairing", "aging", "style", "ratings", "dossier", "web", "evolution", "vintages", "price"].forEach(k => {
+  ["type", "grapes", "region", "country", "abv", "tasting", "crianza", "service", "cellar", "pairing", "aging", "style", "dossier", "web", "evolution", "vintages", "price"].forEach(k => {
     const named = k === "type" || k === "region" || k === "country";
     if (userLocked(wine, k) || (k === "crianza" && userLocked(wine, "elevage"))) return;
     if (p[k] === "página") return;
@@ -1576,34 +1598,6 @@ function applyGeminiRecord(wine, raw) {
       markWineSource(wine, "style", "estimación Gemini");
     }
   }
-  if (gaps.has("ratings") && raw.ratings && typeof raw.ratings === "object") {
-    const bands = {
-      vivino: { min: 3, max: 5 },
-      penin: { min: 70, max: 100 },
-      parker: { min: 70, max: 100 },
-      spectator: { min: 70, max: 100 },
-      decanter: { min: 70, max: 100 }
-    };
-    let any = false;
-    Object.keys(bands).forEach(k => {
-      const src = raw.ratings[k];
-      if (!src || src.known !== true) return;
-      const score = Number(String(src.score == null ? "" : src.score).replace(",", "."));
-      if (!(score >= bands[k].min && score <= bands[k].max)) return;
-      wine.ratings[k] = wine.ratings[k] || { scale: k === "vivino" ? 5 : 100, note: "" };
-      wine.ratings[k].score = k === "vivino" ? Math.round(score * 10) / 10 : Math.round(score);
-      wine.ratings[k].scale = k === "vivino" ? 5 : 100;
-      wine.ratings[k].note = clipText(src.note, 280);
-      wine.ratings[k].estimate = true;
-      if (k === "vivino") {
-        const count = Math.round(Number(src.count));
-        if (count > 0 && count < 500000) wine.ratings[k].count = count;
-      }
-      if (k === "parker" && src.reviewer) wine.ratings[k].reviewer = clipText(src.reviewer, 60);
-      any = true;
-    });
-    if (any) markWineSource(wine, "ratings", "estimación Gemini");
-  }
   const pack = raw.pairingPack || raw.pairingsPack;
   if (gaps.has("pairing") && pack && typeof pack === "object") {
     const matches = (Array.isArray(pack.matches) ? pack.matches : []).map(m => {
@@ -1717,7 +1711,7 @@ function applyGeminiRecord(wine, raw) {
   }
 }
 function sealWineProvenance(wine) {
-  const keys = ["type", "grapes", "region", "country", "abv", "tasting", "crianza", "service", "cellar", "pairing", "aging", "producer", "style", "ratings", "dossier", "web", "price", "evolution", "vintages", "shops"];
+  const keys = ["type", "grapes", "region", "country", "abv", "tasting", "crianza", "service", "cellar", "pairing", "aging", "producer", "style", "dossier", "web", "price", "evolution", "vintages", "shops"];
   wine.provenance = wine.provenance || {};
   keys.forEach(k => { if (!wine.provenance[k]) wine.provenance[k] = "valor por defecto"; });
   wine.provenance.done = true;
@@ -1850,7 +1844,6 @@ async function geminiWithModel(key, prompt, schema, signal, maxOutputTokens, ext
 function geminiBlockSpecs() {
   const str = { type: "STRING" };
   const num = { type: "NUMBER" };
-  const rating = { type: "OBJECT", properties: { known: { type: "BOOLEAN" }, score: num, count: num, note: str, reviewer: str } };
   return {
     basics: {
       name: "basics",
@@ -1871,12 +1864,11 @@ function geminiBlockSpecs() {
     },
     pairings: {
       name: "pairings",
-      label: "Puntuaciones",
+      label: "Maridajes",
       maxTokens: 2048,
       schema: {
         type: "OBJECT",
         properties: {
-          ratings: { type: "OBJECT", properties: { vivino: rating, penin: rating, parker: rating, spectator: rating, decanter: rating } },
           pairingPack: {
             type: "OBJECT",
             properties: {
@@ -1886,7 +1878,7 @@ function geminiBlockSpecs() {
           }
         }
       },
-      ask: "Bloque puntuaciones y maridajes. En ratings, known=true solo si recuerdas una nota publicada de esa añada; si no, known=false y score=0. No uses 0 como si fuera la nota. pairingPack.matches.dishId tiene que ser uno de: " + PAIRING_DISH_IDS.join(", ") + ". score de 60 a 100. why en español, sin URL."
+      ask: "Bloque maridajes. No des puntuaciones de Parker, Peñín, Spectator, Decanter ni Vivino. pairingPack.matches.dishId tiene que ser uno de: " + PAIRING_DISH_IDS.join(", ") + ". score de 60 a 100 es el encaje con el plato, no una nota de crítico. why en español, sin URL."
     },
     dossier: {
       name: "dossier",
@@ -1919,7 +1911,7 @@ function geminiBlocksFor(gaps) {
   const specs = geminiBlockSpecs();
   const blocks = [];
   if (["type", "grapes", "region", "country", "abv", "tasting", "crianza", "service", "cellar", "aging", "style"].some(k => set.has(k))) blocks.push(specs.basics);
-  if (set.has("ratings") || set.has("pairing")) blocks.push(specs.pairings);
+  if (set.has("pairing")) blocks.push(specs.pairings);
   if (["dossier", "web", "evolution", "vintages", "price"].some(k => set.has(k))) blocks.push(specs.dossier);
   return blocks;
 }
@@ -2855,7 +2847,7 @@ function inferWineFromText(raw) {
     ratings: {
       vivino: { score: 0, count: 0, scale: 5, note: "" },
       penin: { score: 0, scale: 100, note: "" },
-      parker: { score: 0, scale: 100, reviewer: "", note: "Alta por etiqueta. Completa la ficha." },
+      parker: { score: 0, scale: 100, reviewer: "", note: "" },
       spectator: { score: 0, scale: 100, note: "" },
       decanter: { score: 0, scale: 100, note: "" }
     },
@@ -3120,8 +3112,8 @@ function wineTranslatePayload(w) {
   const critics = [];
   const ratings = w.ratings || {};
   ["penin", "parker", "spectator", "decanter", "vivino"].forEach(k => {
-    const note = ratings[k] && ratings[k].note;
-    if (note && !wineFieldLocked(w, "ratings")) critics.push(note);
+    const block = ratings[k];
+    if (block && block.note && typeof scoreIsUser === "function" && scoreIsUser(block)) critics.push(block.note);
   });
   if (critics.length) out.critics = critics;
   return out;

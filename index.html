@@ -9,14 +9,14 @@
   <meta name="apple-mobile-web-app-title" content="Casa Llavaneras" />
   <meta name="application-name" content="Casa Llavaneras" />
   <meta name="theme-color" content="#000000" />
-  <meta name="app-version" content="v84" />
+  <meta name="app-version" content="v85" />
   <title>Casa Llavaneras</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="apple-touch-icon" href="apple-touch-icon.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
   <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png" />
-  <link rel="stylesheet" href="styles.css?v=84" />
+  <link rel="stylesheet" href="styles.css?v=85" />
 </head>
 <body>
   <div class="device">
@@ -33,6 +33,16 @@
         <p class="muted" data-i18n="splash.tag">Escanea. Conserva. Sirve en su momento.</p>
       </div>
       <script>window.__splashAt = Date.now();</script>
+
+      <div id="corrupt-lock" class="modal-bg" role="alertdialog" aria-modal="true">
+        <div class="sheet">
+          <h3 data-i18n="corrupt.h1">No se pueden leer los datos</h3>
+          <p class="muted" data-i18n="corrupt.lead">El archivo guardado en este iPhone no es válido. No he cargado la cava de ejemplo ni he escrito encima. Restaura una copia o exporta el texto tal cual.</p>
+          <button type="button" class="btn btn-gold" style="width:100%" onclick="document.getElementById('corrupt-file').click()" data-i18n="corrupt.restore">Restaurar desde una copia</button>
+          <input id="corrupt-file" type="file" accept="application/json,.json,text/plain" hidden onchange="reviewRestore(this.files && this.files[0])" />
+          <button type="button" class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="exportCorruptRaw()" data-i18n="corrupt.export">Exportar el texto guardado</button>
+        </div>
+      </div>
 
       <section id="home" class="screen active">
         <div class="scroll">
@@ -351,7 +361,7 @@
         <div class="handle"></div>
         <h3 data-i18n="notify.h1">Avisos</h3>
         <div id="backup-remind"></div>
-        <p class="muted" style="margin:6px 0 14px" data-i18n="notify.lead">En el iPhone solo llegan si la app está en la pantalla de inicio. Un toque activa el permiso.</p>
+        <p class="muted" style="margin:6px 0 14px" data-i18n="notify.lead">Los avisos se calculan al abrir la app. No hay notificación push. La temperatura es la que tú escribes en la vinoteca, no la de una sonda.</p>
         <label class="switch-row"><span data-i18n="notify.switch">Activar avisos</span><input id="n-on" type="checkbox" onchange="setNotify('on', this.checked)" /></label>
         <label class="switch-row"><span data-i18n="notify.evolve">Beber pronto / maduros</span><input id="n-evolve" type="checkbox" onchange="setNotify('evolve', this.checked)" /></label>
         <label class="switch-row"><span data-i18n="notify.ready">En apogeo esta semana</span><input id="n-ready" type="checkbox" onchange="setNotify('ready', this.checked)" /></label>
@@ -501,25 +511,25 @@
       if (!window.__casaReady) casaShowBootError();
     }, 8000);
   </script>
-  <script src="wines.js?v=84"></script>
-  <script src="bodegas.js?v=84"></script>
-  <script src="dossiers.js?v=84"></script>
-  <script src="providers/wineProvider.js?v=84"></script>
-  <script src="pairings.js?v=84"></script>
-  <script src="catalog-i18n.js?v=84"></script>
-  <script src="i18n.js?v=84"></script>
-  <script src="casa-util.js?v=84"></script>
-  <script src="casa-vino.js?v=84"></script>
-  <script src="casa-estado.js?v=84"></script>
-  <script src="casa-inicio.js?v=84"></script>
-  <script src="casa-vinoteca.js?v=84"></script>
-  <script src="casa-bodega.js?v=84"></script>
-  <script src="casa-ficha.js?v=84"></script>
-  <script src="casa-mesa.js?v=84"></script>
-  <script src="casa-bebidas.js?v=84"></script>
-  <script src="casa-gemini.js?v=84"></script>
-  <script src="casa-ajustes.js?v=84"></script>
-  <script src="app.js?v=84"></script>
+  <script src="wines.js?v=85"></script>
+  <script src="bodegas.js?v=85"></script>
+  <script src="dossiers.js?v=85"></script>
+  <script src="providers/wineProvider.js?v=85"></script>
+  <script src="pairings.js?v=85"></script>
+  <script src="catalog-i18n.js?v=85"></script>
+  <script src="i18n.js?v=85"></script>
+  <script src="casa-util.js?v=85"></script>
+  <script src="casa-vino.js?v=85"></script>
+  <script src="casa-estado.js?v=85"></script>
+  <script src="casa-inicio.js?v=85"></script>
+  <script src="casa-vinoteca.js?v=85"></script>
+  <script src="casa-bodega.js?v=85"></script>
+  <script src="casa-ficha.js?v=85"></script>
+  <script src="casa-mesa.js?v=85"></script>
+  <script src="casa-bebidas.js?v=85"></script>
+  <script src="casa-gemini.js?v=85"></script>
+  <script src="casa-ajustes.js?v=85"></script>
+  <script src="app.js?v=85"></script>
   <script>
     document.querySelectorAll(".tab").forEach((t, i) => {
       const icons = [
@@ -560,7 +570,7 @@
         const current = (document.querySelector('meta[name="app-version"]') || {}).content || "";
         if (data.version && current && data.version !== current) reloadForSw();
       });
-      navigator.serviceWorker.register("sw.js?v=84").catch(() => {});
+      navigator.serviceWorker.register("sw.js?v=85").catch(() => {});
     }
   </script>
 </body>

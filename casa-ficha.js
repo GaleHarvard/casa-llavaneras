@@ -66,15 +66,19 @@ function criticBlurb(w) {
   }
   return t("nodata");
 }
+function manualScoreText(w, key, digits) {
+  const block = userScore(w, key);
+  if (!block) return t("nodata");
+  const n = Number(block.score);
+  return digits ? n.toFixed(digits) : String(Math.round(n));
+}
+function manualScoreMeta(block) {
+  if (!block) return "";
+  return [block.source, block.date, block.url].filter(Boolean).join(" · ");
+}
 function criticMeters(w) {
-  const r = (w && w.ratings) || {};
-  const bit = (label, block, digits) => {
-    const score = block && block.score;
-    const est = block && block.estimate && score ? (" " + t("fact.estMark")) : "";
-    return label + " " + rateScore(score, digits) + est;
-  };
-  const dec = r.decanter && r.decanter.score ? " · Decanter " + rateScore(r.decanter.score, 0) + (r.decanter.estimate ? (" " + t("fact.estMark")) : "") : "";
-  return bit("WA", r.parker, 0) + " · " + bit("Peñín", r.penin, 0) + " · " + bit("WS", r.spectator, 0) + dec + " · " + bit("Vivino", r.vivino, 1);
+  const bit = (label, key, digits) => label + " " + manualScoreText(w, key, digits);
+  return bit("WA", "parker", 0) + " · " + bit("Peñín", "penin", 0) + " · " + bit("WS", "spectator", 0) + " · Decanter " + manualScoreText(w, "decanter", 0) + " · " + bit("Vivino", "vivino", 1);
 }
 function shownTemp(w, which) {
   if (!fieldIsReal(w, which)) return t("nodata");
@@ -152,7 +156,10 @@ function openWine(wineId, bottle) {
   currentWine = w;
   currentBottle = bottle || state.bottles.find(b => b.wineId === wineId) || null;
   const p = phaseOf(w);
-  const r = w.ratings;
+  const viv = userScore(w, "vivino");
+  const pen = userScore(w, "penin");
+  const park = userScore(w, "parker");
+  const spec = userScore(w, "spectator");
   const backTo = lastList === "wine" ? (bottle ? "cellar" : "scan") : lastList;
   const pill = datesAreReal(w) ? (p.label || "").toUpperCase() : (fieldIsReal(w, "type") && w.type ? typeLabel(w.type).toUpperCase() : t("nodata").toUpperCase());
 
@@ -184,23 +191,23 @@ function openWine(wineId, bottle) {
           <div class="badge-round vivino-mark">
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#fff" stroke-width="1.6"><path d="M12 4c2 4 6 6 6 11a6 6 0 1 1-12 0c0-5 4-7 6-11z"/></svg>
           </div>
-          <div><b>Vivino</b><div class="stars">${r.vivino.score ? starsRow(r.vivino.score) : ""}</div></div>
+          <div><b>Vivino</b><div class="stars">${viv ? starsRow(viv.score) : ""}</div></div>
         </div>
-        <div class="rate-score" style="${r.vivino.score ? "" : "font-size:14px"}">${rateScore(r.vivino.score, 1)}</div>
+        <div class="rate-score" style="${viv ? "" : "font-size:14px"}">${manualScoreText(w, "vivino", 1)}</div>
       </div>
       <div class="rate-card">
         <div class="who"><b>Peñín</b></div>
-        <div class="rate-end"><div class="rate-score" style="${r.penin.score ? "" : "font-size:14px"}">${rateScore(r.penin.score, 0)}</div>
+        <div class="rate-end"><div class="rate-score" style="${pen ? "" : "font-size:14px"}">${manualScoreText(w, "penin", 0)}</div>
           <svg class="rate-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M12 3 20 7v6c0 5-3.5 8-8 11-4.5-3-8-6-8-11V7z"/></svg>
         </div>
       </div>
       <div class="rate-card">
         <div class="who"><b>Parker</b></div>
-        <div class="rate-end"><div class="rate-score" style="${r.parker.score ? "" : "font-size:14px"}">${rateScore(r.parker.score, 0)}</div><span class="parker-p">P</span></div>
+        <div class="rate-end"><div class="rate-score" style="${park ? "" : "font-size:14px"}">${manualScoreText(w, "parker", 0)}</div><span class="parker-p">P</span></div>
       </div>
       <div class="rate-card">
         <div class="who"><b>Spectator</b></div>
-        <div class="rate-end"><div class="rate-score" style="${r.spectator.score ? "" : "font-size:14px"}">${rateScore(r.spectator.score, 0)}</div>
+        <div class="rate-end"><div class="rate-score" style="${spec ? "" : "font-size:14px"}">${manualScoreText(w, "spectator", 0)}</div>
           <svg class="rate-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M18 6l-2.5 2.5M6 18l2.5-2.5"/></svg>
         </div>
       </div>
@@ -208,7 +215,7 @@ function openWine(wineId, bottle) {
     <div class="card" role="button" onclick="openWineSub('ratings')" style="margin:8px 0 12px">
       <p class="tiny">${t("wine.critic")}</p>
       <p style="margin-top:8px;line-height:1.45">${escHtml(criticBlurb(w))}</p>
-      <p class="muted" style="margin-top:8px">${r.parker && r.parker.reviewer && r.parker.score ? escHtml(r.parker.reviewer) + " · " : ""}${escHtml(criticMeters(w))}</p>
+      <p class="muted" style="margin-top:8px">${park && park.reviewer ? escHtml(park.reviewer) + " · " : ""}${escHtml(criticMeters(w))}</p>
     </div>
 
     <div class="sec-head" role="button" onclick="openWineSub('pairings')"><h2>${t("wine.pairings")}</h2><span class="sec-ico">
@@ -522,6 +529,57 @@ function saveTechEdit() {
   toast(t("tech.saved"));
   openWineSub("tecnica");
 }
+function manualScoreForm(w) {
+  const guides = [["parker", "Parker / WA"], ["penin", "Guía Peñín"], ["spectator", "Wine Spectator"], ["decanter", "Decanter"], ["vivino", "Vivino"]];
+  return `<div class="card" id="score-form">
+    <p class="tiny">${t("score.form")}</p>
+    <label class="field"><span>${t("score.guide")}</span>
+      <select id="score-guide">${guides.map(g => `<option value="${g[0]}">${g[1]}</option>`).join("")}</select>
+    </label>
+    <label class="field"><span>${t("score.value")}</span><input id="score-value" inputmode="decimal" placeholder="96"></label>
+    <label class="field"><span>${t("score.source")}</span><input id="score-source" autocomplete="off"></label>
+    <label class="field"><span>${t("score.date")}</span><input id="score-date" type="date"></label>
+    <label class="field"><span>${t("score.url")}</span><input id="score-url" type="url" placeholder="https://" autocomplete="off"></label>
+    <button type="button" class="btn btn-gold" style="width:100%" onclick="saveManualScore('${w.id}')">${t("score.save")}</button>
+  </div>`;
+}
+function saveManualScore(wineId) {
+  const w = wineById(wineId);
+  if (!w) return;
+  const key = ($("#score-guide") && $("#score-guide").value) || "parker";
+  const raw = ($("#score-value") && $("#score-value").value) || "";
+  const score = Number(String(raw).replace(",", "."));
+  const max = key === "vivino" ? 5 : 100;
+  if (!(score > 0 && score <= max)) { toast(t("score.bad")); return; }
+  const block = {
+    score: key === "vivino" ? Math.round(score * 10) / 10 : Math.round(score),
+    scale: max,
+    note: "",
+    source: (($("#score-source") && $("#score-source").value) || "").trim(),
+    date: (($("#score-date") && $("#score-date").value) || "").trim(),
+    url: (($("#score-url") && $("#score-url").value) || "").trim(),
+    manual: true,
+    by: "usuario",
+    estimate: false
+  };
+  state.wineEdits = state.wineEdits || {};
+  const edit = state.wineEdits[w.id] || {};
+  edit.ratings = Object.assign({}, edit.ratings || {});
+  edit.ratings[key] = block;
+  edit.user = Object.assign({}, edit.user || {}, { ratings: true });
+  state.wineEdits[w.id] = edit;
+  const custom = (state.customWines || []).find(x => x && x.id === w.id);
+  if (custom) {
+    custom.ratings = custom.ratings || {};
+    custom.ratings[key] = Object.assign({}, custom.ratings[key] || {}, block);
+    custom.provenance = custom.provenance || {};
+    custom.provenance.ratings = "usuario";
+  }
+  save();
+  toast(t("score.saved"));
+  openWine(w.id, currentBottle);
+  openWineSub("ratings");
+}
 function openWineMenu() {
   if (!currentWine) return;
   showSheet("wine-menu-sheet");
@@ -556,32 +614,35 @@ function openWineSub(kind) {
   if (kind === "ratings") {
     const d = dossierOf(w);
     const casaRaw = publishedNote({ note: shownTasting(w) });
-    const casa = casaRaw || (w.provenance ? t("nodata") : (w.tasting || "").trim());
-    const noteOf = (obj, extra) => {
-      const n = publishedNote(obj) || publishedNote({ note: extra });
-      if (n && n !== casa) return n;
-      if (w.provenance) return t("nodata");
-      return t("fact.noGuide");
-    };
-    const card = (fuente, puntos, texto) => `
+    const casa = casaRaw || t("nodata");
+    const guides = [
+      ["vivino", "Vivino", 1],
+      ["penin", "Peñín", 0],
+      ["parker", "Parker / WA", 0],
+      ["spectator", "Spectator", 0],
+      ["decanter", "Decanter", 0]
+    ];
+    const card = (fuente, puntos, texto, meta) => `
       <div class="card" style="margin-top:10px">
-        <div class="row"><p class="tiny">${fuente}</p><b>${puntos || "—"}</b></div>
+        <div class="row"><p class="tiny">${fuente}</p><b>${puntos || t("nodata")}</b></div>
+        ${meta ? `<p class="tiny" style="margin-top:6px">${escHtml(meta)}</p>` : ""}
         <p style="margin-top:8px;line-height:1.5">${texto}</p>
       </div>`;
     body = `
-      <p class="tiny" style="margin:6px 0 8px">${t("fact.guides")}</p>
+      <p class="tiny" style="margin:6px 0 8px">${t("score.lead")}</p>
       <div class="temp-grid" style="margin:8px 0 12px">
-        <div class="temp"><span class="tiny">Vivino</span><b>${rateScore(r.vivino.score, 1)}</b></div>
-        <div class="temp"><span class="tiny">Peñín</span><b>${rateScore(r.penin.score, 0)}</b></div>
-        <div class="temp"><span class="tiny">Parker / WA</span><b>${rateScore(r.parker.score, 0)}</b></div>
-        <div class="temp"><span class="tiny">Spectator</span><b>${rateScore(r.spectator.score, 0)}</b></div>
+        ${guides.slice(0, 4).map(g => `<div class="temp"><span class="tiny">${g[1]}</span><b style="font-size:16px">${manualScoreText(w, g[0], g[2])}</b></div>`).join("")}
       </div>
-      ${card("Guía Peñín" + (r.penin.estimate ? " · " + t("fact.estimate") : ""), r.penin.score ? r.penin.score + "/100" : t("nodata"), noteOf(shownRating(w, "penin")))}
-      ${card((r.parker.reviewer || "Wine Advocate") + (r.parker.estimate ? " · " + t("fact.estimate") : ""), r.parker.score ? r.parker.score + "/100" : t("nodata"), noteOf(shownRating(w, "parker")))}
-      ${card("Wine Spectator" + (r.spectator.estimate ? " · " + t("fact.estimate") : ""), r.spectator.score ? r.spectator.score + "/100" : t("nodata"), noteOf(shownRating(w, "spectator")))}
-      ${card("Decanter" + (r.decanter && r.decanter.estimate ? " · " + t("fact.estimate") : ""), (r.decanter && r.decanter.score ? r.decanter.score + "/100" : t("nodata")), noteOf(shownRating(w, "decanter")))}
-      ${card("Vivino · " + t("fact.users") + (r.vivino.estimate ? " · " + t("fact.estimate") : ""), (r.vivino.score ? r.vivino.score.toFixed(1) + "/5 · " + (r.vivino.count || t("nodata")) + " " + t("fact.reviews") : t("nodata")), noteOf(shownRating(w, "vivino")))}
-      ${card(t("fact.houseNote"), t("fact.sheetWord"), casa)}
+      ${manualScoreForm(w)}
+      ${guides.map(g => {
+        const block = userScore(w, g[0]);
+        const points = block ? (block.score + "/" + (block.scale || (g[0] === "vivino" ? 5 : 100))) : t("nodata");
+        const kept = publishedNote(shownRating(w, g[0]));
+        const note = (block && block.note) ? block.note : (kept || t("nodata"));
+        const who = block ? (g[1] + " · " + t("score.yours")) : g[1];
+        return card(who, points, escHtml(note), manualScoreMeta(block));
+      }).join("")}
+      ${card(t("fact.houseNote"), t("fact.sheetWord"), escHtml(casa), "")}
       ${d.awards && d.awards.length ? `<div class="card"><p class="tiny">${t("fact.refs")}</p><p style="margin-top:8px">${d.awards.join(" · ")}</p></div>` : ""}
       <button class="btn btn-ghost" style="width:100%;margin-top:12px" onclick="openWineSub('taste')">${t("fact.personalLink")}</button>
       <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="openWineSub('historia')">${t("fact.historyLink")}</button>`;
@@ -622,14 +683,14 @@ function openWineSub(kind) {
       <div class="fact"><span>${t("fact.abv")}</span><b>${w.abv ? w.abv + "% vol." : "—"}</b></div>
       <div class="fact"><span>${t("fact.style")}</span><b>${escHtml(styleLabel(w))}</b></div>
       ${w.provenance ? `<div class="fact"><span>${t("fact.zone")}</span><b>${escHtml([w.appellation || w.region, countryLabel(w.country)].filter(Boolean).join(" · ") || "—")}</b></div>
-      <div class="fact"><span>${t("fact.drink")}</span><b>${datesAreReal(w) ? w.aging.drinkFrom + "–" + w.aging.peakEnd : t("nodata")}</b></div>
+      <div class="fact"><span>${t("fact.drink")}${userLocked(w, "aging") ? "" : " · " + t("fact.orientative")}</span><b>${datesAreReal(w) ? w.aging.drinkFrom + "–" + w.aging.peakEnd : t("nodata")}</b></div>
       <div class="fact"><span>${t("fact.limit")}</span><b>${datesAreReal(w) ? w.aging.holdTo : t("nodata")}</b></div>
       <div class="fact"><span>${t("fact.pair")}</span><b>${escHtml((typeof catalogPairingList === "function" ? catalogPairingList(w) : (w.pairing || [])).join(", ") || "—")}</b></div>` : ""}
       <div class="fact"><span>${t("fact.alt")}</span><b>${d.elevation}</b></div>
       <div class="card" style="margin-top:12px"><p class="tiny">${t("fact.soils")}</p><p class="muted" style="margin-top:6px">${d.soils}</p></div>
       <div class="card"><p class="tiny">${t("fact.vineyard")}</p><p class="muted" style="margin-top:6px">${d.vineyard}</p></div>
       <div class="card"><p class="tiny">${t("fact.vini")}</p><p class="muted" style="margin-top:6px">${d.vinification}</p></div>
-      <div class="card"><p class="tiny">${t("fact.elevage")}</p>${elevageLine(w) ? `<p style="margin-top:6px">${escHtml(elevageLine(w))}</p>` : ""}<p class="muted" style="margin-top:6px">${escHtml(userLocked(w, "crianza") ? (w.crianza || t("tech.noText")) : (w.crianza || d.elevage || t("tech.noText")))}</p></div>
+      <div class="card"><p class="tiny">${t("fact.elevage")}${userLocked(w, "crianza") ? "" : " · " + t("fact.orientative")}</p>${elevageLine(w) ? `<p style="margin-top:6px">${escHtml(elevageLine(w))}</p>` : ""}<p class="muted" style="margin-top:6px">${escHtml(userLocked(w, "crianza") ? (w.crianza || t("tech.noText")) : (w.crianza || d.elevage || t("tech.noText")))}</p></div>
       <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="openTechEdit()">${t("tech.edit")}</button>
       <div id="tech-edit"></div>`;
   } else if (kind === "historia") {
@@ -654,8 +715,10 @@ function openWineSub(kind) {
     const when = datesAreReal(w)
       ? t("fact.vintageLine", { v: w.vintage, from: w.aging.drinkFrom, a: w.aging.peakStart, b: w.aging.peakEnd, h: w.aging.holdTo })
       : t("fact.vintageUnknown", { v: shownYear(w) || "—" });
+    const windowMark = userLocked(w, "aging") ? "" : `<p class="tiny">${t("fact.orientative")}</p>`;
     const stages = datesAreReal(w) ? windowTimeline(w) : [];
     body = `
+      ${windowMark}
       <p class="muted" style="margin:6px 0">${when}</p>
       <div class="peak-pill">${datesAreReal(w) ? (p.label || "").toUpperCase() : t("nodata").toUpperCase()}</div>
       ${datesAreReal(w) ? `<div class="bar"><i style="width:${pr.pct}%"></i></div>
@@ -678,7 +741,7 @@ function openWineSub(kind) {
       </div>
       <div class="card">
         <p>${t("fact.grapes")}: ${(w.grapes || []).join(", ") || "—"}</p>
-        <p class="muted">${w.abv ? w.abv + "% vol." : t("nodata")} · ${escHtml(styleLabel(w))} · ${w.priceHint && w.priceHint !== "—" ? escHtml(w.priceHint) : t("nodata")}</p>
+        <p class="muted">${w.abv ? w.abv + "% vol." : t("nodata")} · ${escHtml(styleLabel(w))} · ${w.priceHint && w.priceHint !== "—" ? escHtml(w.priceHint) + " · " + t("fact.orientative") : t("nodata")}</p>
       </div>
       <div class="card">
         <p class="tiny">${t("fact.soils")}</p>
@@ -709,7 +772,7 @@ function openWineSub(kind) {
     body = mapTabs("vinos") + `
       <h2>${w.producer}</h2>
       ${house.map(s => `<div class="card" role="button" onclick="openWine('${s.id}')">
-        <div class="row"><h3>${s.name} ${s.vintage}</h3><span class="badge">Parker ${s.ratings.parker.score}</span></div>
+        <div class="row"><h3>${s.name} ${s.vintage}</h3><span class="badge">${manualScoreText(s, "parker", 0)}</span></div>
         <p class="muted">${s.appellation}</p>
       </div>`).join("") || ownHouse.map(s => `<div class="card"><div class="row"><h3>${escHtml(s.name)}</h3></div><p class="muted">${escHtml(s.note || "")}</p></div>`).join("") || `<p class="muted">${w.provenance ? t("nodata") : t("fact.onlyOne")}</p>`}
       ${zone.length ? `<h2 style="margin-top:16px">${t("fact.sameZone")}</h2>` + zone.map(s => `<div class="card" role="button" onclick="openWine('${s.id}')">
@@ -719,8 +782,8 @@ function openWineSub(kind) {
     const sibs = WINE_CATALOG.filter(x => x.producer === w.producer && x.name === w.name);
     const extra = (!sibs.length && Array.isArray(w.vintages)) ? w.vintages : [];
     body = sibs.length ? sibs.map(s => `<div class="card" role="button" onclick="openWine('${s.id}')">
-      <div class="row"><h3>${s.vintage}</h3><span class="badge">Parker ${s.ratings.parker.score}</span></div>
-      <p class="muted">${s.priceHint} · ${phaseOf(s).label}</p>
+      <div class="row"><h3>${s.vintage}</h3><span class="badge">${manualScoreText(s, "parker", 0)}</span></div>
+      <p class="muted">${s.priceHint} · ${t("fact.orientative")} · ${phaseOf(s).label}</p>
     </div>`).join("") : (extra.length ? extra.map(s => `<div class="card">
       <div class="row"><h3>${escHtml(String(s.vintage))}</h3></div>
       <p class="muted">${escHtml([s.priceHint, s.note].filter(Boolean).join(" · ") || t("nodata"))}</p>
@@ -821,6 +884,7 @@ function mercadoSkeleton(w) {
   const money = (n) => n ? formatEuro(n) : t("nodata");
   const src = band.source === "ficha" ? t("fact.sourceFicha") : band.source === "dossier" ? t("fact.sourceDossier") : t("fact.sourceNone");
   return `
+    <p class="tiny">${t("fact.orientative")}</p>
     <p class="muted" style="margin:6px 0 10px">${band.note}</p>
     <div class="temp-grid">
       <div class="temp"><span class="tiny">${t("fact.low")}</span><b>${money(band.low)}</b></div>
@@ -855,6 +919,7 @@ async function fillMercado(w) {
   const money = (n) => n ? formatEuro(n) : t("nodata");
   const tag = quote.source === "gemini" ? "Gemini" : quote.source === "live" ? "Live" : (quote.source === "ficha" ? t("fact.sourcePage") : t("fact.sourceDossier"));
   box.innerHTML = `
+    <p class="tiny">${t("fact.orientative")}</p>
     <p class="muted" style="margin:6px 0 10px">${quote.note}</p>
     <div class="temp-grid">
       <div class="temp"><span class="tiny">${t("fact.low")}</span><b>${money(quote.low)}</b></div>

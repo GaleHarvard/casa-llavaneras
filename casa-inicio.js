@@ -20,7 +20,7 @@ function renderHome() {
           <p class="tiny">${phaseOf(featured).label}</p>
           <h3 style="margin-top:4px">${featured.producer}</h3>
           <p>${featured.name} ${featured.vintage}</p>
-          <p class="muted" style="margin-top:6px">${featured.region} · Parker ${featured.ratings.parker.score}</p>
+          <p class="muted" style="margin-top:6px">${featured.region} · Parker ${manualScoreText(featured, "parker", 0)}</p>
         </div>
       </div>
     </div>` : "";

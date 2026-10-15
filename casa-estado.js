@@ -47,33 +47,15 @@ const defaultState = () => ({
   customWines: [],
   inbox: []
 });
-function lotCreatedMs(b, wine) {
-  if (b && b.created) {
-    const stamp = Date.parse(b.created);
-    if (Number.isFinite(stamp)) return stamp;
-  }
-  if (wine && wine.created) {
-    const stamp = Date.parse(wine.created);
-    if (Number.isFinite(stamp)) return stamp;
-  }
-  const m = String(b && b.uid || "").match(/^b(\d{13})/);
-  return m ? Number(m[1]) : 0;
-}
-function countFrozenPurchases(st) {
-  const bag = st || {};
-  const cut = new Date(2026, 8, 23).getTime();
-  const wines = {};
-  (bag.customWines || []).forEach(w => { if (w && w.id) wines[w.id] = w; });
-  let n = 0;
-  (bag.bottles || []).forEach(b => {
-    if (!b || b.bought !== "2026-09-22") return;
-    if (lotCreatedMs(b, wines[b.wineId]) >= cut) n += 1;
-  });
-  return n;
-}
+let cellarLocked = false;
+let cellarCorruptRaw = "";
+let cellarCorruptKey = "";
 let state = load();
-let frozenPurchaseCount = countFrozenPurchases(state);
-if (typeof repairStoredWineries === "function" && repairStoredWineries(state)) save();
+if (state && state._scoresDirty && !cellarLocked) {
+  delete state._scoresDirty;
+  save();
+}
+if (!cellarLocked && typeof repairStoredWineries === "function" && repairStoredWineries(state)) save();
 let currentWine = null;
 let currentBottle = null;
 let stream = null;
@@ -91,13 +73,59 @@ let lastLabelData = null;
 let intakeSource = "camara";
 let ocrBusy = false;
 let tesseractReady = null;
-function load() {
+function classifyStoredCellar(raw) {
+  if (raw == null || raw === "") return { ok: true, empty: true };
+  let parsed;
+  try { parsed = JSON.parse(raw); }
+  catch (e) { return { ok: false, reason: "parse" }; }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return { ok: false, reason: "shape" };
+  if (!Array.isArray(parsed.vinotecas) || !Array.isArray(parsed.bottles)) return { ok: false, reason: "shape" };
+  return { ok: true, empty: false, parsed: parsed };
+}
+function corruptBackupKey(ts) {
+  return STORE + ".corrupt-" + ts;
+}
+function rememberCorruptRaw(raw) {
+  cellarCorruptRaw = String(raw == null ? "" : raw);
   try {
-    const raw = localStorage.getItem(STORE) || localStorage.getItem("vinoteca.pro.max.v1") || localStorage.getItem("vinoteca.pro.max.v2");
-    keepPreMigrationSnapshot(raw);
-    if (!raw) return defaultState();
-    const parsed = JSON.parse(raw);
-    if (!parsed.vinotecas || !parsed.bottles) return defaultState();
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.indexOf(STORE + ".corrupt-") === 0 && localStorage.getItem(key) === cellarCorruptRaw) {
+        cellarCorruptKey = key;
+        return key;
+      }
+    }
+  } catch (e) {}
+  const key = corruptBackupKey(Date.now());
+  cellarCorruptKey = key;
+  try { localStorage.setItem(key, cellarCorruptRaw); } catch (e) {}
+  return key;
+}
+function lockCorruptStore(raw) {
+  cellarLocked = true;
+  rememberCorruptRaw(raw);
+  const shell = defaultState();
+  shell.vinotecas = [];
+  shell.bottles = [];
+  shell.customWines = [];
+  shell.inbox = [];
+  shell.prefs.demo = false;
+  shell._corrupt = true;
+  return shell;
+}
+function load() {
+  let raw = "";
+  try {
+    raw = localStorage.getItem(STORE) || localStorage.getItem("vinoteca.pro.max.v1") || localStorage.getItem("vinoteca.pro.max.v2") || "";
+  } catch (e) {
+    raw = "";
+  }
+  if (!raw) return defaultState();
+  try { keepPreMigrationSnapshot(raw); } catch (e) {}
+  const verdict = classifyStoredCellar(raw);
+  if (!verdict.ok) return lockCorruptStore(raw);
+  try {
+    const parsed = verdict.parsed;
     if (!parsed.favorites) parsed.favorites = [];
     if (!parsed.notify) parsed.notify = { on: false, evolve: true, ready: true, temp: true, last: {} };
     if (!parsed.notify.last) parsed.notify.last = {};
@@ -117,12 +145,14 @@ function load() {
     ensureExitReasons(parsed);
     ensureTastingEntries(parsed);
     parsed.vinotecas.forEach(v => { if (!v.houseId) v.houseId = "h1"; });
+    if (typeof stripStoredAiScores === "function" && stripStoredAiScores(parsed)) parsed._scoresDirty = true;
     return parsed;
-  } catch {
-    return defaultState();
+  } catch (e) {
+    return lockCorruptStore(raw);
   }
 }
 function save() {
+  if (cellarLocked || (state && state._corrupt)) return;
   try {
     localStorage.setItem(STORE, JSON.stringify(state));
   } catch (err) {
@@ -806,10 +836,27 @@ function harvestInlineLabels(labels) {
   });
   return out;
 }
-async function collectBackup() {
+const PROVIDER_SECRET_KEYS = ["geminiKey", "gemini_key", "geminiAPIKey", "geminiApiKey", "GEMINI_API_KEY", "GEMINI_KEY", "apiKey", "api_key"];
+function providerWithoutSecrets(cfg) {
+  if (!cfg || typeof cfg !== "object") return {};
+  const copy = Object.assign({}, cfg);
+  PROVIDER_SECRET_KEYS.forEach(k => { delete copy[k]; });
+  return copy;
+}
+function mergeProviderCfg(current, incoming) {
+  const out = Object.assign({}, current || {});
+  Object.keys(incoming || {}).forEach(k => {
+    const value = incoming[k];
+    if (PROVIDER_SECRET_KEYS.indexOf(k) >= 0 && !String(value == null ? "" : value).trim()) return;
+    out[k] = value;
+  });
+  return out;
+}
+async function collectBackup(includeSecrets) {
   const labels = harvestInlineLabels(await readLabelPhotos());
   let provider = {};
   try { provider = readPriceCfg() || {}; } catch (e) { provider = {}; }
+  if (!includeSecrets) provider = providerWithoutSecrets(provider);
   return {
     format: 2,
     version: "2",
@@ -831,7 +878,8 @@ function markBackupSaved(msg) {
 async function exportBackup() {
   try {
     askPersistentStorage();
-    const payload = await collectBackup();
+    const box = document.getElementById("backup-include-key");
+    const payload = await collectBackup(!!(box && box.checked));
     const name = "MiVinoteca_Backup_" + new Date().toISOString().slice(0, 10) + ".json";
     const text = JSON.stringify(payload, null, 2);
     const file = new File([text], name, { type: "application/json" });
@@ -887,12 +935,18 @@ function applyRestoredBackup(data) {
     }
     ensureStateShape(state);
   }
+  cellarLocked = false;
+  if (state) delete state._corrupt;
   const writes = [];
   if (data.labels && typeof data.labels === "object") writes.push(replaceLabelPhotos(data.labels));
   if (typeof migrateCellarLayouts === "function") migrateCellarLayouts(state);
   if (data.provider && typeof data.provider === "object") {
-    try { localStorage.setItem(PRICE_CFG_KEY, JSON.stringify(data.provider)); } catch (e) {}
+    try {
+      const current = JSON.parse(localStorage.getItem(PRICE_CFG_KEY) || "{}");
+      localStorage.setItem(PRICE_CFG_KEY, JSON.stringify(mergeProviderCfg(current, data.provider)));
+    } catch (e) {}
   }
+  hideCorruptNotice();
   return Promise.all(writes).then(() => migrateStoredLabelBytes()).catch(() => false).then(() => {
     if (state && state._consumptionDirty) delete state._consumptionDirty;
     if (state && state._reasonsDirty) delete state._reasonsDirty;
@@ -907,7 +961,8 @@ function exportCsv() {
     const w = wineById(b.wineId) || {};
     const loc = state.prefs.hideBin ? houseName(state.vinotecas.find(v=>v.id===b.cellarId)?.houseId) : (cellarName(b.cellarId) + " " + (b.bin||""));
     const price = state.prefs.hidePrices ? "" : (b.price || "");
-    return [w.name, w.producer, w.vintage, w.region, w.country, w.type, b.qty, loc, w.ratings && w.ratings.parker ? w.ratings.parker.score : "", phaseOf(w).label, price];
+    const manual = typeof userScore === "function" ? userScore(w, "parker") : null;
+    return [w.name, w.producer, w.vintage, w.region, w.country, w.type, b.qty, loc, manual ? manual.score : "", phaseOf(w).label, price];
   });
   const csv = [head].concat(rows).map(r => r.map(x => `"${String(x??"").replace(/"/g,'""')}"`).join(";")).join("\n");
   downloadFile("MiVinoteca_Inventario_" + new Date().toISOString().slice(0,10) + ".csv", csv, "text/csv");
@@ -964,5 +1019,19 @@ function askWipe() {
   save();
   toast(t("backup.wiped"));
   show("perfil");
+}
+function showCorruptNotice() {
+  const box = document.getElementById("corrupt-lock");
+  if (!box) return;
+  box.classList.add("show");
+  box.setAttribute("aria-modal", "true");
+}
+function hideCorruptNotice() {
+  const box = document.getElementById("corrupt-lock");
+  if (box) box.classList.remove("show");
+}
+function exportCorruptRaw() {
+  const name = "vinoteca-datos-" + (cellarCorruptKey || Date.now()) + ".txt";
+  downloadFile(name, cellarCorruptRaw, "text/plain;charset=utf-8");
 }
 if (typeof bootLang === "function") bootLang();

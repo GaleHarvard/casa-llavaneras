@@ -96,9 +96,9 @@
     const all = [];
     let pageToken = "";
     for (let n = 0; n < 6; n++) {
-      let url = "https://generativelanguage.googleapis.com/v1beta/models?pageSize=100&key=" + encodeURIComponent(key);
+      let url = "https://generativelanguage.googleapis.com/v1beta/models?pageSize=100";
       if (pageToken) url += "&pageToken=" + encodeURIComponent(pageToken);
-      const res = await fetch(url);
+      const res = await fetch(url, { headers: { "x-goog-api-key": key } });
       if (!res.ok) {
         const err = new Error("HTTP " + res.status);
         err.status = res.status;

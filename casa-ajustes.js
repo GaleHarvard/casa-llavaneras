@@ -220,6 +220,8 @@ function openPerfilSub(kind) {
     body = `
       <div class="card"><p class="tiny">${t("profile.lastCopy")}</p><h3 style="margin-top:4px">${fmtBackup(p.lastBackup)}</h3><p class="muted">${p.lastBackup ? t("profile.copyOk") : t("profile.copyDue")}</p></div>
       <p class="muted" style="margin:0 0 12px">${t("profile.copyLead")}</p>
+      <label class="switch-row"><span>${t("backup.includeKey")}</span><input id="backup-include-key" type="checkbox" /></label>
+      <p class="tiny" style="margin:0 0 12px">${t("backup.keyWarn")}</p>
       <button class="btn btn-gold" style="width:100%" onclick="exportBackup()">${t("profile.exportNow")}</button>
       <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="exportCsv()">${t("profile.exportCsv")}</button>
       <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="exportTastingCsv()">${t("profile.exportTastings")}</button>

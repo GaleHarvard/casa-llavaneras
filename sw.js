@@ -1,7 +1,8 @@
-const CACHE = "casa-llavaneras-ios-v84";
-const VERSION = "v84";
+const CACHE = "casa-llavaneras-ios-v85";
+const VERSION = "v85";
 const NEXT = CACHE + "-next";
 const ASSETS = ["./", "./index.html", "./styles.css", "./i18n.js", "./casa-util.js", "./casa-vino.js", "./casa-estado.js", "./casa-inicio.js", "./casa-vinoteca.js", "./casa-bodega.js", "./casa-ficha.js", "./casa-mesa.js", "./casa-bebidas.js", "./casa-gemini.js", "./casa-ajustes.js", "./app.js", "./wines.js", "./bodegas.js", "./dossiers.js", "./providers/wineProvider.js", "./pairings.js", "./catalog-i18n.js", "./manifest.json", "./icon.svg", "./apple-touch-icon.png", "./icon-192.png", "./icon-512.png", "./cave-principal.jpg", "./capsula.jpg", "./botella-tinto.jpg", "./botella-blanco.jpg", "./botella-espumoso.jpg", "./vinedo-chateau-margaux.jpg"];
+const OCR = ["./vendor/tesseract/tesseract.min.js", "./vendor/tesseract/worker.min.js", "./vendor/tesseract/tesseract-core-lstm.wasm.js", "./vendor/tesseract/tesseract-core-simd-lstm.wasm.js", "./vendor/tesseract/spa.traineddata.gz", "./vendor/tesseract/eng.traineddata.gz", "./vendor/tesseract/por.traineddata.gz", "./vendor/tesseract/fra.traineddata.gz", "./vendor/tesseract/cat.traineddata.gz"];
 
 function fetchWithTimeout(request, ms) {
   const controller = new AbortController();
@@ -97,6 +98,7 @@ self.addEventListener("install", e => {
     const cache = await caches.open(CACHE);
     try {
       await cache.addAll(ASSETS);
+      try { await cache.addAll(OCR); } catch (err) {}
       if (!(await shellIsThisVersion(cache))) throw new Error("version");
       await self.skipWaiting();
     } catch (err) {
@@ -142,6 +144,17 @@ self.addEventListener("fetch", e => {
     return;
   }
   if (/\/sw\.js$/.test(path)) return;
+  if (/\/vendor\/tesseract\//.test(path)) {
+    e.respondWith((async () => {
+      const cache = await activeCache();
+      const hit = await cache.match(e.request, { ignoreSearch: true });
+      if (hit) return hit;
+      const fresh = await fetch(e.request);
+      if (fresh && fresh.ok) cache.put(e.request, fresh.clone()).catch(() => {});
+      return fresh;
+    })());
+    return;
+  }
   if (e.request.mode === "navigate" || /\.(js|css|html)$/.test(path)) {
     e.respondWith(serveShell(e.request).then((res) => {
       revalidateShell();
