@@ -387,6 +387,7 @@ function openCave(id, highlightBin) {
     <p class="muted">${v.brand || ""}${v.role === "prestige" ? t("caves.reserve") : ""}</p>
     ${typeLine || depthLine ? `<p class="tiny">${[typeLine, depthLine].filter(Boolean).join(" · ")}</p>` : ""}
     <button class="btn btn-ghost" style="width:100%;margin:8px 0" onclick="openCaveComposer('${v.id}')">${t("layout.define")}</button>
+    <button class="btn btn-ghost" style="width:100%;margin:8px 0" onclick="openRecuento('${v.id}')">${t("count.h1")}</button>
     <img class="cave-photo" src="${v.photo || "cave-render-sommeliere.jpg"}" alt="${v.name}" onerror="this.src='cave-principal.jpg'" />
     <h2>${t("caves.temp")}</h2>
     <div class="temp-grid" style="margin:12px 0">
@@ -571,9 +572,10 @@ function rackCell(cellarId, code, highlight, byBin, pending) {
   if (b) {
     const w = wineById(b.wineId) || {};
     const who = ((w.producer || "").split(" ").slice(-2).join(" ") + " " + (typeof shortWineName === "function" ? shortWineName(w) : "") + " " + (w.vintage || "")).trim();
-    return `<button class="rack-slot${focus}" data-slot="${escHtml(code)}" onclick="openBottle('${b.uid}')">
+    const held = typeof bottleHeld === "function" && bottleHeld(b);
+    return `<button class="rack-slot${focus}${held ? " held" : ""}" data-slot="${escHtml(code)}" onclick="openBottle('${b.uid}')">
       <b>${escHtml(code)}</b>
-      <small>${escHtml(who)}</small>
+      <small>${escHtml(who)}${held ? " · " + escHtml(t("wish.held")) : ""}</small>
       <span class="rack-dot"></span>
     </button>`;
   }

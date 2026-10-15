@@ -103,6 +103,7 @@ function cellarValue() {
 }
 function bottlesReady() {
   return state.bottles.filter(b => {
+    if (typeof bottleHeld === "function" && bottleHeld(b)) return false;
     const w = wineById(b.wineId);
     const p = phaseOf(w);
     return p.key === "ok" || p.key === "warn";

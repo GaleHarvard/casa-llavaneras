@@ -45,7 +45,11 @@ const defaultState = () => ({
   consumption: [],
   consumptionBackfilled: true,
   customWines: [],
-  inbox: []
+  inbox: [],
+  wishlist: [],
+  reservations: [],
+  counts: [],
+  cuvees: {}
 });
 let cellarLocked = false;
 let cellarCorruptRaw = "";
@@ -53,6 +57,10 @@ let cellarCorruptKey = "";
 let state = load();
 if (state && state._scoresDirty && !cellarLocked) {
   delete state._scoresDirty;
+  save();
+}
+if (state && state._v86Dirty && !cellarLocked) {
+  delete state._v86Dirty;
   save();
 }
 if (!cellarLocked && typeof repairStoredWineries === "function" && repairStoredWineries(state)) save();
@@ -120,7 +128,11 @@ function load() {
   } catch (e) {
     raw = "";
   }
-  if (!raw) return defaultState();
+  if (!raw) {
+    const fresh = defaultState();
+    try { migrateV86(fresh); } catch (e) {}
+    return fresh;
+  }
   try { keepPreMigrationSnapshot(raw); } catch (e) {}
   const verdict = classifyStoredCellar(raw);
   if (!verdict.ok) return lockCorruptStore(raw);
@@ -146,6 +158,7 @@ function load() {
     ensureTastingEntries(parsed);
     parsed.vinotecas.forEach(v => { if (!v.houseId) v.houseId = "h1"; });
     if (typeof stripStoredAiScores === "function" && stripStoredAiScores(parsed)) parsed._scoresDirty = true;
+    try { if (migrateV86(parsed)) parsed._v86Dirty = true; } catch (e) { console.warn("v86", e); }
     return parsed;
   } catch (e) {
     return lockCorruptStore(raw);
@@ -168,9 +181,76 @@ function save() {
     }
   }
 }
+function wineParentId(w) {
+  if (!w) return "p:x:x";
+  if (typeof w.parentId === "string" && w.parentId.indexOf("p:") === 0) return w.parentId;
+  const slug = s => String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "x";
+  return "p:" + slug(w.producer) + ":" + slug(w.name);
+}
+function migrateV86(st, catalog) {
+  if (!st || typeof st !== "object" || st._corrupt) return false;
+  let changed = false;
+  if (!Array.isArray(st.wishlist)) { st.wishlist = []; changed = true; }
+  if (!Array.isArray(st.reservations)) { st.reservations = []; changed = true; }
+  if (!Array.isArray(st.counts)) { st.counts = []; changed = true; }
+  if (!st.cuvees || typeof st.cuvees !== "object" || Array.isArray(st.cuvees)) { st.cuvees = {}; changed = true; }
+  const list = catalog || ((typeof WINE_CATALOG !== "undefined" && WINE_CATALOG) || []);
+  const custom = Array.isArray(st.customWines) ? st.customWines : [];
+  const own = new Set(custom);
+  list.concat(custom).forEach(w => {
+    if (!w || !w.id) return;
+    const pid = wineParentId(w);
+    if (own.has(w) && w.parentId !== pid) {
+      w.parentId = pid;
+      changed = true;
+    }
+    let cuvee = st.cuvees[pid];
+    if (!cuvee) {
+      cuvee = st.cuvees[pid] = {
+        id: pid,
+        producer: w.producer || "",
+        name: w.name || "",
+        region: w.region || "",
+        country: w.country || "",
+        appellation: w.appellation || "",
+        grapes: Array.isArray(w.grapes) ? w.grapes.slice() : [],
+        type: w.type || "",
+        style: w.style || "",
+        vintageIds: []
+      };
+      changed = true;
+    }
+    if (!Array.isArray(cuvee.vintageIds)) { cuvee.vintageIds = []; changed = true; }
+    if (cuvee.vintageIds.indexOf(w.id) < 0) { cuvee.vintageIds.push(w.id); changed = true; }
+    ["producer", "name", "region", "country", "appellation", "type", "style"].forEach(k => {
+      if (!cuvee[k] && w[k]) { cuvee[k] = w[k]; changed = true; }
+    });
+    if ((!cuvee.grapes || !cuvee.grapes.length) && Array.isArray(w.grapes) && w.grapes.length) {
+      cuvee.grapes = w.grapes.slice();
+      changed = true;
+    }
+  });
+  Object.keys(st.cuvees).forEach(pid => {
+    const ids = (st.cuvees[pid].vintageIds || []).slice();
+    const sorted = ids.slice().sort();
+    if (sorted.join("\n") !== ids.join("\n")) {
+      st.cuvees[pid].vintageIds = sorted;
+      changed = true;
+    }
+  });
+  if (!st.migrated || typeof st.migrated !== "object" || Array.isArray(st.migrated)) {
+    st.migrated = {};
+    changed = true;
+  }
+  if (st.migrated.v86 !== true) {
+    st.migrated.v86 = true;
+    changed = true;
+  }
+  return changed;
+}
 function keepPreMigrationSnapshot(raw) {
   if (!raw) return;
-  [STORE + ".antes-v74", STORE + ".antes-v75"].forEach(key => {
+  [STORE + ".antes-v74", STORE + ".antes-v75", STORE + ".antes-v86"].forEach(key => {
     try {
       if (localStorage.getItem(key)) return;
       localStorage.setItem(key, raw);
