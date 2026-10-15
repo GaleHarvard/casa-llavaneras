@@ -39,6 +39,13 @@ function applyStoredWineEdit(w) {
   if (e.grapePct && typeof e.grapePct === "object") w.grapePct = Object.assign({}, e.grapePct);
   if (typeof e.crianza === "string") w.crianza = e.crianza;
   if (e.elevage && typeof e.elevage === "object") w.elevage = Object.assign({}, w.elevage || {}, e.elevage);
+  if (e.ratings && typeof e.ratings === "object") {
+    w.ratings = w.ratings || {};
+    Object.keys(e.ratings).forEach(k => {
+      const block = e.ratings[k];
+      if (block && scoreIsUser(block)) w.ratings[k] = Object.assign({}, w.ratings[k] || {}, block);
+    });
+  }
   w.provenance = w.provenance || {};
   if (e.user) Object.keys(e.user).forEach(k => { if (e.user[k]) w.provenance[k] = "usuario"; });
   return w;
@@ -133,8 +140,68 @@ function producerShort(w) {
   return p.split(/\s+/).slice(0, 3).join(" ");
 }
 function parkerMark(w) {
-  const s = w && w.ratings && w.ratings.parker && Number(w.ratings.parker.score);
-  return s ? ("★ " + s) : "★ —";
+  const block = userScore(w, "parker");
+  return block ? ("★ " + block.score) : t("nodata");
+}
+function scoreIsUser(block) {
+  if (!block || typeof block !== "object") return false;
+  if (block.estimate === true) return false;
+  if (block.manual === true || block.by === "usuario" || block.origin === "usuario" || block.origen === "usuario") return true;
+  const src = String(block.source || "").trim();
+  if (src && !/gemini|estimaci/i.test(src)) return true;
+  return false;
+}
+function scoreIsAi(block, wine) {
+  if (!block || typeof block !== "object") return false;
+  if (scoreIsUser(block)) return false;
+  if (block.estimate === true) return true;
+  const by = String(block.by || block.origin || block.origen || "");
+  if (/gemini|estim|inteligencia|^ia$|^ai$/i.test(by)) return true;
+  const prov = wine && wine.provenance && String(wine.provenance.ratings || "");
+  if (/gemini|estimaci[oó]n|^ia$|^ai$/i.test(prov)) return true;
+  return false;
+}
+function userScore(w, key) {
+  const block = w && w.ratings && w.ratings[key];
+  if (!scoreIsUser(block)) return null;
+  const n = Number(String(block.score == null ? "" : block.score).replace(",", "."));
+  if (!(n > 0)) return null;
+  return block;
+}
+function clearAiScoreBlock(block) {
+  let changed = false;
+  if (Number(block.score)) { block.score = 0; changed = true; }
+  if (block.count) { delete block.count; changed = true; }
+  if (block.estimate) { delete block.estimate; changed = true; }
+  if (block.note) { block.note = ""; changed = true; }
+  if (block.reviewer && block.estimate !== false) { delete block.reviewer; changed = true; }
+  return changed;
+}
+function stripStoredAiScores(st) {
+  if (!st || typeof st !== "object") return false;
+  let changed = false;
+  const visit = (w) => {
+    if (!w || !w.ratings || typeof w.ratings !== "object") return;
+    Object.keys(w.ratings).forEach(k => {
+      const block = w.ratings[k];
+      if (scoreIsAi(block, w) && clearAiScoreBlock(block)) changed = true;
+    });
+    const prov = w.provenance && String(w.provenance.ratings || "");
+    if (/gemini|estimaci[oó]n|^ia$|^ai$/i.test(prov)) {
+      const kept = Object.keys(w.ratings).some(k => scoreIsUser(w.ratings[k]));
+      if (kept) w.provenance.ratings = "usuario";
+      else delete w.provenance.ratings;
+      changed = true;
+    }
+  };
+  (st.customWines || []).forEach(visit);
+  if (st.wineEdits && typeof st.wineEdits === "object") {
+    Object.keys(st.wineEdits).forEach(id => {
+      const edit = st.wineEdits[id];
+      if (edit && edit.ratings) visit({ ratings: edit.ratings, provenance: {} });
+    });
+  }
+  return changed;
 }
 function estateArt(w) {
   w = w || {};

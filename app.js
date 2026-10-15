@@ -1,5 +1,5 @@
 /* Arranque y enlaces con la página. */
-const APP_VERSION = "v84";
+const APP_VERSION = "v85";
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.addEventListener("message", ev => {
     const d = ev.data || {};
@@ -123,6 +123,12 @@ document.addEventListener("DOMContentLoaded", () => {
   let painted = false;
   const paint = (allowSave) => {
     try {
+      if (typeof cellarLocked !== "undefined" && cellarLocked) {
+        try { showCorruptNotice(); } catch (e) {}
+        hideSplash();
+        if (window.casaMarkReady) window.casaMarkReady();
+        return;
+      }
       if (!booted) {
         booted = true;
         try { if (typeof bootLang === "function") bootLang(); } catch (e) {}
@@ -157,5 +163,4 @@ document.addEventListener("DOMContentLoaded", () => {
   setTimeout(() => { try { runNotifyCheck(false); } catch (e) {} }, 1600);
   try { window.__casaDateCheck = dateYearSelfCheck(); }
   catch (e) { window.__casaDateCheck = { ok: false, error: String(e) }; }
-  try { window.__frozenPurchaseCount = frozenPurchaseCount; } catch (e) {}
 });

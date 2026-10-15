@@ -773,6 +773,8 @@ label.field span {
   align-items: flex-end;
 }
 .modal-bg.show { display: flex; }
+#corrupt-lock { z-index: 60; align-items: center; padding: 18px; }
+#corrupt-lock .sheet { border-radius: 22px; border: 1px solid #222; }
 .sheet {
   width: 100%;
   background: #0b0b0b;

@@ -407,7 +407,7 @@ function renderHits(hits, title, withAdd) {
         ${labelThumbHtml(w)}
         <div class="meta">
           <div class="row"><h3>${w.producer} ${w.name}</h3><span class="badge ${p.key}">${w.vintage}</span></div>
-          <p class="muted">${w.region} · Vivino ${w.ratings.vivino.score.toFixed(1)} · Peñín ${w.ratings.penin.score}</p>
+          <p class="muted">${w.region} · Vivino ${manualScoreText(w, "vivino", 1)} · Peñín ${manualScoreText(w, "penin", 0)}</p>
           ${have ? `<p class="tiny">${t("cellar.haveN", { n: have })}</p>` : ""}
         </div>
       </div>

@@ -4315,6 +4315,7 @@ function catalogNote(w, key) {
   if (!w || !key) return "";
   const block = w.ratings && w.ratings[key];
   const raw = (block && block.note) || "";
+  if (!String(raw).trim()) return "";
   if (typeof userLocked === "function" && userLocked(w, "ratings")) return raw;
   const row = catalogBag("wines", w.id);
   const src = catalogSourceWine(w.id);
