@@ -561,6 +561,10 @@ function estateHit(w) {
     take(rec.name, rec);
     (rec.aliases || []).forEach(alias => take(alias, rec));
   });
+  (typeof WINERY_PLACES !== "undefined" ? WINERY_PLACES : []).forEach(rec => {
+    take(rec.name, rec);
+    (rec.aliases || []).forEach(alias => take(alias, rec));
+  });
   Object.keys(BODEGA_GEO).forEach(name => take(name, BODEGA_GEO[name]));
   return best;
 }

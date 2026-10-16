@@ -400,6 +400,42 @@ input, select, textarea {
   font-family: inherit;
   outline: none;
 }
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+}
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--gold2);
+  outline-offset: 2px;
+}
+label.field.doubt input,
+label.field.doubt select,
+label.field.doubt textarea {
+  box-shadow: inset 0 0 0 1.5px #c4a15a;
+}
+#alta h1 {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+#alta .muted { margin: 0 0 6px; }
+#alta .alta-photos { display: flex; gap: 8px; margin: 0 0 6px; }
+#alta .alta-photos img { width: 34%; max-height: 92px; object-fit: cover; border-radius: 12px; background: #111; }
+#alta .alta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 10px; }
+#alta .alta-grid .wide { grid-column: 1 / -1; }
+#alta label.field { margin: 3px 0; }
+#alta label.field span { margin-bottom: 2px; letter-spacing: 0.08em; }
+#alta input, #alta select { padding: 6px 8px; }
+#alta .alta-actions { margin-top: 6px; }
+#alta .alta-actions .btn { padding: 11px 12px; }
 select {
   color-scheme: dark;
   -webkit-appearance: none;

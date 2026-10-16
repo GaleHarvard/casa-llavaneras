@@ -706,15 +706,18 @@ function mapaBlock(w) {
     ? `<img class="map-art" data-map="${mapSrc}" src="${mapSrc}" alt="" onerror="this.style.display='none'">`
     : `<p class="muted" data-map="" style="text-align:center;margin:8px 0">${t("map.none")}</p>`;
   const hasPin = g.lat != null && g.lng != null && Number.isFinite(Number(g.lat)) && Number.isFinite(Number(g.lng));
-  const osm = hasPin ? `https://www.openstreetmap.org/?mlat=${g.lat}&mlon=${g.lng}#map=16/${g.lat}/${g.lng}` : "";
-  const pin = hasPin ? `${g.lat},${g.lng}` : "";
+  const pinLat = hasPin ? Number(g.lat) : null;
+  const pinLng = hasPin ? Number(g.lng) : null;
+  const fallbackHtml = !hasPin && typeof mapLinksHtml === "function" ? mapLinksHtml(w, g) : "";
+  const osm = hasPin ? `https://www.openstreetmap.org/?mlat=${pinLat}&mlon=${pinLng}#map=16/${pinLat}/${pinLng}` : "";
+  const pin = hasPin ? `${pinLat},${pinLng}` : "";
   const gmaps = hasPin ? `https://www.google.com/maps?q=${pin}` : "";
   const apple = hasPin ? `https://maps.apple.com/?ll=${pin}&q=${pin}` : "";
   const mapLinks = hasPin ? `
-    <p class="muted" style="margin:0 0 4px;font-size:13px">${t("map.coords")}: ${Number(g.lat).toFixed(3)}, ${Number(g.lng).toFixed(3)}</p>
+    <p class="muted" style="margin:0 0 4px;font-size:13px">${t("map.coords")}: ${pinLat.toFixed(3)}, ${pinLng.toFixed(3)}</p>
     <a class="btn btn-ghost" style="width:100%;margin-top:10px;display:block;text-align:center" href="${gmaps}" target="_blank" rel="noopener noreferrer" onclick="return openExternal(this.href)">Google Maps</a>
     <a class="btn btn-ghost" style="width:100%;margin-top:8px;display:block;text-align:center" href="${apple}" target="_blank" rel="noopener noreferrer" onclick="return openExternal(this.href)">${t("map.apple")}</a>
-    <a class="btn btn-ghost" style="width:100%;margin-top:8px;display:block;text-align:center" href="${osm}" target="_blank" rel="noopener noreferrer" onclick="return openExternal(this.href)">OpenStreetMap</a>` : `<p class="muted" style="margin-top:10px">${t("map.noPin")}</p>`;
+    <a class="btn btn-ghost" style="width:100%;margin-top:8px;display:block;text-align:center" href="${osm}" target="_blank" rel="noopener noreferrer" onclick="return openExternal(this.href)">OpenStreetMap</a>` : fallbackHtml;
   const zd = zoneFactsFor(w);
   const factRow = (label, value) => value ? `<p style="margin:8px 0 0"><span class="tiny">${escHtml(label)}</span><br>${escHtml(value)}</p>` : "";
   const zoneCard = zd ? `<div class="card" style="margin-top:14px"><p class="tiny">${t("map.zone")}</p><h3 style="margin:4px 0 0;font-size:17px">${escHtml(zd.name)}</h3>${factRow(t("map.surface"), zd.facts.surface)}${factRow(t("map.climate"), zd.facts.climate)}${factRow(t("map.soils"), zd.facts.soils)}${factRow(t("map.grapes"), zd.facts.grapes)}</div>` : "";

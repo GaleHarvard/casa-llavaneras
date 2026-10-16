@@ -43,7 +43,21 @@ var WINERY_LIBRARY = [
   { name: "Moët & Chandon", file: "vinedo-champagne.jpg", aliases: ["Moet & Chandon", "Moet", "Dom Pérignon", "Dom Perignon"] },
   { name: "Tenuta San Guido", file: "vinedo-bolgheri.jpg", aliases: ["Sassicaia", "San Guido"] },
   { name: "Enrique Mendoza", file: "vinedo.jpg", aliases: ["Enrique Mendoza"] },
-  { name: "Numanthia", file: "vinedo-ribera.jpg", aliases: ["Numanthia"] }
+  { name: "Numanthia", file: "vinedo-ribera.jpg", aliases: ["Numanthia"] },
+  { name: "Bodegas Avelino Vegas", file: "vinedo.jpg", aliases: ["Avelino Vegas", "Circe"] }
+];
+
+/* Santiuste de San Juan Bautista: web https://avelinovegas.com/ y pin 41.161401, -4.574553. */
+var WINERY_PLACES = [
+  {
+    name: "Bodegas Avelino Vegas",
+    aliases: ["Avelino Vegas", "Circe"],
+    lat: 41.161401,
+    lng: -4.574553,
+    zone: "Santiuste de San Juan Bautista",
+    address: "Calle Grupo Calvo Sotelo, 8, 40460 Santiuste de San Juan Bautista (Segovia), España",
+    web: "https://avelinovegas.com/"
+  }
 ];
 
 var WINERY_STOP = {
