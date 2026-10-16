@@ -319,6 +319,7 @@ async function startLiveCamera() {
   }
 }
 async function startScan() {
+  if (typeof resetLabelPair === "function") resetLabelPair();
   show("scan", screenId === "scan" ? { replace: true } : {});
   lastList = "scan";
   intakeSource = "camara";
@@ -2386,14 +2387,14 @@ function scoreBlockLocked(block) {
   return false;
 }
 var scoreSearchBusy = false;
-async function searchPublishedScores(wineId) {
+async function searchPublishedScores(wineId, quiet) {
   if (scoreSearchBusy) return;
   const w = wineById(wineId);
   if (!w) return;
   const key = storedGeminiKey();
-  if (!key) { toast(t("score.needKey")); return; }
+  if (!key) { if (!quiet) toast(t("score.needKey")); return; }
   scoreSearchBusy = true;
-  toast(t("score.searching"));
+  if (!quiet) toast(t("score.searching"));
   const known = [w.producer, w.name, w.vintage, w.appellation, w.region, w.country].filter(Boolean).join(" · ");
   const prompt = [
     "Busca puntuaciones publicadas de este vino en bodegas, Guía Peñín, Wine Spectator, Decanter, Vivino, Robert Parker o tiendas que citen la cifra.",
@@ -2408,7 +2409,7 @@ async function searchPublishedScores(wineId) {
   const chunks = groundingChunksOf(outcome && outcome.raw);
   const rows = outcome && outcome.parsed && Array.isArray(outcome.parsed.scores) ? outcome.parsed.scores : [];
   if (!chunks.some(c => c && c.uri) || !rows.length) {
-    toast((outcome && outcome.reason) || t("score.noneFound"));
+    if (!quiet) toast((outcome && outcome.reason) || t("score.noneFound"));
     return;
   }
   state.wineEdits = state.wineEdits || {};
@@ -2438,13 +2439,14 @@ async function searchPublishedScores(wineId) {
     };
     saved++;
   });
-  if (!saved) { toast(t("score.noneFound")); return; }
+  if (!saved) { if (!quiet) toast(t("score.noneFound")); return; }
   state.wineEdits[w.id] = edit;
   const custom = (state.customWines || []).find(x => x && x.id === w.id);
   if (custom) {
     custom.ratings = Object.assign({}, custom.ratings || {}, edit.ratings);
   }
   save();
+  if (quiet) return;
   toast(t("score.savedWeb"));
   openWine(w.id, currentBottle);
   openRatingsList();

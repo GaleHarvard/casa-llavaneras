@@ -9,14 +9,14 @@
   <meta name="apple-mobile-web-app-title" content="Casa Llavaneras" />
   <meta name="application-name" content="Casa Llavaneras" />
   <meta name="theme-color" content="#000000" />
-  <meta name="app-version" content="v87" />
+  <meta name="app-version" content="v88" />
   <title>Casa Llavaneras</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="apple-touch-icon" href="apple-touch-icon.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
   <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png" />
-  <link rel="stylesheet" href="styles.css?v=87" />
+  <link rel="stylesheet" href="styles.css?v=88" />
 </head>
 <body>
   <div class="device">
@@ -205,6 +205,10 @@
           <input id="scan-file-lib" type="file" accept="image/*" hidden />
           <input id="scan-file" type="file" accept="image/*" hidden />
         </div>
+      </section>
+
+      <section id="alta" class="screen">
+        <div class="scroll" id="alta-body"></div>
       </section>
 
       <section id="pairings" class="screen">
@@ -519,26 +523,27 @@
       if (!window.__casaReady) casaShowBootError();
     }, 8000);
   </script>
-  <script src="wines.js?v=87"></script>
-  <script src="bodegas.js?v=87"></script>
-  <script src="dossiers.js?v=87"></script>
-  <script src="providers/wineProvider.js?v=87"></script>
-  <script src="pairings.js?v=87"></script>
-  <script src="catalog-i18n.js?v=87"></script>
-  <script src="i18n.js?v=87"></script>
-  <script src="casa-util.js?v=87"></script>
-  <script src="casa-vino.js?v=87"></script>
-  <script src="casa-estado.js?v=87"></script>
-  <script src="casa-inicio.js?v=87"></script>
-  <script src="casa-vinoteca.js?v=87"></script>
-  <script src="casa-bodega.js?v=87"></script>
-  <script src="casa-ficha.js?v=87"></script>
-  <script src="casa-mesa.js?v=87"></script>
-  <script src="casa-bebidas.js?v=87"></script>
-  <script src="casa-gemini.js?v=87"></script>
-  <script src="casa-ajustes.js?v=87"></script>
-  <script src="casa-v86.js?v=87"></script>
-  <script src="app.js?v=87"></script>
+  <script src="wines.js?v=88"></script>
+  <script src="bodegas.js?v=88"></script>
+  <script src="dossiers.js?v=88"></script>
+  <script src="providers/wineProvider.js?v=88"></script>
+  <script src="pairings.js?v=88"></script>
+  <script src="catalog-i18n.js?v=88"></script>
+  <script src="i18n.js?v=88"></script>
+  <script src="casa-util.js?v=88"></script>
+  <script src="casa-vino.js?v=88"></script>
+  <script src="casa-estado.js?v=88"></script>
+  <script src="casa-inicio.js?v=88"></script>
+  <script src="casa-vinoteca.js?v=88"></script>
+  <script src="casa-bodega.js?v=88"></script>
+  <script src="casa-ficha.js?v=88"></script>
+  <script src="casa-mesa.js?v=88"></script>
+  <script src="casa-bebidas.js?v=88"></script>
+  <script src="casa-gemini.js?v=88"></script>
+  <script src="casa-ajustes.js?v=88"></script>
+  <script src="casa-v86.js?v=88"></script>
+  <script src="casa-v88.js?v=88"></script>
+  <script src="app.js?v=88"></script>
   <script>
     document.querySelectorAll(".tab").forEach((t, i) => {
       const icons = [
@@ -579,7 +584,7 @@
         const current = (document.querySelector('meta[name="app-version"]') || {}).content || "";
         if (data.version && current && data.version !== current) reloadForSw();
       });
-      navigator.serviceWorker.register("sw.js?v=87").catch(() => {});
+      navigator.serviceWorker.register("sw.js?v=88").catch(() => {});
     }
   </script>
 </body>

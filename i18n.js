@@ -1500,6 +1500,36 @@ addI18n([
   ["fact.posVert", "vertical", "vertical", "upright", "verticale", "vertical"],
   ["fact.lightDark", "oscura", "fosca", "dark", "sombre", "escura"]
 ]);
+addI18n([
+  ["alta.h1", "Confirmar vino", "Confirmar el vi", "Confirm the wine", "Confirmer le vin", "Confirmar o vinho"],
+  ["alta.lead", "Revisa la lectura. Los campos en ámbar son dudosos: tócalos para corregirlos.", "Revisa la lectura. Els camps en ambre són dubtosos: toca'ls per corregir-los.", "Check the reading. Amber fields are uncertain: tap them to correct.", "Vérifiez la lecture. Les champs ambre sont incertains : touchez-les pour corriger.", "Revise a leitura. Os campos em âmbar são duvidosos: toque para corrigir."],
+  ["alta.photo", "Etiqueta", "Etiqueta", "Label", "Étiquette", "Rótulo"],
+  ["alta.back", "Contraetiqueta", "Contraetiqueta", "Back label", "Contre-étiquette", "Contra-rótulo"],
+  ["alta.name", "Vino", "Vi", "Wine", "Vin", "Vinho"],
+  ["alta.producer", "Bodega", "Celler", "Winery", "Domaine", "Produtor"],
+  ["alta.appellation", "DO", "DO", "DO", "AOP", "DO"],
+  ["alta.vintage", "Añada", "Anyada", "Vintage", "Millésime", "Colheita"],
+  ["alta.type", "Tipo", "Tipus", "Type", "Type", "Tipo"],
+  ["alta.grapes", "Uvas", "Raïms", "Grapes", "Cépages", "Castas"],
+  ["alta.abv", "Grado", "Grau", "Alcohol", "Degré", "Teor"],
+  ["alta.volume", "Volumen", "Volum", "Volume", "Volume", "Volume"],
+  ["alta.qty", "Cantidad", "Quantitat", "Quantity", "Quantité", "Quantidade"],
+  ["alta.where", "Ubicación", "Ubicació", "Location", "Emplacement", "Local"],
+  ["alta.bin", "Hueco", "Forat", "Slot", "Casier", "Lugar"],
+  ["alta.save", "Guardar", "Desar", "Save", "Enregistrer", "Guardar"],
+  ["alta.saveAnother", "Guardar y añadir otra", "Desar i afegir-ne una altra", "Save and add another", "Enregistrer et ajouter une autre", "Guardar e adicionar outra"],
+  ["alta.needBack", "Fotografía también la contraetiqueta.", "Fotografia també la contraetiqueta.", "Photograph the back label as well.", "Photographiez aussi la contre-étiquette.", "Fotografe também o contra-rótulo."],
+  ["alta.shootBack", "Fotografiar contraetiqueta", "Fotografiar la contraetiqueta", "Photograph the back label", "Photographier la contre-étiquette", "Fotografar o contra-rótulo"],
+  ["alta.skipBack", "Seguir sin contraetiqueta", "Seguir sense contraetiqueta", "Continue without the back label", "Continuer sans contre-étiquette", "Seguir sem contra-rótulo"],
+  ["alta.saved", "Botella guardada", "Ampolla desada", "Bottle saved", "Bouteille enregistrée", "Garrafa guardada"],
+  ["alta.catalog", "Coincide con el catálogo", "Coincideix amb el catàleg", "Matches the catalogue", "Correspond au catalogue", "Coincide com o catálogo"],
+  ["alta.reading", "Leyendo etiqueta y contraetiqueta…", "Llegint etiqueta i contraetiqueta…", "Reading the label and the back label…", "Lecture de l'étiquette et de la contre-étiquette…", "A ler o rótulo e o contra-rótulo…"],
+  ["alta.offline", "Sin conexión: lectura de respaldo. Revisa los campos.", "Sense connexió: lectura de reserva. Revisa els camps.", "Offline: backup reading. Check the fields.", "Hors ligne : lecture de secours. Vérifiez les champs.", "Sem ligação: leitura de reserva. Revise os campos."],
+  ["alta.doubt", "Dudoso", "Dubtós", "Uncertain", "Incertain", "Duvidoso"],
+  ["map.pinTown", "Municipio · {place}", "Municipi · {place}", "Town · {place}", "Commune · {place}", "Município · {place}"],
+  ["map.pinDo", "DO · {place}", "DO · {place}", "DO · {place}", "AOP · {place}", "DO · {place}"],
+  ["map.pinHouse", "Bodega", "Celler", "Winery", "Domaine", "Produtor"]
+]);
 window.I18N = I18N;
 if (document.body) {
   appLang = deviceLang();
