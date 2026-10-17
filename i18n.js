@@ -1530,6 +1530,18 @@ addI18n([
   ["map.pinDo", "DO · {place}", "DO · {place}", "DO · {place}", "AOP · {place}", "DO · {place}"],
   ["map.pinHouse", "Bodega", "Celler", "Winery", "Domaine", "Produtor"]
 ]);
+addI18n([
+  ["alta.category", "Categoría", "Categoria", "Category", "Catégorie", "Categoria"],
+  ["alta.ean", "Código", "Codi", "Code", "Code", "Código"],
+  ["alta.web", "Web", "Web", "Web", "Web", "Web"],
+  ["alta.cut", "La respuesta de Gemini se ha cortado. No he rellenado los campos con un texto a medias.", "La resposta de Gemini s'ha tallat. No he omplert els camps amb un text a mitges.", "Gemini's reply was cut off. I did not fill the fields with a partial text.", "La réponse de Gemini a été coupée. Je n'ai pas rempli les champs avec un texte incomplet.", "A resposta do Gemini foi cortada. Não preenchi os campos com um texto a meio."],
+  ["alta.needKey", "Falta la clave de Gemini en Ajustes.", "Falta la clau de Gemini a Ajustos.", "The Gemini key is missing in Settings.", "La clé Gemini manque dans Réglages.", "Falta a chave Gemini em Ajustes."],
+  ["alta.network", "Gemini no ha respondido: fallo de red.", "Gemini no ha respost: fallada de xarxa.", "Gemini did not respond: network failure.", "Gemini n'a pas répondu : panne de réseau.", "O Gemini não respondeu: falha de rede."],
+  ["alta.quota", "Gemini ha llegado al límite de uso.", "Gemini ha arribat al límit d'ús.", "Gemini has reached its usage limit.", "Gemini a atteint sa limite d'usage.", "O Gemini chegou ao limite de uso."],
+  ["alta.needIdentity", "Para guardar hacen falta un nombre de vino y una bodega válidos.", "Per desar calen un nom de vi i un celler vàlids.", "A valid wine name and winery are required to save.", "Pour enregistrer, il faut un nom de vin et un domaine valides.", "Para guardar são precisos um nome de vinho e um produtor válidos."],
+  ["alta.image", "No he podido leer esa foto. Usa una imagen JPEG.", "No he pogut llegir aquesta foto. Fes servir una imatge JPEG.", "I could not read that photo. Use a JPEG image.", "Je n'ai pas pu lire cette photo. Utilisez une image JPEG.", "Não consegui ler essa foto. Use uma imagem JPEG."],
+  ["alta.barcode", "Código de barras leído", "Codi de barres llegit", "Barcode read", "Code-barres lu", "Código de barras lido"]
+]);
 window.I18N = I18N;
 if (document.body) {
   appLang = deviceLang();

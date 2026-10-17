@@ -426,16 +426,34 @@ label.field.doubt textarea {
   clip: rect(0, 0, 0, 0);
   border: 0;
 }
-#alta .muted { margin: 0 0 6px; }
-#alta .alta-photos { display: flex; gap: 8px; margin: 0 0 6px; }
-#alta .alta-photos img { width: 34%; max-height: 92px; object-fit: cover; border-radius: 12px; background: #111; }
+#alta .scroll { padding-top: 4px; padding-bottom: calc(var(--bar-h) + 28px); }
+#alta .muted { margin: 0 0 4px; font-size: 13px; line-height: 1.3; }
+#alta .tiny { margin: 0 0 4px; }
+#alta .alta-photos { display: flex; gap: 8px; margin: 0 0 4px; }
+#alta .alta-photos img { width: 28%; max-height: 56px; object-fit: cover; border-radius: 12px; background: #111; }
+#alta .alta-fail {
+  margin: 0 0 6px;
+  padding: 6px 8px;
+  border-radius: 12px;
+  background: #1a1408;
+  color: #e6d3a1;
+  font-size: 13px;
+  line-height: 1.3;
+}
 #alta .alta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 10px; }
 #alta .alta-grid .wide { grid-column: 1 / -1; }
-#alta label.field { margin: 3px 0; }
-#alta label.field span { margin-bottom: 2px; letter-spacing: 0.08em; }
-#alta input, #alta select { padding: 6px 8px; }
-#alta .alta-actions { margin-top: 6px; }
-#alta .alta-actions .btn { padding: 11px 12px; }
+#alta label.field { margin: 2px 0; }
+#alta label.field span { margin-bottom: 1px; letter-spacing: 0.08em; font-size: 10px; }
+#alta input, #alta select { padding: 4px 8px; font-size: 14px; }
+#alta .alta-actions {
+  position: sticky;
+  bottom: var(--bar-h);
+  margin-top: 4px;
+  padding-top: 6px;
+  background: #070707;
+  z-index: 5;
+}
+#alta .alta-actions .btn { padding: 10px 12px; }
 select {
   color-scheme: dark;
   -webkit-appearance: none;
@@ -1048,6 +1066,10 @@ label.field span {
   line-height: 1.05;
   overflow-wrap: anywhere;
   max-width: 100%;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 .wine-cuvee {
   margin-top: 8px;
