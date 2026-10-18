@@ -193,7 +193,8 @@ function scoreDetailHtml(w, g) {
 }
 function scoreActionRow(w) {
   return `<button type="button" class="btn btn-ghost" style="width:100%;margin-top:12px" onclick="openScoreForm()">${t("score.add")}</button>
-    <button type="button" class="btn btn-gold" style="width:100%;margin-top:8px" onclick="searchPublishedScores('${w.id}')">${t("score.search")}</button>`;
+    <p class="muted" id="score-note" style="margin:8px 0 0"></p>
+    <button type="button" class="btn btn-gold" id="score-search" style="width:100%;margin-top:8px" onclick="searchPublishedScores('${w.id}')">${t("score.search")}</button>`;
 }
 function ratingsHomeHtml(w) {
   const present = SCORE_GUIDES.filter(g => publishedScore(w, g[0]));
@@ -205,7 +206,7 @@ function ratingsHomeHtml(w) {
       ${meters ? `<p class="muted" style="margin-top:8px">${escHtml(meters)}</p>` : ""}
     </div>` : "";
   if (!present.length) {
-    return `<p class="muted" style="margin:0 0 12px" role="button" onclick="searchPublishedScores('${w.id}')">${escHtml(t("score.noneLine"))}</p>${critic}`;
+    return `<p class="muted" style="margin:0 0 12px">${escHtml(t("score.noneLine"))}</p>${critic}`;
   }
   return `<div class="rate-grid">${present.map(g => `<div class="rate-card" role="button" onclick="openScore('${g[0]}')">
       <div class="who"><b>${escHtml(g[1])}</b></div>
@@ -216,13 +217,13 @@ function ratingsSubHtml(w) {
   const focus = SCORE_GUIDES.find(g => g[0] === scoreUi.focus && publishedScore(w, g[0]));
   if (focus) return scoreDetailHtml(w, focus) + scoreActionRow(w);
   const cards = SCORE_GUIDES.map(g => scoreSummaryCard(w, g)).join("");
-  const empty = cards ? "" : `<p class="muted" role="button" onclick="searchPublishedScores('${w.id}')">${escHtml(t("score.noneLine"))}</p>`;
+  const empty = cards ? "" : `<p class="muted">${escHtml(t("score.noneLine"))}</p>`;
   return `<p class="tiny" style="margin:6px 0 8px">${t("score.lead")}</p>
     ${referencesHtml(w)}
     ${empty}
     ${cards}
-    ${scoreUi.form ? manualScoreForm(w) : ""}
-    ${scoreActionRow(w)}`;
+    ${scoreActionRow(w)}
+    ${scoreUi.form ? manualScoreForm(w) : ""}`;
 }
 function indicativeServiceBtn(w) {
   if (!w || (typeof isCatalogWineId === "function" && isCatalogWineId(w.id))) return "";
@@ -302,8 +303,8 @@ function openWine(wineId, bottle) {
 
   $("#wine-body").innerHTML = `
     <div class="wine-hero">${estateSVG(w)}</div>
-    <h1 class="wine-producer">${escHtml(typeof sheetTitle === "function" ? sheetTitle(w.producer) : (w.producer || ""))}</h1>
-    <p class="wine-cuvee">${escHtml(typeof sheetTitle === "function" ? sheetTitle(w.name) : (w.name || ""))}${shownYear(w) ? " " + shownYear(w) : ""}</p>
+    <h1 class="wine-producer">${escHtml(typeof fichaTitles === "function" ? fichaTitles(w).head : (typeof sheetTitle === "function" ? sheetTitle(w.producer) : (w.producer || "")))}</h1>
+    <p class="wine-cuvee">${escHtml(typeof fichaTitles === "function" ? fichaTitles(w).sub : ((typeof sheetTitle === "function" ? sheetTitle(w.name) : (w.name || "")) + (shownYear(w) ? " " + shownYear(w) : "")))}</p>
     ${typeof vintageBlockHtml === "function" ? vintageBlockHtml(w) : ""}
     <button type="button" class="btn btn-ghost label-change" onclick="changeWineLabel()">${t("label.change")}</button>
     <div class="peak-pill">${pill}</div>
@@ -967,7 +968,7 @@ function openWineSub(kind) {
   $("#wine-sub-body").innerHTML = `
     <button class="back" onclick="goBack()">‹ ${backCaption()}</button>
     ${bodegaImg}
-    <p class="eyebrow" style="${eyeCss}">${escHtml(typeof sheetTitle === "function" ? sheetTitle(w.name) : (w.name || ""))}${shownYear(w) ? " " + shownYear(w) : ""}</p>
+    <p class="eyebrow" style="${eyeCss}">${escHtml(typeof fichaTitles === "function" ? [fichaTitles(w).head, fichaTitles(w).sub].filter(Boolean).join(" · ") : ((typeof sheetTitle === "function" ? sheetTitle(w.name) : (w.name || "")) + (shownYear(w) ? " " + shownYear(w) : "")))}</p>
     <h1 style="${titleCss}">${titles[kind] || t("sub.sheet")}</h1>
     ${body}`;
   show("wine-sub");
