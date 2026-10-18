@@ -62,7 +62,9 @@ WINERY_CARDS.forEach(card => {
 assert.strictEqual(files["bodega-domaine-leflaive.jpg"], 1);
 assert.strictEqual(fs.statSync(path.join(root, "bodega-domaine-coche-dury.jpg")).size, 175812);
 const pending = WINERY_CARDS.filter(card => !card.file).map(card => card.id).sort();
-assert.deepStrictEqual(pending, ["cecile-tremblay"]);
+assert.deepStrictEqual(pending, []);
+assert.strictEqual(WINERY_CARDS.find(card => card.id === "cecile-tremblay").town, "Morey-Saint-Denis");
+assert.ok(sw.includes("./bodega-domaine-cecile-tremblay.jpg"));
 assert.ok(!v91.includes("bodega-domaine-leflaive.jpg"));
 
 const tio = fuzzyWineryHit({ producer: { value: "Tío Pepe" }, name: { value: "" } });

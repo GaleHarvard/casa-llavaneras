@@ -1023,7 +1023,7 @@ var WINERY_CARDS = [
       "Chapelle-Chambertin",
       "Échezeaux"
     ],
-    "file": "",
+    "file": "bodega-domaine-cecile-tremblay.jpg",
     "sources": [
       "https://grossiste.e-pro.fr/cote-d-or/c-tremblay_f4096486",
       "https://www.burgundy-report.com/burgundy-report-extra/12-2023/cecile-tremblay-2022/",
