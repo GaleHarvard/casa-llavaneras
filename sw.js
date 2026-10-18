@@ -1,7 +1,7 @@
-const CACHE = "casa-llavaneras-ios-v89";
-const VERSION = "v89";
+const CACHE = "casa-llavaneras-ios-v90";
+const VERSION = "v90";
 const NEXT = CACHE + "-next";
-const ASSETS = ["./", "./index.html", "./styles.css", "./i18n.js", "./casa-util.js", "./casa-vino.js", "./casa-estado.js", "./casa-inicio.js", "./casa-vinoteca.js", "./casa-bodega.js", "./casa-ficha.js", "./casa-mesa.js", "./casa-bebidas.js", "./casa-gemini.js", "./casa-ajustes.js", "./casa-v86.js", "./casa-v88.js", "./casa-v89.js", "./app.js", "./wines.js", "./bodegas.js", "./dossiers.js", "./providers/wineProvider.js", "./pairings.js", "./catalog-i18n.js", "./manifest.json", "./icon.svg", "./apple-touch-icon.png", "./icon-192.png", "./icon-512.png", "./cave-principal.jpg", "./capsula.jpg", "./botella-tinto.jpg", "./botella-blanco.jpg", "./botella-espumoso.jpg", "./vinedo-chateau-margaux.jpg"];
+const ASSETS = ["./", "./index.html", "./styles.css", "./i18n.js", "./casa-util.js", "./casa-vino.js", "./casa-estado.js", "./casa-inicio.js", "./casa-vinoteca.js", "./casa-bodega.js", "./casa-ficha.js", "./casa-mesa.js", "./casa-bebidas.js", "./casa-gemini.js", "./casa-ajustes.js", "./casa-v86.js", "./casa-v88.js", "./casa-v89.js", "./casa-v90.js", "./app.js", "./wines.js", "./bodegas.js", "./dossiers.js", "./providers/wineProvider.js", "./pairings.js", "./catalog-i18n.js", "./manifest.json", "./icon.svg", "./apple-touch-icon.png", "./icon-192.png", "./icon-512.png", "./cave-principal.jpg", "./capsula.jpg", "./botella-tinto.jpg", "./botella-blanco.jpg", "./botella-espumoso.jpg", "./vinedo-chateau-margaux.jpg"];
 const OCR = ["./vendor/tesseract/tesseract.min.js", "./vendor/tesseract/worker.min.js", "./vendor/tesseract/tesseract-core-lstm.wasm.js", "./vendor/tesseract/tesseract-core-simd-lstm.wasm.js", "./vendor/tesseract/spa.traineddata.gz", "./vendor/tesseract/eng.traineddata.gz", "./vendor/tesseract/por.traineddata.gz", "./vendor/tesseract/fra.traineddata.gz", "./vendor/tesseract/cat.traineddata.gz"];
 
 function fetchWithTimeout(request, ms) {

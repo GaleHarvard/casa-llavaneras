@@ -1477,7 +1477,7 @@ addI18n([
   ["score.catalog", "según catálogo", "segons el catàleg", "from the catalogue", "selon le catalogue", "segundo o catálogo"],
   ["score.verified", "verificada", "verificada", "verified", "vérifiée", "verificada"],
   ["score.web", "según web", "segons el web", "from the web", "selon le web", "segundo a web"],
-  ["score.noneLine", "Sin puntuaciones publicadas · Buscar", "Sense puntuacions publicades · Cercar", "No published scores · Search", "Aucune note publiée · Chercher", "Sem pontuações publicadas · Procurar"],
+  ["score.noneLine", "Sin puntuaciones publicadas", "Sense puntuacions publicades", "No published scores", "Aucune note publiée", "Sem pontuações publicadas"],
   ["score.search", "Buscar puntuaciones", "Cercar puntuacions", "Search scores", "Chercher des notes", "Procurar pontuações"],
   ["score.add", "+ Añadir", "+ Afegir", "+ Add", "+ Ajouter", "+ Adicionar"],
   ["score.all", "Todas las guías", "Totes les guies", "All guides", "Tous les guides", "Todos os guias"],
@@ -1540,7 +1540,13 @@ addI18n([
   ["alta.quota", "Gemini ha llegado al límite de uso.", "Gemini ha arribat al límit d'ús.", "Gemini has reached its usage limit.", "Gemini a atteint sa limite d'usage.", "O Gemini chegou ao limite de uso."],
   ["alta.needIdentity", "Para guardar hacen falta un nombre de vino y una bodega válidos.", "Per desar calen un nom de vi i un celler vàlids.", "A valid wine name and winery are required to save.", "Pour enregistrer, il faut un nom de vin et un domaine valides.", "Para guardar são precisos um nome de vinho e um produtor válidos."],
   ["alta.image", "No he podido leer esa foto. Usa una imagen JPEG.", "No he pogut llegir aquesta foto. Fes servir una imatge JPEG.", "I could not read that photo. Use a JPEG image.", "Je n'ai pas pu lire cette photo. Utilisez une image JPEG.", "Não consegui ler essa foto. Use uma imagem JPEG."],
-  ["alta.barcode", "Código de barras leído", "Codi de barres llegit", "Barcode read", "Code-barres lu", "Código de barras lido"]
+  ["alta.barcode", "Código de barras leído", "Codi de barres llegit", "Barcode read", "Code-barres lu", "Código de barras lido"],
+  ["score.grounding", "Este modelo no incluye la búsqueda de Google en el plan gratuito.", "Aquest model no inclou la cerca de Google al pla gratuït.", "This model does not include Google Search on the free plan.", "Ce modèle n'inclut pas la recherche Google dans l'offre gratuite.", "Este modelo não inclui a pesquisa Google no plano gratuito."],
+  ["score.noGrounding", "Sin búsqueda de Google en el plan gratuito. Solo guardo puntuaciones que traen una página.", "Sense cerca de Google al pla gratuït. Només deso puntuacions que porten una pàgina.", "No Google Search on the free plan. I only keep scores that come with a page.", "Pas de recherche Google dans l'offre gratuite. Je ne garde que les notes qui ont une page.", "Sem pesquisa Google no plano gratuito. Só guardo pontuações que trazem uma página."],
+  ["score.quota", "Gemini ha rechazado la búsqueda y no ha dicho cuántos segundos hay que esperar.", "Gemini ha rebutjat la cerca i no ha dit quants segons cal esperar.", "Gemini refused the search and did not say how many seconds to wait.", "Gemini a refusé la recherche et n'a pas dit combien de secondes attendre.", "O Gemini recusou a pesquisa e não disse quantos segundos é preciso esperar."],
+  ["score.wait", "Espera {n} s", "Espera {n} s", "Wait {n} s", "Attendez {n} s", "Espere {n} s"],
+  ["score.model", "Este modelo no admite la búsqueda.", "Aquest model no admet la cerca.", "This model does not support search.", "Ce modèle n'accepte pas la recherche.", "Este modelo não aceita a pesquisa."],
+  ["gemini.quotaSoon", "Límite por minuto. Vuelve a intentarlo enseguida.", "Límit per minut. Torna-ho a provar de seguida.", "Per-minute limit. Try again in a moment.", "Limite à la minute. Réessayez tout de suite.", "Limite por minuto. Tente de novo já."]
 ]);
 window.I18N = I18N;
 if (document.body) {
