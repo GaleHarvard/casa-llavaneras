@@ -1147,7 +1147,7 @@ var WINERY_CARDS = [
       "Bonnes-Mares",
       "Chambolle-Musigny 1er Cru Les Amoureuses"
     ],
-    "file": "",
+    "file": "bodega-domaine-georges-roumier.jpg",
     "sources": [
       "https://chambollemusigny.fr/de/weinberge-und-weine/unsere-winzer",
       "https://www.winewithseth.com/winewiki/domaine-roumier/",

@@ -62,7 +62,7 @@ WINERY_CARDS.forEach(card => {
 assert.strictEqual(files["bodega-domaine-leflaive.jpg"], 1);
 assert.strictEqual(fs.statSync(path.join(root, "bodega-domaine-coche-dury.jpg")).size, 175812);
 const pending = WINERY_CARDS.filter(card => !card.file).map(card => card.id).sort();
-assert.deepStrictEqual(pending, ["cecile-tremblay", "roumier"]);
+assert.deepStrictEqual(pending, ["cecile-tremblay"]);
 assert.ok(!v91.includes("bodega-domaine-leflaive.jpg"));
 
 const tio = fuzzyWineryHit({ producer: { value: "Tío Pepe" }, name: { value: "" } });
@@ -90,9 +90,10 @@ assert.ok(v91.includes("wineries.sources"));
 assert.ok(v91.includes('precision === "municipio"'));
 
 assert.ok(html.includes('id="bodegas"'));
-assert.ok(html.includes("casa-v91.js?v=91"));
-assert.ok(app.includes('APP_VERSION = "v91"'));
-assert.ok(sw.includes("casa-llavaneras-ios-v91"));
+assert.ok(html.includes("casa-v91.js?v=92"));
+assert.ok(app.includes('APP_VERSION = "v92"'));
+assert.ok(sw.includes("casa-llavaneras-ios-v92"));
+assert.ok(sw.includes("./bodega-domaine-georges-roumier.jpg"));
 assert.ok(sw.includes("./casa-v91.js"));
 ["wineries.h1", "wineries.open", "wineries.artPending", "wineries.noZone", "wineries.sources"].forEach(key => {
   const line = i18n.split("\n").find(row => row.indexOf('["' + key + '"') >= 0);
