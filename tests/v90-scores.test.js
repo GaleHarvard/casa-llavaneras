@@ -33,13 +33,14 @@ const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
 assert.ok(!v90.includes("|| 30000"));
 assert.ok(extractFunction(v90, "fetchScoreReading").includes("slice(0, 2)"));
 assert.ok(extractFunction(v90, "fetchScoreReading").includes("postScore(key, plain, prompt, null, null)"));
-assert.ok(html.includes("casa-v90.js?v=90"));
-assert.ok(html.indexOf("casa-v90.js?v=90") < html.indexOf("app.js?v=90"));
-assert.ok(html.indexOf("casa-v89.js?v=90") < html.indexOf("casa-v90.js?v=90"));
-assert.ok(app.includes('APP_VERSION = "v90"'));
-assert.ok(sw.includes('const CACHE = "casa-llavaneras-ios-v90"'));
-assert.ok(sw.includes('const VERSION = "v90"'));
+assert.ok(html.includes("casa-v90.js?v=91"));
+assert.ok(html.indexOf("casa-v90.js?v=91") < html.indexOf("app.js?v=91"));
+assert.ok(html.indexOf("casa-v89.js?v=91") < html.indexOf("casa-v90.js?v=91"));
+assert.ok(app.includes('APP_VERSION = "v91"'));
+assert.ok(sw.includes('const CACHE = "casa-llavaneras-ios-v91"'));
+assert.ok(sw.includes('const VERSION = "v91"'));
 assert.ok(sw.includes("./casa-v90.js"));
+assert.ok(!html.includes("?v=90"));
 assert.ok(!html.includes("?v=89"));
 
 ["score.grounding", "score.noGrounding", "score.quota", "score.wait", "score.model", "gemini.quotaSoon"].forEach(key => {

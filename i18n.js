@@ -1546,7 +1546,22 @@ addI18n([
   ["score.quota", "Gemini ha rechazado la búsqueda y no ha dicho cuántos segundos hay que esperar.", "Gemini ha rebutjat la cerca i no ha dit quants segons cal esperar.", "Gemini refused the search and did not say how many seconds to wait.", "Gemini a refusé la recherche et n'a pas dit combien de secondes attendre.", "O Gemini recusou a pesquisa e não disse quantos segundos é preciso esperar."],
   ["score.wait", "Espera {n} s", "Espera {n} s", "Wait {n} s", "Attendez {n} s", "Espere {n} s"],
   ["score.model", "Este modelo no admite la búsqueda.", "Aquest model no admet la cerca.", "This model does not support search.", "Ce modèle n'accepte pas la recherche.", "Este modelo não aceita a pesquisa."],
-  ["gemini.quotaSoon", "Límite por minuto. Vuelve a intentarlo enseguida.", "Límit per minut. Torna-ho a provar de seguida.", "Per-minute limit. Try again in a moment.", "Limite à la minute. Réessayez tout de suite.", "Limite por minuto. Tente de novo já."]
+  ["gemini.quotaSoon", "Límite por minuto. Vuelve a intentarlo enseguida.", "Límit per minut. Torna-ho a provar de seguida.", "Per-minute limit. Try again in a moment.", "Limite à la minute. Réessayez tout de suite.", "Limite por minuto. Tente de novo já."],
+  ["wineries.h1", "Bodegas", "Cellers", "Wineries", "Domaines", "Produtores"],
+  ["wineries.link", "Bodegas", "Cellers", "Wineries", "Domaines", "Produtores"],
+  ["wineries.back", "Bodegas", "Cellers", "Wineries", "Domaines", "Produtores"],
+  ["wineries.search", "Buscar bodega o zona", "Cercar celler o zona", "Search winery or zone", "Chercher un domaine ou une zone", "Procurar produtor ou zona"],
+  ["wineries.none", "Ninguna bodega coincide.", "Cap celler no coincideix.", "No winery matches.", "Aucun domaine ne correspond.", "Nenhum produtor coincide."],
+  ["wineries.noZone", "Sin zona enlazada", "Sense zona enllaçada", "No linked zone", "Sans zone liée", "Sem zona ligada"],
+  ["wineries.open", "Ficha de la bodega", "Fitxa del celler", "Winery sheet", "Fiche du domaine", "Ficha do produtor"],
+  ["wineries.artPending", "Ilustración pendiente", "Il·lustració pendent", "Illustration pending", "Illustration en attente", "Ilustração pendente"],
+  ["wineries.alias", "También", "També", "Also", "Aussi", "Também"],
+  ["wineries.town", "Municipio", "Municipi", "Town", "Commune", "Município"],
+  ["wineries.address", "Dirección", "Adreça", "Address", "Adresse", "Morada"],
+  ["wineries.founded", "Fundación", "Fundació", "Founded", "Fondation", "Fundação"],
+  ["wineries.wines", "Vinos destacados", "Vins destacats", "Notable wines", "Vins marquants", "Vinhos de referência"],
+  ["wineries.zone", "Zona", "Zona", "Zone", "Zone", "Zona"],
+  ["wineries.sources", "Fuentes", "Fonts", "Sources", "Sources", "Fontes"]
 ]);
 window.I18N = I18N;
 if (document.body) {
