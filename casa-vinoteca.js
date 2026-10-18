@@ -652,8 +652,12 @@ function deleteCave(id) {
 function bodegaWeb(url) {
   let u = String(url || "").trim();
   if (!u) return "";
-  u = u.replace(/https?:\/\/(www\.)?vega-sicilia\.com(\/.*)?$/i, "https://www.temposvegasicilia.com/es");
-  u = u.replace(/https?:\/\/(www\.)?scaladei\.es(\/.*)?$/i, "https://www.cellersdescaladei.com");
+  u = u.replace(/https?:\/\/(www\.)?(temposvegasicilia\.com|vega-sicilia\.com)(\/.*)?$/i, "https://temposvegasicilia.com/");
+  u = u.replace(/https?:\/\/(www\.)?(cellersdescaladei\.com|scaladei\.es)(\/.*)?$/i, "https://cellersdescaladei.com/");
+  u = u.replace(/https?:\/\/(www\.)?bodegasramonbilbao\.com(\/.*)?$/i, "https://bodegasramonbilbao.com/");
+  u = u.replace(/https?:\/\/(www\.)?bodegasysios\.com(\/.*)?$/i, "https://bodegasysios.com/");
+  u = u.replace(/^https?:\/\/(www\.)?torres\.es\/?$/i, "https://www.torres.es/");
+  u = u.replace(/https?:\/\/(www\.)?massamier-la-mignarde\.com(\/.*)?$/i, "https://massamier-la-mignarde.com/");
   return u;
 }
 function openExternal(url) {

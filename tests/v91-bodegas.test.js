@@ -71,13 +71,30 @@ const ygay = fuzzyWineryHit({ producer: { value: "Castillo Ygay" }, name: { valu
 assert.strictEqual(ygay && ygay.name, "Marqués de Murrieta");
 const coche = fuzzyWineryHit({ producer: { value: "Coche Dury" }, name: { value: "Meursault" } });
 assert.strictEqual(coche && coche.id, "coche-dury");
+const datos = JSON.parse(fs.readFileSync(path.join(root, "data/bodegas-datos.json"), "utf8"));
+assert.strictEqual(datos.length, 37);
+const byName = {};
+WINERY_CARDS.forEach(card => { byName[card.name] = card; });
+assert.strictEqual(byName["Vega Sicilia"].web, "https://temposvegasicilia.com/");
+assert.strictEqual(byName["Ramón Bilbao"].web, "https://bodegasramonbilbao.com/");
+assert.strictEqual(byName["Scala Dei"].web, "https://cellersdescaladei.com/");
+assert.strictEqual(byName["Ysios"].web, "https://bodegasysios.com/");
+assert.strictEqual(byName["Familia Torres"].web, "https://www.torres.es/");
+assert.strictEqual(byName["Château Massamier la Mignarde"].web, "https://massamier-la-mignarde.com/");
+assert.strictEqual(byName["Familia Torres"].precision, "municipio");
+assert.strictEqual(byName["Petrus"].founded, "siglo XVIII");
+assert.ok(byName["Vega Sicilia"].sources.length);
+assert.ok(vino.includes("https://temposvegasicilia.com/"));
+assert.ok(vinoteca.includes("https://bodegasramonbilbao.com/"));
+assert.ok(v91.includes("wineries.sources"));
+assert.ok(v91.includes('precision === "municipio"'));
 
 assert.ok(html.includes('id="bodegas"'));
 assert.ok(html.includes("casa-v91.js?v=91"));
 assert.ok(app.includes('APP_VERSION = "v91"'));
 assert.ok(sw.includes("casa-llavaneras-ios-v91"));
 assert.ok(sw.includes("./casa-v91.js"));
-["wineries.h1", "wineries.open", "wineries.artPending", "wineries.noZone"].forEach(key => {
+["wineries.h1", "wineries.open", "wineries.artPending", "wineries.noZone", "wineries.sources"].forEach(key => {
   const line = i18n.split("\n").find(row => row.indexOf('["' + key + '"') >= 0);
   assert.ok(line, key);
   assert.strictEqual(line.split('", "').length, 6, key);

@@ -1560,7 +1560,8 @@ addI18n([
   ["wineries.address", "Dirección", "Adreça", "Address", "Adresse", "Morada"],
   ["wineries.founded", "Fundación", "Fundació", "Founded", "Fondation", "Fundação"],
   ["wineries.wines", "Vinos destacados", "Vins destacats", "Notable wines", "Vins marquants", "Vinhos de referência"],
-  ["wineries.zone", "Zona", "Zona", "Zone", "Zone", "Zona"]
+  ["wineries.zone", "Zona", "Zona", "Zone", "Zone", "Zona"],
+  ["wineries.sources", "Fuentes", "Fonts", "Sources", "Sources", "Fontes"]
 ]);
 window.I18N = I18N;
 if (document.body) {

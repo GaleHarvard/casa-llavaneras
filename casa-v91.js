@@ -77,7 +77,7 @@ function wineryTile(card) {
   const img = card.file
     ? `<img src="${escHtml(card.file)}" alt="">`
     : `<span class="muted" style="display:block;height:118px;line-height:118px;text-align:center;font-size:12px">${escHtml(t("wineries.artPending"))}</span>`;
-  const place = [card.town, card.zone].filter(Boolean).join(" · ");
+  const place = [card.town, card.zone || card.zoneText].filter(Boolean).join(" · ");
   return `<button class="zone-tile" onclick="openBodega('${card.id}', true)">
     ${img}
     <span><b>${escHtml(card.name)}</b><small>${escHtml(place || card.country)}</small></span>
@@ -147,13 +147,17 @@ function renderBodegaSheet(id) {
   const web = card.web && !(typeof isShopUrl === "function" && isShopUrl(card.web))
     ? `<a class="btn btn-gold" style="width:100%;margin-top:12px;display:block;text-align:center" href="${escHtml(card.web)}" target="_blank" rel="noopener noreferrer" onclick="return openExternal(this.href)">${escHtml(t("map.webBtn"))}</a>`
     : "";
-  const pin = card.lat != null && card.lng != null
-    ? `<p class="muted" style="margin:8px 0 0">${escHtml(t("map.coords"))}: ${Number(card.lat).toFixed(3)}, ${Number(card.lng).toFixed(3)}</p>`
+  const approx = card.precision === "municipio"
+    ? `<p class="tiny" style="margin:8px 0 0">${escHtml(t("map.pinTown", { place: card.town || "" }))}</p>`
     : "";
+  const pin = card.lat != null && card.lng != null
+    ? `${approx}<p class="muted" style="margin:8px 0 0">${escHtml(t("map.coords"))}: ${Number(card.lat).toFixed(3)}, ${Number(card.lng).toFixed(3)}</p>`
+    : "";
+  const sources = bodegaSources(card);
   box.innerHTML = `
     ${back}
     ${art}
-    <p class="eyebrow">${escHtml([countryLabel(card.country), card.zone].filter(Boolean).join(" · "))}</p>
+    <p class="eyebrow">${escHtml([countryLabel(card.country), card.zoneText || card.zone].filter(Boolean).join(" · "))}</p>
     <h1>${escHtml(card.name)}</h1>
     ${alias ? `<p class="muted">${escHtml(t("wineries.alias"))}: ${escHtml(alias)}</p>` : ""}
     ${card.about ? `<p style="margin-top:12px;line-height:1.45">${escHtml(card.about)}</p>` : ""}
@@ -163,7 +167,21 @@ function renderBodegaSheet(id) {
     ${bodegaFact(t("wineries.wines"), wines)}
     ${pin}
     ${web}
-    ${zoneBtn}`;
+    ${zoneBtn}
+    ${sources}`;
+}
+
+function bodegaSources(card) {
+  const urls = [];
+  (card.sources || []).forEach(url => {
+    if (url && urls.indexOf(url) < 0) urls.push(url);
+  });
+  if (!urls.length) return "";
+  const links = urls.map(url => {
+    const label = String(url).replace(/^https?:\/\//, "").replace(/\/$/, "");
+    return `<a href="${escHtml(url)}" target="_blank" rel="noopener noreferrer" onclick="return openExternal(this.href)">${escHtml(label)}</a>`;
+  }).join(" · ");
+  return `<p class="muted" style="margin-top:18px;font-size:11px;line-height:1.45">${escHtml(t("wineries.sources"))}: ${links}</p>`;
 }
 
 var revealV91 = reveal;
@@ -184,8 +202,13 @@ renderZonas = function (q) {
 
 var mapaBlockV91 = mapaBlock;
 mapaBlock = function (w) {
-  const html = mapaBlockV91(w);
+  let html = mapaBlockV91(w);
   const card = wineryCardFor(w);
+  if (card && card.precision === "municipio") {
+    const note = `<p class="tiny" style="margin:0 0 4px">${escHtml(t("map.pinTown", { place: card.town || "" }))}</p>`;
+    const mark = '<p class="muted" style="margin:0 0 4px;font-size:13px">';
+    if (html.indexOf(mark) >= 0) html = html.replace(mark, note + mark);
+  }
   if (!card) return html;
   return html + `<button type="button" class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="openBodega('${card.id}')">${t("wineries.open")}</button>`;
 };

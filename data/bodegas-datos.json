@@ -1,0 +1,1190 @@
+[
+  {
+    "nombre": "Marqués de Riscal",
+    "alias": [
+      "Riscal",
+      "Herederos del Marqués de Riscal"
+    ],
+    "pais": "España",
+    "zona": "DOCa Rioja (Rioja Alavesa)",
+    "municipio": "Elciego",
+    "web": "https://www.marquesderiscal.com/",
+    "direccion": "Calle Torrea, 1, 01340 Elciego (Álava)",
+    "lat": 42.5115,
+    "lon": -2.6185,
+    "precision_coord": "bodega",
+    "fundacion": 1858,
+    "descripcion": "Bodega histórica de Elciego, en la Rioja Alavesa, fundada en 1858 y una de las más antiguas de la DOCa Rioja. Su Ciudad del Vino tiene un hotel diseñado por Frank Gehry.",
+    "vinos": [
+      "Barón de Chirel",
+      "Marqués de Riscal Reserva",
+      "Marqués de Riscal Gran Reserva",
+      "Marqués de Riscal 150 Aniversario"
+    ],
+    "fuentes": {
+      "web": "https://www.marquesderiscal.com/",
+      "direccion": "https://www.marquesderiscal.com/legal",
+      "municipio": "https://www.marquesderiscal.com/legal",
+      "zona": "https://www.marquesderiscal.com/nuestra-historia",
+      "coordenadas": "https://www.openstreetmap.org/way/195419041",
+      "fundacion": "https://www.marquesderiscal.com/nuestra-historia",
+      "descripcion": "https://www.marquesderiscal.com/nuestra-historia",
+      "vinos": "https://www.marquesderiscal.com/nuestros-vinos"
+    }
+  },
+  {
+    "nombre": "Familia Torres",
+    "alias": [
+      "Torres",
+      "Bodegas Torres",
+      "Miguel Torres"
+    ],
+    "pais": "España",
+    "zona": "DO Penedès",
+    "municipio": "Pacs del Penedès",
+    "web": "https://www.torres.es/",
+    "direccion": "Finca El Maset, s/n, 08796 Pacs del Penedès (Barcelona)",
+    "lat": 41.3615,
+    "lon": 1.6699,
+    "precision_coord": "municipio",
+    "fundacion": 1870,
+    "descripcion": "Empresa familiar del Penedès fundada en 1870 en Vilafranca del Penedès, con la mayor superficie de viñedo de la DO Penedès. Su sede y la finca Mas La Plana están en Pacs del Penedès.",
+    "vinos": [
+      "Mas La Plana",
+      "Grans Muralles",
+      "Milmanda",
+      "Reserva Real"
+    ],
+    "fuentes": {
+      "web": "https://www.torres.es/",
+      "direccion": "https://www.torres.es/espacios-para-eventos/bodega-waltraud",
+      "municipio": "https://www.torres.es/espacios-para-eventos/bodega-waltraud",
+      "zona": "https://en.wikipedia.org/wiki/Bodegas_Torres",
+      "coordenadas": "https://www.openstreetmap.org/relation/341416",
+      "fundacion": "https://en.wikipedia.org/wiki/Bodegas_Torres",
+      "descripcion": "https://en.wikipedia.org/wiki/Bodegas_Torres",
+      "vinos": "https://en.wikipedia.org/wiki/Bodegas_Torres"
+    }
+  },
+  {
+    "nombre": "Gramona",
+    "alias": [
+      "Celler Batlle"
+    ],
+    "pais": "España",
+    "zona": "Corpinnat (Penedès)",
+    "municipio": "Sant Sadurní d'Anoia",
+    "web": "https://www.gramona.com/",
+    "direccion": "Carrer Indústria, 36, 08770 Sant Sadurní d'Anoia (Barcelona)",
+    "lat": 41.427,
+    "lon": 1.773,
+    "precision_coord": "bodega",
+    "fundacion": 1881,
+    "descripcion": "Empresa familiar de Sant Sadurní d'Anoia, con seis generaciones, que elabora espumosos de larga crianza bajo la marca Corpinnat. Cultiva xarel·lo, macabeo y parellada en viticultura biodinámica.",
+    "vinos": [
+      "III Lustros",
+      "Celler Batlle",
+      "Enoteca"
+    ],
+    "fuentes": {
+      "web": "https://www.gramona.com/es/",
+      "direccion": "https://www.gramona.com/es/",
+      "municipio": "https://www.gramona.com/es/",
+      "zona": "https://es.wikipedia.org/wiki/Gramona",
+      "coordenadas": "https://www.openstreetmap.org/way/631855193",
+      "fundacion": "https://es.wikipedia.org/wiki/Gramona",
+      "descripcion": "https://es.wikipedia.org/wiki/Gramona",
+      "vinos": "https://es.wikipedia.org/wiki/Gramona"
+    }
+  },
+  {
+    "nombre": "Abadía Retuerta",
+    "alias": [
+      "Abadia Retuerta"
+    ],
+    "pais": "España",
+    "zona": "Vino de la Tierra de Castilla y León",
+    "municipio": "Sardón de Duero",
+    "web": "https://abadia-retuerta.com/",
+    "direccion": "Carretera N-122, km 332,5, 47340 Sardón de Duero (Valladolid)",
+    "lat": 41.6169,
+    "lon": -4.4107,
+    "precision_coord": "bodega",
+    "fundacion": 1996,
+    "descripcion": "Finca vinícola junto al monasterio de Santa María de Retuerta, a orillas del Duero, fuera de la DO Ribera del Duero. La bodega actual se construyó en 1996.",
+    "vinos": [
+      "Selección Especial",
+      "Pago Negralada",
+      "Pago Valdebellón"
+    ],
+    "fuentes": {
+      "web": "https://abadia-retuerta.com/",
+      "direccion": "https://abadia-retuerta.com/aviso-legal/",
+      "municipio": "https://abadia-retuerta.com/aviso-legal/",
+      "zona": "https://es.wikipedia.org/wiki/Monasterio_de_Santa_Mar%C3%ADa_de_Retuerta",
+      "coordenadas": "https://es.wikipedia.org/wiki/Monasterio_de_Santa_Mar%C3%ADa_de_Retuerta",
+      "fundacion": "https://abadia-retuerta.com/bodega/historia/",
+      "descripcion": "https://es.wikipedia.org/wiki/Monasterio_de_Santa_Mar%C3%ADa_de_Retuerta",
+      "vinos": "https://abadia-retuerta.com/producto/pago-valdebellon/"
+    }
+  },
+  {
+    "nombre": "Marqués de Murrieta",
+    "alias": [
+      "Murrieta",
+      "Castillo Ygay",
+      "Castillo de Igay"
+    ],
+    "pais": "España",
+    "zona": "DOCa Rioja",
+    "municipio": "Logroño",
+    "web": "https://marquesdemurrieta.com/",
+    "direccion": "Carretera N-232a, km 402, 26006 Logroño (La Rioja)",
+    "lat": 42.4546,
+    "lon": -2.3889,
+    "precision_coord": "bodega",
+    "fundacion": 1852,
+    "descripcion": "Bodega fundada en 1852 por Luciano de Murrieta, la primera de Rioja en exportar sus vinos. Desde 1872 elabora en la finca Castillo Ygay, cerca de Logroño.",
+    "vinos": [
+      "Castillo Ygay",
+      "Dalmau",
+      "Capellanía"
+    ],
+    "fuentes": {
+      "web": "https://marquesdemurrieta.com/",
+      "direccion": "https://marquesdemurrieta.com/pages/contacto",
+      "municipio": "https://marquesdemurrieta.com/pages/contacto",
+      "zona": "https://en.wikipedia.org/wiki/Bodegas_Marqu%C3%A9s_de_Murrieta",
+      "coordenadas": "https://www.openstreetmap.org/way/410675265",
+      "fundacion": "https://en.wikipedia.org/wiki/Bodegas_Marqu%C3%A9s_de_Murrieta",
+      "descripcion": "https://en.wikipedia.org/wiki/Bodegas_Marqu%C3%A9s_de_Murrieta",
+      "vinos": "https://marquesdemurrieta.com/"
+    }
+  },
+  {
+    "nombre": "Abadal",
+    "alias": [
+      "Bodegues Abadal",
+      "Celler Abadal",
+      "Roqueta Origen"
+    ],
+    "pais": "España",
+    "zona": "DO Pla de Bages",
+    "municipio": "Santa Maria d'Horta d'Avinyó (Avinyó)",
+    "web": "https://abadal.net/",
+    "direccion": "Masia Oliveres, s/n, 08279 Santa Maria d'Horta d'Avinyó (Barcelona)",
+    "lat": 41.8188,
+    "lon": 1.9809,
+    "precision_coord": "bodega",
+    "fundacion": 1983,
+    "descripcion": "Bodega de la familia Roqueta en el Bages, fundada en 1983 por Valentí Roqueta junto a la masía familiar. Impulsó la recuperación de variedades locales como la picapoll y la mandó, y la creación de la DO Pla de Bages.",
+    "vinos": [
+      "Abadal Picapoll",
+      "Abadal 3.9",
+      "Abadal Mandó"
+    ],
+    "fuentes": {
+      "web": "https://abadal.net/",
+      "direccion": "https://abadal.net/legal-notice/",
+      "municipio": "https://abadal.net/legal-notice/",
+      "zona": "https://abadal.net/the-winery/",
+      "coordenadas": "https://www.openstreetmap.org/way/182876024",
+      "fundacion": "https://abadal.net/the-winery/",
+      "descripcion": "https://abadal.net/the-winery/",
+      "vinos": "https://abadal.net/"
+    }
+  },
+  {
+    "nombre": "Vivanco",
+    "alias": [
+      "Bodegas Vivanco",
+      "Dinastía Vivanco",
+      "Vivanco Cultura de Vino"
+    ],
+    "pais": "España",
+    "zona": "DOCa Rioja",
+    "municipio": "Briones",
+    "web": "https://vivancoculturadevino.es/",
+    "direccion": "Carretera Nacional 232, km 442, 26330 Briones (La Rioja)",
+    "lat": 42.5395,
+    "lon": -2.7775,
+    "precision_coord": "bodega",
+    "fundacion": null,
+    "descripcion": "Bodega familiar de Briones que alberga el Museo Vivanco de la Cultura del Vino, de 4000 m², con un jardín de más de 220 variedades de vid.",
+    "vinos": [
+      "Vivanco Crianza",
+      "Colección Vivanco 4 Varietales",
+      "Vivanco Reserva"
+    ],
+    "fuentes": {
+      "web": "https://vivancoculturadevino.es/es/",
+      "direccion": "https://vivancoculturadevino.es/es/aviso-legal/",
+      "municipio": "https://vivancoculturadevino.es/es/aviso-legal/",
+      "zona": "https://es.wikipedia.org/wiki/Museo_Vivanco_de_la_Cultura_del_Vino",
+      "coordenadas": "https://es.wikipedia.org/wiki/Museo_Vivanco_de_la_Cultura_del_Vino",
+      "fundacion": null,
+      "descripcion": "https://es.wikipedia.org/wiki/Museo_Vivanco_de_la_Cultura_del_Vino",
+      "vinos": "https://vivancoculturadevino.es/es/"
+    }
+  },
+  {
+    "nombre": "Codorníu",
+    "alias": [
+      "Codorniu",
+      "Raventós Codorníu"
+    ],
+    "pais": "España",
+    "zona": "DO Cava (Penedès)",
+    "municipio": "Sant Sadurní d'Anoia",
+    "web": "https://www.codorniu.com/",
+    "direccion": "Avinguda Jaume Codorníu, s/n, 08770 Sant Sadurní d'Anoia (Barcelona)",
+    "lat": 41.4357,
+    "lon": 1.7972,
+    "precision_coord": "bodega",
+    "fundacion": 1551,
+    "descripcion": "El productor de cava más antiguo y uno de los mayores, con orígenes documentados en 1551 en Sant Sadurní d'Anoia. Sus cavas modernistas son monumento histórico-artístico.",
+    "vinos": [
+      "Anna de Codorníu",
+      "Ars Collecta Jaume Codorníu Gran Reserva",
+      "Ars Collecta Blanc de Noirs Gran Reserva"
+    ],
+    "fuentes": {
+      "web": "https://www.codorniu.com/en/contact-us",
+      "direccion": "https://www.codorniu.com/en/legal-notice",
+      "municipio": "https://www.codorniu.com/en/legal-notice",
+      "zona": "https://en.wikipedia.org/wiki/Codorn%C3%ADu_Winery",
+      "coordenadas": "https://www.codorniu.com/en/contact-us",
+      "fundacion": "https://es.wikipedia.org/wiki/Codorn%C3%ADu",
+      "descripcion": "https://en.wikipedia.org/wiki/Codorn%C3%ADu_Winery",
+      "vinos": "https://www.codorniu.com/cavas/premium-prestige"
+    }
+  },
+  {
+    "nombre": "Pago de Carraovejas",
+    "alias": [
+      "Carraovejas"
+    ],
+    "pais": "España",
+    "zona": "DO Ribera del Duero",
+    "municipio": "Peñafiel",
+    "web": "https://www.pagodecarraovejas.com/",
+    "direccion": "Camino de Carraovejas, s/n, 47300 Peñafiel (Valladolid)",
+    "lat": 41.5943,
+    "lon": -4.0876,
+    "precision_coord": "bodega",
+    "fundacion": 1987,
+    "descripcion": "Bodega de Peñafiel nacida en 1987, cuando José María Ruiz plantó sus primeras nueve hectáreas en las laderas de Carraovejas, a los pies del castillo.",
+    "vinos": [
+      "Pago de Carraovejas",
+      "El Anejón",
+      "Cuesta de las Liebres"
+    ],
+    "fuentes": {
+      "web": "https://www.pagodecarraovejas.com/",
+      "direccion": "https://www.pagodecarraovejas.com/",
+      "municipio": "https://www.pagodecarraovejas.com/",
+      "zona": "https://www.pagodecarraovejas.com/bodega/historia-de-carraovejas/",
+      "coordenadas": "https://www.openstreetmap.org/way/885843957",
+      "fundacion": "https://www.pagodecarraovejas.com/bodega/historia-de-carraovejas/",
+      "descripcion": "https://www.pagodecarraovejas.com/bodega/historia-de-carraovejas/",
+      "vinos": "https://www.pagodecarraovejas.com/vinos/"
+    }
+  },
+  {
+    "nombre": "Bodegas Faustino",
+    "alias": [
+      "Faustino",
+      "Familia Martínez Zabala"
+    ],
+    "pais": "España",
+    "zona": "DOCa Rioja (Rioja Alavesa)",
+    "municipio": "Oyón",
+    "web": "https://www.bodegasfaustino.com/",
+    "direccion": "Carretera de Logroño, s/n, 01320 Oyón (Álava)",
+    "lat": 42.4908,
+    "lon": -2.4356,
+    "precision_coord": "bodega",
+    "fundacion": 1861,
+    "descripcion": "Bodega de Oyón, en la Rioja Alavesa, fundada en 1861 por Eleuterio Martínez Arzok. Es conocida por su Faustino I Gran Reserva, que salió al mercado en 1964.",
+    "vinos": [
+      "Faustino I Gran Reserva",
+      "Faustino V",
+      "Faustino VII"
+    ],
+    "fuentes": {
+      "web": "https://www.bodegasfaustino.com/",
+      "direccion": "https://www.bodegasfaustino.com/",
+      "municipio": "https://www.bodegasfaustino.com/",
+      "zona": "https://www.bodegasfaustino.com/faustinoI/",
+      "coordenadas": "https://en.wikipedia.org/wiki/Bodegas_Faustino",
+      "fundacion": "https://en.wikipedia.org/wiki/Bodegas_Faustino",
+      "descripcion": "https://www.bodegasfaustino.com/faustinoI/",
+      "vinos": "https://www.bodegasfaustino.com/"
+    }
+  },
+  {
+    "nombre": "González Byass",
+    "alias": [
+      "Gonzalez Byass",
+      "Tío Pepe",
+      "Tio Pepe"
+    ],
+    "pais": "España",
+    "zona": "DO Jerez-Xérès-Sherry",
+    "municipio": "Jerez de la Frontera",
+    "web": "https://www.gonzalezbyass.com/",
+    "direccion": "Calle Manuel María González, 12, 11403 Jerez de la Frontera (Cádiz)",
+    "lat": 36.6801,
+    "lon": -6.143,
+    "precision_coord": "bodega",
+    "fundacion": 1835,
+    "descripcion": "Casa jerezana fundada en 1835 por Manuel María González Ángel, al que luego se unió su agente inglés Robert Blake Byass. Su fino Tío Pepe es una de las marcas de vino más conocidas de España.",
+    "vinos": [
+      "Tío Pepe",
+      "Viña AB",
+      "Apóstoles",
+      "Noé"
+    ],
+    "fuentes": {
+      "web": "https://www.gonzalezbyass.com/es/aviso-legal",
+      "direccion": "https://www.gonzalezbyass.com/es/aviso-legal",
+      "municipio": "https://www.gonzalezbyass.com/es/aviso-legal",
+      "zona": "https://en.wikipedia.org/wiki/Gonz%C3%A1lez_Byass",
+      "coordenadas": "https://www.openstreetmap.org/way/184309385",
+      "fundacion": "https://es.wikipedia.org/wiki/Gonz%C3%A1lez_Byass",
+      "descripcion": "https://en.wikipedia.org/wiki/Gonz%C3%A1lez_Byass",
+      "vinos": "https://www.gonzalezbyass.com/en/wineries-brands/gonzalez-byass-1"
+    }
+  },
+  {
+    "nombre": "Scala Dei",
+    "alias": [
+      "Cellers de Scala Dei",
+      "Cellers Scala Dei"
+    ],
+    "pais": "España",
+    "zona": "DOQ Priorat",
+    "municipio": "Escaladei (La Morera de Montsant)",
+    "web": "https://cellersdescaladei.com/",
+    "direccion": "Rambla de la Cartoixa, s/n, 43379 Escaladei (Tarragona)",
+    "lat": 41.2476,
+    "lon": 0.8114,
+    "precision_coord": "bodega",
+    "fundacion": 1974,
+    "descripcion": "Bodega fundada en 1974 en Escaladei, en edificios de la antigua cartuja que dio origen al vino del Priorat. La cava de crianza está en la casa del procurador de la cartuja.",
+    "vinos": [
+      "Cartoixa",
+      "Prior",
+      "Masdeu"
+    ],
+    "fuentes": {
+      "web": "https://cellersdescaladei.com/",
+      "direccion": "https://cellersdescaladei.com/pages/aviso-legal",
+      "municipio": "https://cellersdescaladei.com/pages/aviso-legal",
+      "zona": "https://www.doqpriorat.org/es/bodegas/cellers-de-scala-dei-sa/",
+      "coordenadas": "https://www.openstreetmap.org/way/286397189",
+      "fundacion": "https://ca.wikipedia.org/wiki/Cellers_de_Scala_Dei",
+      "descripcion": "https://www.doqpriorat.org/es/bodegas/cellers-de-scala-dei-sa/",
+      "vinos": "https://cellersdescaladei.com/collections/all"
+    }
+  },
+  {
+    "nombre": "Ysios",
+    "alias": [
+      "Bodegas Ysios"
+    ],
+    "pais": "España",
+    "zona": "DOCa Rioja (Rioja Alavesa)",
+    "municipio": "Laguardia",
+    "web": "https://bodegasysios.com/",
+    "direccion": "Camino de la Hoya, s/n, 01300 Laguardia (Álava)",
+    "lat": 42.5687,
+    "lon": -2.591,
+    "precision_coord": "bodega",
+    "fundacion": 2001,
+    "descripcion": "Bodega de Laguardia, al pie de la sierra de Cantabria, en un edificio de Santiago Calatrava inaugurado en 2001. Elabora tempranillo de la Rioja Alavesa.",
+    "vinos": [
+      "Ysios Edición Limitada",
+      "Ysios Reserva"
+    ],
+    "fuentes": {
+      "web": "https://bodegasysios.com/",
+      "direccion": "https://bodegasysios.com/contacto/",
+      "municipio": "https://bodegasysios.com/contacto/",
+      "zona": "https://es.wikipedia.org/wiki/Bodegas_Ysios",
+      "coordenadas": "https://www.openstreetmap.org/way/224489124",
+      "fundacion": "https://es.wikipedia.org/wiki/Bodegas_Ysios",
+      "descripcion": "https://es.wikipedia.org/wiki/Bodegas_Ysios",
+      "vinos": "https://www.esenciarioja.es/en/bodegas-asociadas-esencia-rioja/bodegas-ysios-en/"
+    }
+  },
+  {
+    "nombre": "CVNE",
+    "alias": [
+      "Cune",
+      "Compañía Vinícola del Norte de España"
+    ],
+    "pais": "España",
+    "zona": "DOCa Rioja",
+    "municipio": "Haro",
+    "web": "https://cvne.com/",
+    "direccion": "Avenida Costa del Vino, 21 (Barrio de la Estación), 26200 Haro (La Rioja)",
+    "lat": 42.5819,
+    "lon": -2.8491,
+    "precision_coord": "bodega",
+    "fundacion": 1879,
+    "descripcion": "Bodega familiar fundada en 1879 en el Barrio de la Estación de Haro y llevada hoy por la quinta generación. Agrupa las marcas Cune, Imperial, Viña Real y Monopole.",
+    "vinos": [
+      "Imperial Gran Reserva",
+      "Viña Real",
+      "Monopole",
+      "Cune Reserva"
+    ],
+    "fuentes": {
+      "web": "https://cvne.com/",
+      "direccion": "https://www.haroturismo.org/es/enoturismo/bodegas/cvne",
+      "municipio": "https://www.haroturismo.org/es/enoturismo/bodegas/cvne",
+      "zona": "https://es.wikipedia.org/wiki/Compa%C3%B1%C3%ADa_Vin%C3%ADcola_del_Norte_de_Espa%C3%B1a",
+      "coordenadas": "https://www.openstreetmap.org/way/823626545",
+      "fundacion": "https://es.wikipedia.org/wiki/Compa%C3%B1%C3%ADa_Vin%C3%ADcola_del_Norte_de_Espa%C3%B1a",
+      "descripcion": "https://es.wikipedia.org/wiki/Compa%C3%B1%C3%ADa_Vin%C3%ADcola_del_Norte_de_Espa%C3%B1a",
+      "vinos": "https://cvne.com/"
+    }
+  },
+  {
+    "nombre": "Ramón Bilbao",
+    "alias": [
+      "Bodegas Ramón Bilbao",
+      "Ramon Bilbao"
+    ],
+    "pais": "España",
+    "zona": "DOCa Rioja",
+    "municipio": "Haro",
+    "web": "https://bodegasramonbilbao.com/",
+    "direccion": "Avenida Santo Domingo de la Calzada, 34, 26200 Haro (La Rioja)",
+    "lat": 42.5696,
+    "lon": -2.8626,
+    "precision_coord": "bodega",
+    "fundacion": 1924,
+    "descripcion": "Bodega de Haro fundada en 1924, cuando Ramón Bilbao registró su marca. En 2014 el IWSC la nombró mejor bodega española.",
+    "vinos": [
+      "Ramón Bilbao Crianza",
+      "Ramón Bilbao Reserva",
+      "Ramón Bilbao Gran Reserva",
+      "Mirto"
+    ],
+    "fuentes": {
+      "web": "https://bodegasramonbilbao.com/",
+      "direccion": "https://bodegasramonbilbao.com/visitanos/",
+      "municipio": "https://bodegasramonbilbao.com/visitanos/",
+      "zona": "https://www.haroturismo.org/es/enoturismo/bodegas/bodegas-ramon-bilbao",
+      "coordenadas": "https://www.openstreetmap.org/way/823597776",
+      "fundacion": "https://bodegasramonbilbao.com/nosotros/",
+      "descripcion": "https://www.haroturismo.org/es/enoturismo/bodegas/bodegas-ramon-bilbao",
+      "vinos": "https://bodegasramonbilbao.com/vinos/"
+    }
+  },
+  {
+    "nombre": "Perelada",
+    "alias": [
+      "Castillo Perelada",
+      "Cavas del Castillo de Perelada",
+      "Peralada"
+    ],
+    "pais": "España",
+    "zona": "DO Empordà",
+    "municipio": "Peralada",
+    "web": "https://www.perelada.com/",
+    "direccion": "Paratge La Granja, s/n, 17491 Peralada (Girona)",
+    "lat": 42.3085,
+    "lon": 3.009,
+    "precision_coord": "municipio",
+    "fundacion": 1923,
+    "descripcion": "Bodega del Empordà vinculada al castillo de Peralada, propiedad de la familia Suqué Mateu y con origen en 1923.",
+    "vinos": [
+      "Gran Claustro",
+      "Ex Ex",
+      "Garnatxa de l'Empordà"
+    ],
+    "fuentes": {
+      "web": "https://www.perelada.com/",
+      "direccion": "https://perelada.com/es/contacto",
+      "municipio": "https://perelada.com/es/contacto",
+      "zona": "https://www.perelada.com/",
+      "coordenadas": "https://www.openstreetmap.org/relation/345221",
+      "fundacion": "https://www.perelada.com/",
+      "descripcion": "https://www.perelada.com/",
+      "vinos": "https://www.perelada.com/"
+    }
+  },
+  {
+    "nombre": "La Rioja Alta",
+    "alias": [
+      "La Rioja Alta S.A.",
+      "Rioja Alta"
+    ],
+    "pais": "España",
+    "zona": "DOCa Rioja",
+    "municipio": "Haro",
+    "web": "https://www.riojalta.com/",
+    "direccion": "Avenida de Vizcaya, 8, 26200 Haro (La Rioja)",
+    "lat": 42.5844,
+    "lon": -2.8469,
+    "precision_coord": "bodega",
+    "fundacion": 1890,
+    "descripcion": "Bodega del Barrio de la Estación de Haro fundada en 1890 por cinco viticultores locales. Es conocida por sus grandes reservas de larga crianza.",
+    "vinos": [
+      "Gran Reserva 904",
+      "Gran Reserva 890",
+      "Viña Ardanza",
+      "Viña Arana"
+    ],
+    "fuentes": {
+      "web": "https://www.riojalta.com/",
+      "direccion": "https://riojawine.com/es/bodegas-rioja/la-rioja-alta-sa/",
+      "municipio": "https://riojawine.com/es/bodegas-rioja/la-rioja-alta-sa/",
+      "zona": "https://en.wikipedia.org/wiki/La_Rioja_Alta",
+      "coordenadas": "https://www.openstreetmap.org/way/505670122",
+      "fundacion": "https://en.wikipedia.org/wiki/La_Rioja_Alta",
+      "descripcion": "https://en.wikipedia.org/wiki/La_Rioja_Alta",
+      "vinos": "https://www.riojalta.com/"
+    }
+  },
+  {
+    "nombre": "Juvé & Camps",
+    "alias": [
+      "Juvé y Camps",
+      "Juve y Camps",
+      "Juve & Camps"
+    ],
+    "pais": "España",
+    "zona": "DO Cava (Penedès)",
+    "municipio": "Sant Sadurní d'Anoia",
+    "web": "https://www.juveycamps.com/",
+    "direccion": "Carrer Sant Venat, 1, 08770 Sant Sadurní d'Anoia (Barcelona)",
+    "lat": 41.4246,
+    "lon": 1.7919,
+    "precision_coord": "bodega",
+    "fundacion": 1921,
+    "descripcion": "Casa familiar de Sant Sadurní d'Anoia fundada en 1921 por Joan Juvé Baqués y Teresa Camps Ferrer, especializada en cavas de larga crianza.",
+    "vinos": [
+      "Reserva de la Familia",
+      "Gran Juvé & Camps",
+      "Milesimé"
+    ],
+    "fuentes": {
+      "web": "https://www.juveycamps.com/",
+      "direccion": "https://www.juveycamps.com/contacto/",
+      "municipio": "https://www.juveycamps.com/contacto/",
+      "zona": "https://www.juveycamps.com/familia/",
+      "coordenadas": "https://www.openstreetmap.org/way/771128093",
+      "fundacion": "https://www.juveycamps.com/familia/",
+      "descripcion": "https://www.juveycamps.com/familia/",
+      "vinos": "https://www.revistadelvino.es/2022/12/04/juve-camps-milesime-parcelarios-origen-y-terrunos/"
+    }
+  },
+  {
+    "nombre": "Vega Sicilia",
+    "alias": [
+      "Bodegas Vega Sicilia",
+      "Tempos Vega Sicilia",
+      "Único",
+      "Valbuena"
+    ],
+    "pais": "España",
+    "zona": "DO Ribera del Duero",
+    "municipio": "Valbuena de Duero",
+    "web": "https://temposvegasicilia.com/",
+    "direccion": "Carretera N-122, km 323, 47359 Valbuena de Duero (Valladolid)",
+    "lat": 41.629,
+    "lon": -4.2939,
+    "precision_coord": "bodega",
+    "fundacion": 1864,
+    "descripcion": "Bodega de Valbuena de Duero fundada en 1864, una de las más prestigiosas de España. Su Único se cría alrededor de diez años antes de salir al mercado.",
+    "vinos": [
+      "Único",
+      "Valbuena 5°"
+    ],
+    "fuentes": {
+      "web": "https://temposvegasicilia.com/",
+      "direccion": "https://temposvegasicilia.com/es/politica-de-privacidad",
+      "municipio": "https://temposvegasicilia.com/es/politica-de-privacidad",
+      "zona": "https://en.wikipedia.org/wiki/Vega_Sicilia",
+      "coordenadas": "https://www.temposvegasicilia.com/es/contacto",
+      "fundacion": "https://en.wikipedia.org/wiki/Vega_Sicilia",
+      "descripcion": "https://en.wikipedia.org/wiki/Vega_Sicilia",
+      "vinos": "https://en.wikipedia.org/wiki/Vega_Sicilia"
+    }
+  },
+  {
+    "nombre": "Château Pontet-Canet",
+    "alias": [
+      "Pontet-Canet",
+      "Pontet Canet"
+    ],
+    "pais": "Francia",
+    "zona": "AOC Pauillac (Burdeos)",
+    "municipio": "Pauillac",
+    "web": "https://www.pontet-canet.com/",
+    "direccion": "Château Pontet-Canet, 33250 Pauillac",
+    "lat": 45.2084,
+    "lon": -0.7706,
+    "precision_coord": "bodega",
+    "fundacion": "principios del siglo XVIII",
+    "descripcion": "Quinto gran cru clasificado de Pauillac en 1855, conocido por su viticultura biodinámica.",
+    "vinos": [
+      "Château Pontet-Canet",
+      "Les Hauts de Pontet"
+    ],
+    "fuentes": {
+      "web": "https://www.pontet-canet.com/",
+      "direccion": "https://www.pontet-canet.com/mentions-legales/",
+      "municipio": "https://www.pontet-canet.com/mentions-legales/",
+      "zona": "https://fr.wikipedia.org/wiki/Ch%C3%A2teau_Pontet-Canet",
+      "coordenadas": "https://fr.wikipedia.org/wiki/Ch%C3%A2teau_Pontet-Canet",
+      "fundacion": "https://fr.wikipedia.org/wiki/Ch%C3%A2teau_Pontet-Canet",
+      "descripcion": "https://fr.wikipedia.org/wiki/Ch%C3%A2teau_Pontet-Canet",
+      "vinos": "https://en.wikipedia.org/wiki/Ch%C3%A2teau_Pontet-Canet"
+    }
+  },
+  {
+    "nombre": "Château Ausone",
+    "alias": [
+      "Ausone"
+    ],
+    "pais": "Francia",
+    "zona": "AOC Saint-Émilion Grand Cru (Burdeos)",
+    "municipio": "Saint-Émilion",
+    "web": "https://www.chateau-ausone.fr/",
+    "direccion": "Château Ausone, 33330 Saint-Émilion",
+    "lat": 44.8892,
+    "lon": -0.1564,
+    "precision_coord": "bodega",
+    "fundacion": null,
+    "descripcion": "Pequeña finca de Saint-Émilion, propiedad de la familia Vauthier, que lleva el nombre del poeta romano Ausonio. Fue primer gran cru clasificado A de Saint-Émilion.",
+    "vinos": [
+      "Château Ausone",
+      "Chapelle d'Ausone"
+    ],
+    "fuentes": {
+      "web": "https://www.chateau-ausone.fr/",
+      "direccion": "https://www.chateau-ausone.fr/en/legal-mentions/",
+      "municipio": "https://www.chateau-ausone.fr/en/legal-mentions/",
+      "zona": "https://fr.wikipedia.org/wiki/Ch%C3%A2teau_Ausone",
+      "coordenadas": "https://fr.wikipedia.org/wiki/Ch%C3%A2teau_Ausone",
+      "fundacion": null,
+      "descripcion": "https://fr.wikipedia.org/wiki/Ch%C3%A2teau_Ausone",
+      "vinos": "https://fr.wikipedia.org/wiki/Ch%C3%A2teau_Ausone"
+    }
+  },
+  {
+    "nombre": "Château Cheval Blanc",
+    "alias": [
+      "Cheval Blanc"
+    ],
+    "pais": "Francia",
+    "zona": "AOC Saint-Émilion Grand Cru (Burdeos)",
+    "municipio": "Saint-Émilion",
+    "web": "https://www.chateau-cheval-blanc.com/",
+    "direccion": "Château Cheval Blanc, 33330 Saint-Émilion",
+    "lat": 44.9195,
+    "lon": -0.1893,
+    "precision_coord": "bodega",
+    "fundacion": null,
+    "descripcion": "Finca de Saint-Émilion, junto a Pomerol, famosa por la alta proporción de cabernet franc de su ensamblaje.",
+    "vinos": [
+      "Château Cheval Blanc",
+      "Le Petit Cheval"
+    ],
+    "fuentes": {
+      "web": "https://www.chateau-cheval-blanc.com/",
+      "direccion": "https://www.chateau-cheval-blanc.com/mentions-legales/",
+      "municipio": "https://www.chateau-cheval-blanc.com/mentions-legales/",
+      "zona": "https://en.wikipedia.org/wiki/Ch%C3%A2teau_Cheval_Blanc",
+      "coordenadas": "https://en.wikipedia.org/wiki/Ch%C3%A2teau_Cheval_Blanc",
+      "fundacion": null,
+      "descripcion": "https://en.wikipedia.org/wiki/Ch%C3%A2teau_Cheval_Blanc",
+      "vinos": "https://en.wikipedia.org/wiki/Ch%C3%A2teau_Cheval_Blanc"
+    }
+  },
+  {
+    "nombre": "Château Massamier la Mignarde",
+    "alias": [
+      "Massamier",
+      "Massamier La Mignarde"
+    ],
+    "pais": "Francia",
+    "zona": "AOC Minervois (Languedoc)",
+    "municipio": "Pépieux",
+    "web": "https://massamier-la-mignarde.com/",
+    "direccion": "Château Massamier La Mignarde, 11700 Pépieux",
+    "lat": 43.2974,
+    "lon": 2.6801,
+    "precision_coord": "municipio",
+    "fundacion": null,
+    "descripcion": "Finca familiar del Minervois, en Pépieux (Aude), con un viñedo agroforestal en el que planta árboles entre las cepas. Elabora vinos blancos, tintos, rosados y naranja.",
+    "vinos": [
+      "Les Arbousiers",
+      "Expression de Sauvignon",
+      "Campus Domini Rosé"
+    ],
+    "fuentes": {
+      "web": "https://massamier-la-mignarde.com/",
+      "direccion": "https://massamier-la-mignarde.com/",
+      "municipio": "https://massamier-la-mignarde.com/",
+      "zona": "https://massamier-la-mignarde.com/",
+      "coordenadas": "https://www.openstreetmap.org/relation/78117",
+      "fundacion": null,
+      "descripcion": "https://massamier-la-mignarde.com/",
+      "vinos": "https://massamier-la-mignarde.com/boutique/"
+    }
+  },
+  {
+    "nombre": "Domaine Leflaive",
+    "alias": [
+      "Leflaive"
+    ],
+    "pais": "Francia",
+    "zona": "Borgoña · Côte de Beaune (Puligny-Montrachet)",
+    "municipio": "Puligny-Montrachet",
+    "web": "https://www.leflaive.fr/",
+    "direccion": "Place Pasquier de la Fontaine, 21190 Puligny-Montrachet",
+    "lat": 46.9487,
+    "lon": 4.7532,
+    "precision_coord": "municipio",
+    "fundacion": 1717,
+    "descripcion": "Finca de referencia de los blancos de Puligny-Montrachet, con presencia de la familia Leflaive en el pueblo desde 1717. Cultiva en biodinámica.",
+    "vinos": [
+      "Chevalier-Montrachet",
+      "Bâtard-Montrachet",
+      "Puligny-Montrachet 1er Cru Les Pucelles"
+    ],
+    "fuentes": {
+      "web": "https://www.leflaive.fr/fr_FR/",
+      "direccion": "https://www.leflaive.fr/fr_FR/mentions-legales",
+      "municipio": "https://www.leflaive.fr/fr_FR/mentions-legales",
+      "zona": "https://en.wikipedia.org/wiki/Domaine_Leflaive",
+      "coordenadas": "https://www.openstreetmap.org/relation/128158",
+      "fundacion": "https://www.leflaive.fr/fr_FR/",
+      "descripcion": "https://en.wikipedia.org/wiki/Domaine_Leflaive",
+      "vinos": "https://en.wikipedia.org/wiki/Domaine_Leflaive"
+    }
+  },
+  {
+    "nombre": "Château Latour",
+    "alias": [
+      "Latour",
+      "Ch. Latour"
+    ],
+    "pais": "Francia",
+    "zona": "AOC Pauillac (Burdeos)",
+    "municipio": "Pauillac",
+    "web": "https://www.chateau-latour.com/",
+    "direccion": "Lieu-dit Saint-Lambert, 33250 Pauillac",
+    "lat": 45.1771,
+    "lon": -0.7442,
+    "precision_coord": "bodega",
+    "fundacion": 1331,
+    "descripcion": "Primer gran cru clasificado de 1855 en el extremo sur de Pauillac, junto al estuario del Gironda. Pertenece a François Pinault.",
+    "vinos": [
+      "Château Latour (Grand Vin)",
+      "Les Forts de Latour",
+      "Pauillac de Château Latour"
+    ],
+    "fuentes": {
+      "web": "https://www.chateau-latour.com/fr",
+      "direccion": "https://www.chateau-latour.com/fr/mentions-legales",
+      "municipio": "https://www.chateau-latour.com/fr/mentions-legales",
+      "zona": "https://en.wikipedia.org/wiki/Ch%C3%A2teau_Latour",
+      "coordenadas": "https://fr.wikipedia.org/wiki/Ch%C3%A2teau_Latour",
+      "fundacion": "https://www.chateau-latour.com/fr",
+      "descripcion": "https://en.wikipedia.org/wiki/Ch%C3%A2teau_Latour",
+      "vinos": "https://en.wikipedia.org/wiki/Ch%C3%A2teau_Latour"
+    }
+  },
+  {
+    "nombre": "Château Haut-Brion",
+    "alias": [
+      "Haut-Brion",
+      "Haut Brion"
+    ],
+    "pais": "Francia",
+    "zona": "AOC Pessac-Léognan (Graves, Burdeos)",
+    "municipio": "Pessac",
+    "web": "https://www.haut-brion.com/",
+    "direccion": "135 avenue Jean Jaurès, 33600 Pessac",
+    "lat": 44.8142,
+    "lon": -0.6127,
+    "precision_coord": "bodega",
+    "fundacion": 1525,
+    "descripcion": "El único primer gran cru de 1855 fuera del Médoc, en Pessac, a las afueras de Burdeos. Pertenece al Domaine Clarence Dillon.",
+    "vinos": [
+      "Château Haut-Brion",
+      "Château Haut-Brion Blanc",
+      "Le Clarence de Haut-Brion"
+    ],
+    "fuentes": {
+      "web": "https://www.haut-brion.com/",
+      "direccion": "https://www.pessac-leognan.com/nos-chateaux/chateau-haut-brion/",
+      "municipio": "https://www.pessac-leognan.com/nos-chateaux/chateau-haut-brion/",
+      "zona": "https://en.wikipedia.org/wiki/Ch%C3%A2teau_Haut-Brion",
+      "coordenadas": "https://fr.wikipedia.org/wiki/Ch%C3%A2teau_Haut-Brion",
+      "fundacion": "https://fr.wikipedia.org/wiki/Ch%C3%A2teau_Haut-Brion",
+      "descripcion": "https://en.wikipedia.org/wiki/Ch%C3%A2teau_Haut-Brion",
+      "vinos": "https://fr.wikipedia.org/wiki/Ch%C3%A2teau_Haut-Brion"
+    }
+  },
+  {
+    "nombre": "Château Margaux",
+    "alias": [
+      "Margaux",
+      "Ch. Margaux"
+    ],
+    "pais": "Francia",
+    "zona": "AOC Margaux (Burdeos)",
+    "municipio": "Margaux-Cantenac",
+    "web": "https://www.chateau-margaux.com/",
+    "direccion": "Domaine de Château Margaux, 33460 Margaux-Cantenac",
+    "lat": 45.0444,
+    "lon": -0.6688,
+    "precision_coord": "bodega",
+    "fundacion": null,
+    "descripcion": "Primer gran cru clasificado de 1855, con 262 hectáreas en la AOC Margaux. Es propiedad de la familia Mentzelopoulos.",
+    "vinos": [
+      "Château Margaux",
+      "Pavillon Rouge du Château Margaux",
+      "Pavillon Blanc du Château Margaux"
+    ],
+    "fuentes": {
+      "web": "https://www.chateau-margaux.com/",
+      "direccion": "https://www.societe.com/societe/sca-chateau-margaux-321152993.html",
+      "municipio": "https://www.societe.com/societe/sca-chateau-margaux-321152993.html",
+      "zona": "https://fr.wikipedia.org/wiki/Ch%C3%A2teau_Margaux",
+      "coordenadas": "https://fr.wikipedia.org/wiki/Ch%C3%A2teau_Margaux",
+      "fundacion": null,
+      "descripcion": "https://fr.wikipedia.org/wiki/Ch%C3%A2teau_Margaux",
+      "vinos": "https://fr.wikipedia.org/wiki/Ch%C3%A2teau_Margaux"
+    }
+  },
+  {
+    "nombre": "Château Lafite Rothschild",
+    "alias": [
+      "Lafite",
+      "Lafite Rothschild"
+    ],
+    "pais": "Francia",
+    "zona": "AOC Pauillac (Burdeos)",
+    "municipio": "Pauillac",
+    "web": "https://www.lafite.com/",
+    "direccion": "Le Pouyalet, 33250 Pauillac",
+    "lat": 45.2249,
+    "lon": -0.773,
+    "precision_coord": "bodega",
+    "fundacion": null,
+    "descripcion": "Primer gran cru clasificado de 1855 en Pauillac, de la familia Rothschild desde el siglo XIX. Tiene 178 hectáreas, 116 de ellas de viñedo.",
+    "vinos": [
+      "Château Lafite Rothschild",
+      "Carruades de Lafite"
+    ],
+    "fuentes": {
+      "web": "https://www.lafite.com/domaines/chateau-lafite-rothschild/contact/",
+      "direccion": "https://www.pagesjaunes.fr/pros/06022154",
+      "municipio": "https://www.pagesjaunes.fr/pros/06022154",
+      "zona": "https://fr.wikipedia.org/wiki/Ch%C3%A2teau_Lafite_Rothschild",
+      "coordenadas": "https://fr.wikipedia.org/wiki/Ch%C3%A2teau_Lafite_Rothschild",
+      "fundacion": null,
+      "descripcion": "https://fr.wikipedia.org/wiki/Ch%C3%A2teau_Lafite_Rothschild",
+      "vinos": "https://fr.wikipedia.org/wiki/Ch%C3%A2teau_Lafite_Rothschild"
+    }
+  },
+  {
+    "nombre": "Domaine Cécile Tremblay",
+    "alias": [
+      "Cécile Tremblay",
+      "C. Tremblay"
+    ],
+    "pais": "Francia",
+    "zona": "Borgoña · Côte de Nuits",
+    "municipio": "Morey-Saint-Denis",
+    "web": null,
+    "direccion": "8 rue de Très Girard, 21220 Morey-Saint-Denis",
+    "lat": 47.1957,
+    "lon": 4.9666,
+    "precision_coord": "bodega",
+    "fundacion": 2003,
+    "descripcion": "Finca de la Côte de Nuits creada en 2003 por Cécile Tremblay a partir de viñas de su familia. Entre sus vinos está el grand cru Chapelle-Chambertin.",
+    "vinos": [
+      "Chapelle-Chambertin",
+      "Échezeaux"
+    ],
+    "fuentes": {
+      "web": null,
+      "direccion": "https://grossiste.e-pro.fr/cote-d-or/c-tremblay_f4096486",
+      "municipio": "https://grossiste.e-pro.fr/cote-d-or/c-tremblay_f4096486",
+      "zona": "https://www.burgundy-report.com/burgundy-report-extra/12-2023/cecile-tremblay-2022/",
+      "coordenadas": "https://www.openstreetmap.org/way/133392315",
+      "fundacion": "https://www.mesaccordsmetsvins.fr/partenaires-bourgogne",
+      "descripcion": "https://www.burgundy-report.com/burgundy-report-extra/12-2023/cecile-tremblay-2022/",
+      "vinos": "https://www.burgundy-report.com/burgundy-report-extra/12-2023/cecile-tremblay-2022/"
+    }
+  },
+  {
+    "nombre": "Domaine Coche-Dury",
+    "alias": [
+      "Coche-Dury",
+      "Coche Dury"
+    ],
+    "pais": "Francia",
+    "zona": "Borgoña · Côte de Beaune (Meursault)",
+    "municipio": "Meursault",
+    "web": null,
+    "direccion": "25 rue Charles Giraud, 21190 Meursault",
+    "lat": 46.9746,
+    "lon": 4.7808,
+    "precision_coord": "bodega",
+    "fundacion": null,
+    "descripcion": "Finca de Meursault, en la Côte de Beaune, de la familia Coche. Sus Meursault y su Corton-Charlemagne están entre los blancos más buscados de Borgoña.",
+    "vinos": [
+      "Corton-Charlemagne",
+      "Meursault 1er Cru Perrières",
+      "Meursault 1er Cru Caillerets"
+    ],
+    "fuentes": {
+      "web": null,
+      "direccion": "https://www.societe.com/societe/coche-dury-408788461.html",
+      "municipio": "https://www.societe.com/societe/coche-dury-408788461.html",
+      "zona": "https://en.wikipedia.org/wiki/Domaine_Coche-Dury",
+      "coordenadas": "https://www.openstreetmap.org/node/2894170436",
+      "fundacion": null,
+      "descripcion": "https://en.wikipedia.org/wiki/Domaine_Coche-Dury",
+      "vinos": "https://en.wikipedia.org/wiki/Domaine_Coche-Dury"
+    }
+  },
+  {
+    "nombre": "Domaine Dugat-Py",
+    "alias": [
+      "Dugat-Py",
+      "Dugat Py",
+      "Domaine Bernard Dugat-Py"
+    ],
+    "pais": "Francia",
+    "zona": "Borgoña · Côte de Nuits (Gevrey-Chambertin)",
+    "municipio": "Gevrey-Chambertin",
+    "web": "http://www.dugat-py.fr/",
+    "direccion": "Rue Planteligone, Cour de l'Aumônerie, BP 31, 21220 Gevrey-Chambertin",
+    "lat": 47.2262,
+    "lon": 4.9706,
+    "precision_coord": "municipio",
+    "fundacion": 1923,
+    "descripcion": "Finca familiar de Gevrey-Chambertin nacida del primer Domaine Dugat (1923) y llamada Dugat-Py desde 1994. La dirige Bernard Dugat-Py, conocido por sus grands crus de viñas viejas.",
+    "vinos": [
+      "Chambertin",
+      "Mazis-Chambertin",
+      "Charmes-Chambertin"
+    ],
+    "fuentes": {
+      "web": "http://www.dugat-py.fr/contact.0_6__.php",
+      "direccion": "http://www.dugat-py.fr/contact.0_6__.php",
+      "municipio": "http://www.dugat-py.fr/contact.0_6__.php",
+      "zona": "https://www.burgundy-report.com/burgundy-report-extra/11-2017/profile-dugat-py/",
+      "coordenadas": "https://www.openstreetmap.org/relation/134176",
+      "fundacion": "https://www.burgundy-report.com/burgundy-report-extra/11-2017/profile-dugat-py/",
+      "descripcion": "https://www.burgundy-report.com/burgundy-report-extra/11-2017/profile-dugat-py/",
+      "vinos": "https://www.burgundy-report.com/burgundy-report-extra/11-2017/profile-dugat-py/"
+    }
+  },
+  {
+    "nombre": "Domaine d'Auvenay",
+    "alias": [
+      "Auvenay",
+      "d'Auvenay"
+    ],
+    "pais": "Francia",
+    "zona": "Borgoña · Côte de Beaune (Saint-Romain)",
+    "municipio": "Saint-Romain",
+    "web": null,
+    "direccion": "Auvenay, 21190 Saint-Romain",
+    "lat": 47.0084,
+    "lon": 4.6784,
+    "precision_coord": "bodega",
+    "fundacion": 1988,
+    "descripcion": "Finca personal de Lalou Bize-Leroy en la meseta sobre Saint-Romain, cerca de Meursault, con su primera añada en 1989. Produce cantidades mínimas de grandes blancos y tintos.",
+    "vinos": [
+      "Chevalier-Montrachet",
+      "Criots-Bâtard-Montrachet",
+      "Mazis-Chambertin"
+    ],
+    "fuentes": {
+      "web": null,
+      "direccion": "https://www.pappers.fr/entreprise/domaine-dauvenay-819782574",
+      "municipio": "https://www.pappers.fr/entreprise/domaine-dauvenay-819782574",
+      "zona": "https://www.winewithseth.com/winewiki/domaine-d-auvenay/",
+      "coordenadas": "https://www.openstreetmap.org/node/4911607259",
+      "fundacion": "https://worldoffinewine.com/news-features/lalou-bize-leroy",
+      "descripcion": "https://www.winewithseth.com/winewiki/domaine-d-auvenay/",
+      "vinos": "https://www.winewithseth.com/winewiki/domaine-d-auvenay/"
+    }
+  },
+  {
+    "nombre": "Domaine Georges Roumier",
+    "alias": [
+      "Roumier",
+      "Georges Roumier",
+      "Domaine Roumier"
+    ],
+    "pais": "Francia",
+    "zona": "Borgoña · Côte de Nuits (Chambolle-Musigny)",
+    "municipio": "Chambolle-Musigny",
+    "web": null,
+    "direccion": "4 rue de Vergy, 21220 Chambolle-Musigny",
+    "lat": 47.1853,
+    "lon": 4.9502,
+    "precision_coord": "bodega",
+    "fundacion": 1924,
+    "descripcion": "Finca de Chambolle-Musigny fundada en 1924 por Georges Roumier y dirigida por su nieto Christophe Roumier desde 1990.",
+    "vinos": [
+      "Musigny",
+      "Bonnes-Mares",
+      "Chambolle-Musigny 1er Cru Les Amoureuses"
+    ],
+    "fuentes": {
+      "web": null,
+      "direccion": "https://chambollemusigny.fr/de/weinberge-und-weine/unsere-winzer",
+      "municipio": "https://chambollemusigny.fr/de/weinberge-und-weine/unsere-winzer",
+      "zona": "https://www.winewithseth.com/winewiki/domaine-roumier/",
+      "coordenadas": "https://www.openstreetmap.org/node/12492701086",
+      "fundacion": "https://www.winewithseth.com/winewiki/domaine-roumier/",
+      "descripcion": "https://www.winewithseth.com/winewiki/domaine-roumier/",
+      "vinos": "https://www.winewithseth.com/winewiki/domaine-roumier/"
+    }
+  },
+  {
+    "nombre": "Domaine Leroy",
+    "alias": [
+      "Leroy",
+      "Lalou Bize-Leroy"
+    ],
+    "pais": "Francia",
+    "zona": "Borgoña · Côte de Nuits (Vosne-Romanée)",
+    "municipio": "Vosne-Romanée",
+    "web": "https://www.domaine-leroy.fr/",
+    "direccion": "15 rue de la Fontaine, 21700 Vosne-Romanée",
+    "lat": 47.1558,
+    "lon": 4.9559,
+    "precision_coord": "bodega",
+    "fundacion": 1988,
+    "descripcion": "Finca de Lalou Bize-Leroy, creada en 1988 tras la compra del Domaine Charles Noëllat en Vosne-Romanée. Cultiva en biodinámica con certificación de Ecocert.",
+    "vinos": [
+      "Musigny",
+      "Richebourg",
+      "Chambertin"
+    ],
+    "fuentes": {
+      "web": "https://www.domaine-leroy.fr/",
+      "direccion": "https://www.societe.com/societe/sce-du-domaine-leroy-778269365.html",
+      "municipio": "https://www.societe.com/societe/sce-du-domaine-leroy-778269365.html",
+      "zona": "https://en.wikipedia.org/wiki/Domaine_Leroy",
+      "coordenadas": "https://en.wikipedia.org/wiki/Domaine_Leroy",
+      "fundacion": "https://www.enprimeurclub.com/wineries/domaine-leroy",
+      "descripcion": "https://en.wikipedia.org/wiki/Domaine_Leroy",
+      "vinos": "https://domaine-leroy.fr/vineyard/richebourg/en"
+    }
+  },
+  {
+    "nombre": "Petrus",
+    "alias": [
+      "Pétrus",
+      "Château Pétrus",
+      "Château Petrus"
+    ],
+    "pais": "Francia",
+    "zona": "AOC Pomerol (Burdeos)",
+    "municipio": "Pomerol",
+    "web": "https://www.petrus.com/",
+    "direccion": "3 route de Lussac, 33500 Pomerol",
+    "lat": 44.9307,
+    "lon": -0.1928,
+    "precision_coord": "bodega",
+    "fundacion": "siglo XVIII",
+    "descripcion": "Finca de 11,4 hectáreas en Pomerol, junto al límite con Saint-Émilion, que elabora un único tinto casi solo de merlot y ningún segundo vino. Pertenece a Jean-François Moueix.",
+    "vinos": [
+      "Petrus"
+    ],
+    "fuentes": {
+      "web": "https://fr.wikipedia.org/wiki/Petrus_(vin)",
+      "direccion": "https://cheval-et-vigne.fr/chateaux/chateaux-de-la-rive-droite/petrus/",
+      "municipio": "https://cheval-et-vigne.fr/chateaux/chateaux-de-la-rive-droite/petrus/",
+      "zona": "https://en.wikipedia.org/wiki/Ch%C3%A2teau_P%C3%A9trus",
+      "coordenadas": "https://en.wikipedia.org/wiki/Ch%C3%A2teau_P%C3%A9trus",
+      "fundacion": "https://fr.wikipedia.org/wiki/Petrus_(vin)",
+      "descripcion": "https://en.wikipedia.org/wiki/Ch%C3%A2teau_P%C3%A9trus",
+      "vinos": "https://en.wikipedia.org/wiki/Ch%C3%A2teau_P%C3%A9trus"
+    }
+  },
+  {
+    "nombre": "Château Mouton Rothschild",
+    "alias": [
+      "Mouton Rothschild",
+      "Mouton"
+    ],
+    "pais": "Francia",
+    "zona": "AOC Pauillac (Burdeos)",
+    "municipio": "Pauillac",
+    "web": "https://www.chateau-mouton-rothschild.com/",
+    "direccion": "Rue de Grassi, 33250 Pauillac",
+    "lat": 45.2153,
+    "lon": -0.7684,
+    "precision_coord": "bodega",
+    "fundacion": 1853,
+    "descripcion": "Finca de Pauillac que Nathaniel de Rothschild compró y rebautizó en 1853. Es el único vino que ha cambiado de categoría en la clasificación de 1855: pasó a primer gran cru en 1973.",
+    "vinos": [
+      "Château Mouton Rothschild",
+      "Le Petit Mouton",
+      "Aile d'Argent"
+    ],
+    "fuentes": {
+      "web": "https://www.chateau-mouton-rothschild.com/",
+      "direccion": "https://www.chateau-mouton-rothschild.com/legal",
+      "municipio": "https://www.chateau-mouton-rothschild.com/legal",
+      "zona": "https://fr.wikipedia.org/wiki/Ch%C3%A2teau_Mouton_Rothschild",
+      "coordenadas": "https://fr.wikipedia.org/wiki/Ch%C3%A2teau_Mouton_Rothschild",
+      "fundacion": "https://fr.wikipedia.org/wiki/Ch%C3%A2teau_Mouton_Rothschild",
+      "descripcion": "https://fr.wikipedia.org/wiki/Ch%C3%A2teau_Mouton_Rothschild",
+      "vinos": "https://www.chateau-mouton-rothschild.com/"
+    }
+  },
+  {
+    "nombre": "Domaine de la Romanée-Conti",
+    "alias": [
+      "DRC",
+      "Romanée-Conti",
+      "Romanee-Conti"
+    ],
+    "pais": "Francia",
+    "zona": "Borgoña · Côte de Nuits (Vosne-Romanée)",
+    "municipio": "Vosne-Romanée",
+    "web": "https://www.romanee-conti.fr/",
+    "direccion": "1 rue Derrière le Four, 21700 Vosne-Romanée",
+    "lat": 47.1617,
+    "lon": 4.9497,
+    "precision_coord": "bodega",
+    "fundacion": 1869,
+    "descripcion": "Una de las fincas más prestigiosas del mundo, con 25,5 hectáreas casi todas en Vosne-Romanée. Debe su nombre a su viña más célebre, la Romanée-Conti, de 1,8 hectáreas.",
+    "vinos": [
+      "Romanée-Conti",
+      "La Tâche",
+      "Richebourg",
+      "Montrachet"
+    ],
+    "fuentes": {
+      "web": "https://www.romanee-conti.fr/fr/mentions",
+      "direccion": "https://www.hachette-vins.com/guide-vins/producteurs/23234/dom-de-la-romanee-conti-montrachet/",
+      "municipio": "https://www.hachette-vins.com/guide-vins/producteurs/23234/dom-de-la-romanee-conti-montrachet/",
+      "zona": "https://fr.wikipedia.org/wiki/Domaine_de_la_Roman%C3%A9e-Conti",
+      "coordenadas": "https://en.wikipedia.org/wiki/Domaine_de_la_Roman%C3%A9e-Conti",
+      "fundacion": "https://en.wikipedia.org/wiki/Domaine_de_la_Roman%C3%A9e-Conti",
+      "descripcion": "https://fr.wikipedia.org/wiki/Domaine_de_la_Roman%C3%A9e-Conti",
+      "vinos": "https://fr.wikipedia.org/wiki/Domaine_de_la_Roman%C3%A9e-Conti"
+    }
+  }
+]
