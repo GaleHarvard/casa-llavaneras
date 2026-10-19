@@ -97,7 +97,12 @@ const api = new Function("ZONES", "WINERY_CARDS", "foldWinery", [
   extractFunction(alta, "foldAlta"),
   extractFunction(alta, "phraseHit"),
   extractFunction(alta, "altaLabels"),
+  extractFunction(alta, "wineTitleLabels"),
   extractFunction(alta, "matchLocalAssets"),
+  extractFunction(alta, "genericRegion"),
+  extractFunction(alta, "samePlace"),
+  extractFunction(alta, "zoneRecord"),
+  extractFunction(alta, "placeForSheet"),
   extractFunction(alta, "wineReadingSchema"),
   extractFunction(alta, "sheetFromParsed"),
   extractFunction(alta, "missingIdentity"),
@@ -215,6 +220,18 @@ global.geminiGrounded = async () => {
   assert.strictEqual(bare.zoneText, "");
   assert.strictEqual(bare.wineryText, "");
   assert.ok(!JSON.stringify(bare.sheet).includes("Sin dato"));
+
+  global.geminiGenerate = async () => ({ parsed: { name: "Pago Garduña", vintage: "2021", region: "", winery: "Pago de los Capellanes", grapes: "" } });
+  global.geminiGrounded = async (key, model, prompt) => {
+    if (String(prompt || "").includes("Google Search")) {
+      return { parsed: { name: "Pago Garduña", vintage: "2020", region: "Ribera del Duero", winery: "Pago de los Capellanes", grapes: "", source: "https://example.com/garduna" } };
+    }
+    return { parsed: null };
+  };
+  const garduna = await mod.analyzeAndEnrichWine(jpeg, "");
+  assert.strictEqual(garduna.ok, true);
+  assert.strictEqual(garduna.sheet.vintage, "2021");
+  assert.strictEqual(garduna.sheet.region, "Ribera del Duero");
 
   global.geminiGenerate = async () => ({ quota: true, reason: "HTTP 429", parsed: null });
   const quota = await mod.analyzeAndEnrichWine(jpeg, jpeg);

@@ -198,22 +198,21 @@ function pngSize(file) {
 
   const confirmed = await page.evaluate(async () => {
     const stored = await confirmAlta(false);
-    const hero = document.querySelector("#wine-body .label-thumb-hero");
-    const assets = document.getElementById("alta-assets");
+    const hero = document.querySelector("#wine-body .sheet-cover");
+    const illus = document.querySelector("#wine-body .sheet-illus img");
     const back = document.querySelector("#back-label img");
-    const zone = assets && assets.querySelector('img[src="mapa-emporda.jpg"]');
-    const house = assets && assets.querySelector('img[src="bodega-perelada.jpg"]');
+    const covers = document.querySelectorAll("#wine-body .sheet-cover").length;
     return {
       id: stored && stored.id,
       status: stored && stored.provenance && stored.provenance.intakeStatus,
       hero: hero ? hero.getAttribute("src").slice(0, 16) : "",
       confirmed: document.getElementById("alta-confirmed") ? document.getElementById("alta-confirmed").textContent : "",
-      zone: !!zone,
-      house: !!house,
-      backHero: !!(assets && assets.querySelector("img")),
+      zone: /Empordà/.test(document.getElementById("wine-body").innerText),
+      house: illus ? illus.getAttribute("src") : "",
+      backHero: covers === 1,
       backSection: !!(back && back.getAttribute("src")),
       sinDato: document.getElementById("wine-body").textContent.includes("Sin dato"),
-      zoneTop: zone ? zone.getBoundingClientRect().top : -1,
+      zoneTop: illus ? illus.getBoundingClientRect().top : -1,
       vh: window.innerHeight
     };
   });
@@ -222,7 +221,7 @@ function pngSize(file) {
   assert.ok(confirmed.hero.startsWith("data:image/jpeg"));
   assert.strictEqual(confirmed.confirmed, "Alta confirmada");
   assert.strictEqual(confirmed.zone, true);
-  assert.strictEqual(confirmed.house, true);
+  assert.strictEqual(confirmed.house, "bodega-perelada.jpg");
   assert.strictEqual(confirmed.backSection, true);
   assert.strictEqual(confirmed.sinDato, false);
   assert.ok(confirmed.zoneTop >= 0 && confirmed.zoneTop < confirmed.vh, JSON.stringify(confirmed));

@@ -211,7 +211,8 @@ function applyGeminiIdentity(wine, raw) {
   const year = Math.round(Number(raw.vintage));
   const mentioned = [wine.provenance.rawTitle, wine.provenance.pageExcerpt, wine.provenance.pageUrl, wine.name, String(wine.vintage || "")].join(" ").includes(String(year));
   const currentYear = Number(wine.vintage) || 0;
-  if (year >= 1950 && year <= yearNow() + 1 && (mentioned || !currentYear || currentYear === yearNow())) wine.vintage = year;
+  const fromLabel = wine.provenance.vintageSource === "etiqueta" && currentYear;
+  if (!fromLabel && year >= 1950 && year <= yearNow() + 1 && (mentioned || !currentYear || currentYear === yearNow())) wine.vintage = year;
   const zone = detectZone([raw.region, raw.country, raw.name].filter(Boolean).join(" "));
   if (wine.provenance.region !== "página") {
     if (zone) {
