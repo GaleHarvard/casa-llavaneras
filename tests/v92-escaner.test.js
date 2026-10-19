@@ -26,12 +26,12 @@ const sw = fs.readFileSync(path.join(root, "sw.js"), "utf8");
 const i18n = fs.readFileSync(path.join(root, "i18n.js"), "utf8");
 const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
 
-assert.strictEqual(app.includes('APP_VERSION = "v92"'), true);
-assert.ok(html.includes("casa-v92.js?v=92"));
-assert.ok(html.indexOf("casa-v91.js?v=92") < html.indexOf("casa-v92.js?v=92"));
-assert.ok(html.indexOf("casa-v92.js?v=92") < html.indexOf("app.js?v=92"));
+assert.strictEqual(app.includes('APP_VERSION = "v93"'), true);
+assert.ok(html.includes("casa-v92.js?v=93"));
+assert.ok(html.indexOf("casa-v91.js?v=93") < html.indexOf("casa-v92.js?v=93"));
+assert.ok(html.indexOf("casa-v92.js?v=93") < html.indexOf("app.js?v=93"));
 assert.ok(sw.includes("./casa-v92.js"));
-assert.ok(sw.includes('const CACHE = "casa-llavaneras-ios-v92"'));
+assert.ok(sw.includes('const CACHE = "casa-llavaneras-ios-v93"'));
 assert.ok(i18n.includes("alta.timeout"));
 assert.ok(i18n.includes("sheet.edit"));
 assert.ok(v92.includes("shouldUseOfflineRead"));
