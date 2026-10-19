@@ -156,18 +156,24 @@ async function waitScoreRetry(ms) {
   if (btn) btn.textContent = t("score.search");
 }
 
+function scoreModelFallback() {
+  if (typeof geminiModelsFor === "function") return geminiModelsFor("ground");
+  return ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.0-flash"];
+}
+
 async function listScoreModels(key) {
   const provider = window.WineDataProvider;
-  if (!provider || !provider.listGeminiModels) return ["gemini-2.5-flash", "gemini-2.5-flash-lite"];
+  if (!provider || !provider.listGeminiModels) return scoreModelFallback();
   try {
     const models = await provider.listGeminiModels(key);
-    const ids = (models || []).map(model => (model && (model.name || model)) || "");
-    const ranked = freeGroundingModels(ids);
-    return ranked.length ? ranked : ["gemini-2.5-flash", "gemini-2.5-flash-lite"];
+    const ids = (models || []).map(model => String((model && (model.name || model)) || "").replace(/^models\//, ""));
+    const catalog = typeof geminiModelsFor === "function" ? geminiModelsFor("ground").filter(id => ids.indexOf(id) >= 0) : [];
+    const ranked = catalog.length ? catalog : freeGroundingModels(ids);
+    return ranked.length ? ranked : scoreModelFallback();
   } catch (err) {
     const status = err && err.status;
     if (status === 401 || status === 403 || status === 400) throw err;
-    return ["gemini-2.5-flash", "gemini-2.5-flash-lite"];
+    return scoreModelFallback();
   }
 }
 

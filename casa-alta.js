@@ -184,7 +184,6 @@ function readingFailureKind(outcome) {
 }
 
 async function postWineReading(key, parts, signal) {
-  const models = ["gemini-2.5-flash", "gemini-2.5-flash-lite"];
   const schema = wineReadingSchema();
   const prompt = [
     "La primera imagen es la etiqueta delantera. Si hay una segunda, es la contraetiqueta. Léelas juntas.",
@@ -194,33 +193,27 @@ async function postWineReading(key, parts, signal) {
     "grapes, abv, crianza, serveTemp, tasting y pairing solo si se leen. Si no constan, cadena vacía.",
     "No inventes. No escribas «Sin dato»."
   ].join("\n");
-  let last = { parsed: null, reason: "modelo no disponible", fatal: true };
-  for (let i = 0; i < models.length; i++) {
-    if (typeof geminiGenerate !== "function") return { parsed: null, reason: "red o CORS", fatal: true };
-    const outcome = await geminiGenerate(key, models[i], prompt, schema, signal, 2048, parts);
-    if (outcome && outcome.quota) return outcome;
-    if (outcome && outcome.parsed) return outcome;
-    last = outcome || last;
-    if (outcome && outcome.skipModel) continue;
-    if (readingFailureKind(outcome) === "quota" || readingFailureKind(outcome) === "timeout" || readingFailureKind(outcome) === "key" || readingFailureKind(outcome) === "fetch") return outcome;
-  }
-  return last;
+  if (typeof geminiTryModels !== "function") return { parsed: null, reason: "red o CORS", fatal: true };
+  return geminiTryModels(key, "read", function (model) {
+    return geminiGenerate(key, model, prompt, schema, signal, 2048, parts);
+  });
 }
 
 async function postWineSearch(key, prompt, signal) {
-  const models = ["gemini-2.5-flash", "gemini-2.5-flash-lite"];
-  let last = { parsed: null, reason: "modelo no disponible", fatal: true };
-  for (let i = 0; i < models.length; i++) {
-    if (typeof geminiGrounded !== "function") return last;
-    const outcome = await geminiGrounded(key, models[i], prompt, signal);
-    if (outcome && outcome.quota) return outcome;
-    if (outcome && (outcome.skipModel || outcome.retryable)) {
-      last = outcome;
-      continue;
-    }
-    return outcome || last;
+  if (typeof geminiTryModels !== "function") return { parsed: null, reason: "", fatal: true };
+  return geminiTryModels(key, "ground", function (model) {
+    return geminiGrounded(key, model, prompt, signal);
+  });
+}
+
+async function quietWineSearch(key, prompt, signal) {
+  try {
+    const search = await postWineSearch(key, prompt, signal);
+    if (!search || search.quota || !search.parsed) return null;
+    return search;
+  } catch (err) {
+    return null;
   }
-  return last;
 }
 
 async function analyzeAndEnrichWine(front, back) {
@@ -250,25 +243,22 @@ async function analyzeAndEnrichWine(front, back) {
     }
     fillEmptySheet(sheet, sheetFromParsed(outcome && outcome.parsed));
     if (missingIdentity(sheet).length) {
-      const search = await postWineSearch(key, [
+      const search = await quietWineSearch(key, [
         "Completa solo los datos que falten de este vino. Usa Google Search.",
         "Responde JSON: {\"name\":\"\",\"vintage\":\"\",\"region\":\"\",\"winery\":\"\",\"grapes\":\"\",\"abv\":\"\",\"crianza\":\"\",\"serveTemp\":\"\",\"tasting\":\"\",\"pairing\":\"\",\"source\":\"https://...\"}.",
         "source es la página de donde sale el dato. Si no hay fuente, deja el campo vacío.",
         "No inventes. No escribas «Sin dato».",
         "Ya leído: " + [sheet.name, sheet.vintage, sheet.region, sheet.winery].filter(Boolean).join(" · ")
       ].join("\n"), ctrl && ctrl.signal);
-      if (search && search.quota) {
-        return { ok: false, failure: "quota", reason: search.reason || "", sheet: sheet, assets: matchLocalAssets(sheet.region, sheet.winery), sources: sources };
-      }
       const uri = citedUri(search);
-      if (uri && search.parsed) {
+      if (uri && search && search.parsed) {
         fillEmptySheet(sheet, sheetFromParsed(search.parsed));
         sources.push(uri);
       }
     }
     const assets = matchLocalAssets(sheet.region, sheet.winery);
     if (!assets.zone && sheet.region) {
-      const place = await postWineSearch(key, [
+      const place = await quietWineSearch(key, [
         "Describe la denominación o zona vinícola «" + sheet.region + "»: clima y suelo.",
         "Responde JSON: {\"climate\":\"\",\"soil\":\"\",\"source\":\"https://...\"}.",
         "Si no hay una página que lo sostenga, deja los campos vacíos. No inventes. No escribas «Sin dato»."
@@ -282,7 +272,7 @@ async function analyzeAndEnrichWine(front, back) {
       }
     }
     if (!assets.winery && sheet.winery) {
-      const house = await postWineSearch(key, [
+      const house = await quietWineSearch(key, [
         "Describe la bodega «" + sheet.winery + "»: historia, fundación y ubicación.",
         "Responde JSON: {\"history\":\"\",\"founded\":\"\",\"place\":\"\",\"source\":\"https://...\"}.",
         "Si no hay una página que lo sostenga, deja los campos vacíos. No inventes. No escribas «Sin dato»."

@@ -1,4 +1,4 @@
-/* Alta v93: fototeca, Gemini, catálogo, borrador y confirmación. */
+/* Alta v94: fototeca, Gemini, catálogo, borrador y confirmación. */
 const fs = require("fs");
 const path = require("path");
 const assert = require("assert");
@@ -31,14 +31,14 @@ const css = fs.readFileSync(path.join(root, "styles.css"), "utf8");
 const i18n = fs.readFileSync(path.join(root, "i18n.js"), "utf8");
 const v92 = fs.readFileSync(path.join(root, "casa-v92.js"), "utf8");
 
-assert.ok(app.includes('APP_VERSION = "v93"'));
-assert.ok(html.includes('content="v93"'));
-assert.ok(html.includes("casa-alta.js?v=93"));
-assert.ok(html.indexOf("casa-v92.js?v=93") < html.indexOf("casa-alta.js?v=93"));
-assert.ok(html.indexOf("casa-alta.js?v=93") < html.indexOf("app.js?v=93"));
+assert.ok(app.includes('APP_VERSION = "v94"'));
+assert.ok(html.includes('content="v94"'));
+assert.ok(html.includes("casa-alta.js?v=94"));
+assert.ok(html.indexOf("casa-v92.js?v=94") < html.indexOf("casa-alta.js?v=94"));
+assert.ok(html.indexOf("casa-alta.js?v=94") < html.indexOf("app.js?v=94"));
 assert.ok(sw.includes("./casa-alta.js"));
-assert.ok(sw.includes('const CACHE = "casa-llavaneras-ios-v93"'));
-assert.ok(sw.includes('const VERSION = "v93"'));
+assert.ok(sw.includes('const CACHE = "casa-llavaneras-ios-v94"'));
+assert.ok(sw.includes('const VERSION = "v94"'));
 assert.ok(fs.existsSync(path.join(root, "docs/alta-v93.md")));
 assert.ok(fs.existsSync(path.join(root, "archivo/app hoy.js")));
 
@@ -67,7 +67,8 @@ assert.ok(alta.includes('storeAltaImage("back:" + stored.id, altaFlow.backLabelI
 assert.ok(alta.includes("if (!wine.frontLabelImage && wine.labelThumb)"));
 assert.ok(alta.includes("analyzeAndEnrichWine"));
 assert.ok(alta.includes("matchLocalAssets"));
-assert.ok(alta.includes("gemini-2.5-flash-lite"));
+assert.ok(alta.includes("geminiTryModels(key, \"read\""));
+assert.ok(alta.includes("quietWineSearch"));
 assert.ok(alta.includes("geminiGrounded"));
 assert.ok(alta.includes("shouldUseOfflineRead"));
 const searchFn = extractFunction(alta, "postWineSearch");
@@ -105,6 +106,7 @@ const api = new Function("ZONES", "WINERY_CARDS", "foldWinery", [
   extractFunction(alta, "readingFailureKind"),
   extractFunction(alta, "postWineReading"),
   extractFunction(alta, "postWineSearch"),
+  extractFunction(alta, "quietWineSearch"),
   extractFunction(alta, "analyzeAndEnrichWine"),
   extractFunction(alta, "altaCanConfirm"),
   extractFunction(alta, "altaShownFact"),
@@ -150,6 +152,14 @@ function setOnline(value) {
   Object.defineProperty(navigator, "onLine", { configurable: true, get: () => value });
 }
 setOnline(true);
+global.geminiModelsForKey = async (key, kind) => kind === "ground"
+  ? ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.0-flash"]
+  : ["gemini-3.5-flash-lite", "gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.0-flash"];
+eval([
+  extractFunction(fs.readFileSync(path.join(root, "casa-gemini.js"), "utf8"), "geminiModelMissText"),
+  extractFunction(fs.readFileSync(path.join(root, "casa-gemini.js"), "utf8"), "geminiTryModels")
+].join("\n"));
+global.geminiTryModels = geminiTryModels;
 global.geminiGenerate = async (key, model, prompt, schemaArg, signal, tokens, parts) => {
   generateCalls.push({ model, schema: schemaArg, parts: parts || [], prompt });
   return { parsed: { name: "Finca Garbet", vintage: "2018", region: "Empordà", winery: "Grup Peralada", grapes: "Garnacha", abv: "14,5", crianza: "Sin dato", serveTemp: "", tasting: "", pairing: "" } };
@@ -169,7 +179,7 @@ global.geminiGrounded = async () => {
   assert.strictEqual(full.assets.regionAssetImage, "mapa-emporda.jpg");
   assert.strictEqual(groundedCalls.length, 0);
   assert.strictEqual(generateCalls.length, 1);
-  assert.strictEqual(generateCalls[0].model, "gemini-2.5-flash");
+  assert.strictEqual(generateCalls[0].model, "gemini-3.5-flash-lite");
   assert.deepStrictEqual(generateCalls[0].schema.required, ["name", "vintage", "region", "winery"]);
   assert.strictEqual(generateCalls[0].parts.length, 2);
   assert.ok(generateCalls[0].prompt.includes("«Sin dato»"));
@@ -228,7 +238,7 @@ global.geminiGrounded = async () => {
   const needKey = await mod.analyzeAndEnrichWine(jpeg, "");
   assert.strictEqual(needKey.failure, "needKey");
 
-  console.log("v93 alta ok");
+  console.log("v94 alta ok");
 })().catch(err => {
   console.error(err);
   process.exit(1);

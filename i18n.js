@@ -1607,7 +1607,8 @@ addI18n([
   ["alta.needPlace", "Elige la vinoteca y el hueco para confirmar.", "Tria la vinoteca i el forat per confirmar.", "Choose the cellar and the slot to confirm.", "Choisissez la cave et le casier pour confirmer.", "Escolha a garrafeira e o lugar para confirmar."],
   ["alta.crianza", "Crianza", "Criança", "Ageing", "Élevage", "Estágio"],
   ["alta.serve", "Servicio", "Servei", "Service", "Service", "Serviço"],
-  ["alta.pairing", "Maridaje", "Maridatge", "Pairing", "Accord", "Harmonização"]
+  ["alta.pairing", "Maridaje", "Maridatge", "Pairing", "Accord", "Harmonização"],
+  ["alta.noModel", "Ningún modelo de Gemini ha podido leer la etiqueta.", "Cap model de Gemini no ha pogut llegir l'etiqueta.", "No Gemini model could read the label.", "Aucun modèle Gemini n'a pu lire l'étiquette.", "Nenhum modelo Gemini conseguiu ler o rótulo."]
 ]);
 window.I18N = I18N;
 if (document.body) {

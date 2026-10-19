@@ -37,7 +37,7 @@ const playwright = require("/tmp/pw/node_modules/playwright");
       src: img ? img.getAttribute("src") : ""
     };
   });
-  assert.strictEqual(sheet.version, "v93");
+  assert.strictEqual(sheet.version, "v94");
   assert.strictEqual(sheet.src, "bodega-domaine-cecile-tremblay.jpg");
   assert.ok(sheet.text.indexOf("Ilustración pendiente") < 0, sheet.text);
   assert.ok(sheet.text.indexOf("Morey-Saint-Denis") >= 0);

@@ -1814,33 +1814,150 @@ function clearJunkTasting(wine) {
 function pageFactsReady(wine) {
   return fieldIsReal(wine, "type") && fieldIsReal(wine, "region") && fieldIsReal(wine, "abv");
 }
-async function geminiWithModel(key, prompt, schema, signal, maxOutputTokens, extraParts) {
-  const images = !!(extraParts && extraParts.length);
-  const skip = [];
-  let last = { parsed: null, reason: "modelo no disponible (HTTP 404)", model: "" };
-  if (!window.WineDataProvider || !WineDataProvider.pickGeminiModel) {
-    return { parsed: null, reason: "ningún modelo disponible", fatal: true, model: "" };
+/* Lista única. La lectura empieza por el flash-lite que ya respondía
+   con la clave gratuita. La búsqueda solo usa modelos con google_search. */
+const GEMINI_MODELS = [
+  { id: "gemini-3.5-flash-lite", read: true, ground: false },
+  { id: "gemini-2.5-flash", read: true, ground: true },
+  { id: "gemini-2.5-flash-lite", read: true, ground: true },
+  { id: "gemini-2.0-flash", read: true, ground: true }
+];
+const GEMINI_LIST_KEY = "vinoteca-gemini-models";
+const GEMINI_LIST_TTL = 24 * 60 * 60 * 1000;
+const geminiListed = {};
+
+function geminiModelId(model) {
+  return String((model && model.name) || model || "").replace(/^models\//, "").trim();
+}
+
+function geminiModelsFor(kind) {
+  const flag = kind === "ground" ? "ground" : "read";
+  return GEMINI_MODELS.filter(row => row && row[flag]).map(row => row.id);
+}
+
+function geminiGenerateUrl(model) {
+  return "https://generativelanguage.googleapis.com/v1beta/models/" + geminiModelId(model) + ":generateContent";
+}
+
+function geminiModelMissText() {
+  if (typeof t === "function") return t("alta.noModel");
+  return "Ningún modelo de Gemini ha podido leer la etiqueta.";
+}
+
+function geminiKeyTag(key) {
+  const s = String(key || "");
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
   }
-  for (let n = 0; n < 4; n++) {
-    let model = "";
-    try {
-      model = await WineDataProvider.pickGeminiModel(key, { images: images, skip: skip });
-    } catch (err) {
-      const status = err && err.status;
-      const reason = status === 401 || status === 403 ? ("clave rechazada (HTTP " + status + ")") : (status ? ("HTTP " + status) : "red o CORS");
-      return { parsed: null, reason: reason, fatal: true, model: "" };
+  return (h >>> 0).toString(16);
+}
+
+function readGeminiListCache() {
+  try {
+    if (typeof localStorage === "undefined") return {};
+    return JSON.parse(localStorage.getItem(GEMINI_LIST_KEY) || "{}") || {};
+  } catch (err) {
+    return {};
+  }
+}
+
+function writeGeminiListCache(cache) {
+  try {
+    if (typeof localStorage === "undefined") return;
+    localStorage.setItem(GEMINI_LIST_KEY, JSON.stringify(cache || {}));
+  } catch (err) {}
+}
+
+async function listGeminiModelsOnce(key) {
+  const tag = geminiKeyTag(key);
+  const now = Date.now();
+  const memory = geminiListed[tag];
+  if (memory && memory.ids && memory.ids.length && (now - memory.at) < GEMINI_LIST_TTL) return memory.ids.slice();
+  const stored = readGeminiListCache()[tag];
+  if (stored && stored.ids && stored.ids.length && (now - stored.at) < GEMINI_LIST_TTL) {
+    geminiListed[tag] = { at: stored.at, ids: stored.ids.slice() };
+    return stored.ids.slice();
+  }
+  if (typeof fetch !== "function") return null;
+  const ids = [];
+  let pageToken = "";
+  for (let n = 0; n < 6; n++) {
+    let url = "https://generativelanguage.googleapis.com/v1beta/models?pageSize=100";
+    if (pageToken) url += "&pageToken=" + encodeURIComponent(pageToken);
+    const res = await fetch(url, { headers: { "x-goog-api-key": key } });
+    if (res.status === 401 || res.status === 403) {
+      const err = new Error("clave rechazada");
+      err.status = res.status;
+      throw err;
     }
-    if (!model) return { parsed: null, reason: "ningún modelo disponible", fatal: true, model: "" };
-    const outcome = await geminiGenerate(key, model, prompt, schema, signal, maxOutputTokens, extraParts);
+    if (!res.ok) return null;
+    const json = await res.json();
+    (json.models || []).forEach(model => {
+      const id = geminiModelId(model);
+      if (id && ids.indexOf(id) < 0) ids.push(id);
+    });
+    pageToken = json.nextPageToken || "";
+    if (!pageToken) break;
+  }
+  if (!ids.length) return null;
+  geminiListed[tag] = { at: now, ids: ids.slice() };
+  const cache = readGeminiListCache();
+  cache[tag] = { at: now, ids: ids.slice() };
+  writeGeminiListCache(cache);
+  return ids.slice();
+}
+
+async function geminiModelsForKey(key, kind) {
+  const preferred = geminiModelsFor(kind);
+  let known = null;
+  try {
+    known = await listGeminiModelsOnce(key);
+  } catch (err) {
+    if (err && (err.status === 401 || err.status === 403)) throw err;
+    known = null;
+  }
+  if (!known || !known.length) return preferred.slice();
+  const have = {};
+  known.forEach(id => { have[geminiModelId(id)] = true; });
+  const matched = preferred.filter(id => have[id]);
+  return matched.length ? matched : preferred.slice();
+}
+
+async function geminiTryModels(key, kind, run) {
+  let models = [];
+  try {
+    models = await geminiModelsForKey(key, kind);
+  } catch (err) {
+    return { parsed: null, reason: "clave rechazada", fatal: true, model: "" };
+  }
+  let last = { parsed: null, reason: geminiModelMissText(), fatal: true, model: "" };
+  for (let i = 0; i < models.length; i++) {
+    let outcome = null;
+    try {
+      outcome = await run(models[i]);
+    } catch (err) {
+      const aborted = err && (err.name === "AbortError" || /abort/i.test(String(err && err.message || "")));
+      return { parsed: null, reason: aborted ? "tiempo agotado" : "red o CORS", fatal: true, model: models[i] };
+    }
+    if (outcome && outcome.quota) return outcome;
     if (outcome && (outcome.skipModel || outcome.retryable)) {
-      if (outcome.skipModel) WineDataProvider.forgetGeminiModel(model);
-      skip.push(model);
+      if (outcome.skipModel && typeof window !== "undefined" && window.WineDataProvider && window.WineDataProvider.forgetGeminiModel) window.WineDataProvider.forgetGeminiModel(models[i]);
       last = outcome;
       continue;
     }
-    return outcome || last;
+    if (outcome && outcome.parsed) return outcome;
+    if (outcome && outcome.fatal) return outcome;
+    last = outcome || last;
   }
-  return last;
+  return { parsed: null, reason: geminiModelMissText(), fatal: true, model: last.model || "" };
+}
+
+async function geminiWithModel(key, prompt, schema, signal, maxOutputTokens, extraParts) {
+  return geminiTryModels(key, "read", function (model) {
+    return geminiGenerate(key, model, prompt, schema, signal, maxOutputTokens, extraParts);
+  });
 }
 function geminiBlockSpecs() {
   const str = { type: "STRING" };
@@ -2132,7 +2249,7 @@ async function geminiGenerate(key, model, prompt, schema, signal, maxOutputToken
   return run;
 }
 async function geminiGenerateRun(key, model, prompt, schema, signal, maxOutputTokens, extraParts, memKey) {
-  const url = "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent";
+  const url = geminiGenerateUrl(model);
   const attempts = [
     { schema: schema },
     { schema: schema },
@@ -2281,7 +2398,7 @@ function citedScoreUrl(item, chunks, raw) {
 async function geminiGrounded(key, model, prompt, signal) {
   const day = memGet("quota-day");
   if (day) return day;
-  const url = "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent";
+  const url = geminiGenerateUrl(model);
   const contents = [{ role: "user", parts: [{ text: prompt }] }];
   let quotaTries = 0;
   let minimalTried = false;
