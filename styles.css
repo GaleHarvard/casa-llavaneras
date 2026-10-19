@@ -431,6 +431,15 @@ label.field.doubt textarea {
 #alta .tiny { margin: 0 0 4px; }
 #alta .alta-photos { display: flex; gap: 8px; margin: 0 0 4px; }
 #alta .alta-photos img { width: 28%; max-height: 56px; object-fit: cover; border-radius: 12px; background: #111; }
+.app.scan-slots #scan .scan-tools { display: none; }
+.app.scan-slots #scan .scan-stage.scan-stage-vert { min-height: 0; height: 0; border: 0; margin: 0; }
+.app.scan-slots #scan .scan-hud, .app.scan-slots #scan .viewfinder, .app.scan-slots #scan .scan-hint { display: none; }
+.label-slots { display: grid; gap: 8px; }
+.label-slots img { width: 100%; max-height: 168px; object-fit: contain; background: #111; border-radius: 12px; }
+.label-slot { display: grid; gap: 6px; }
+#back-label img { width: 100%; max-height: 280px; object-fit: contain; background: #111; border-radius: 12px; }
+#wine-edit .field { display: block; margin-top: 10px; }
+#wine-edit input, #wine-edit select { width: 100%; margin-top: 4px; }
 #alta .alta-fail {
   margin: 0 0 6px;
   padding: 6px 8px;

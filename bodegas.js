@@ -612,6 +612,7 @@ var WINERY_CARDS = [
     "aliases": [
       "Castillo Perelada",
       "Cavas del Castillo de Perelada",
+      "Grup Peralada",
       "Peralada"
     ],
     "country": "España",
@@ -1023,7 +1024,7 @@ var WINERY_CARDS = [
       "Chapelle-Chambertin",
       "Échezeaux"
     ],
-    "file": "",
+    "file": "bodega-domaine-cecile-tremblay.jpg",
     "sources": [
       "https://grossiste.e-pro.fr/cote-d-or/c-tremblay_f4096486",
       "https://www.burgundy-report.com/burgundy-report-extra/12-2023/cecile-tremblay-2022/",
@@ -1147,7 +1148,7 @@ var WINERY_CARDS = [
       "Bonnes-Mares",
       "Chambolle-Musigny 1er Cru Les Amoureuses"
     ],
-    "file": "",
+    "file": "bodega-domaine-georges-roumier.jpg",
     "sources": [
       "https://chambollemusigny.fr/de/weinberge-und-weine/unsere-winzer",
       "https://www.winewithseth.com/winewiki/domaine-roumier/",

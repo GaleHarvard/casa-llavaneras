@@ -1563,6 +1563,28 @@ addI18n([
   ["wineries.zone", "Zona", "Zona", "Zone", "Zone", "Zona"],
   ["wineries.sources", "Fuentes", "Fonts", "Sources", "Sources", "Fontes"]
 ]);
+addI18n([
+  ["alta.timeout", "Gemini ha tardado demasiado. Puedes reintentar.", "Gemini ha trigat massa. Pots tornar-ho a provar.", "Gemini took too long. You can retry.", "Gemini a mis trop de temps. Vous pouvez réessayer.", "O Gemini demorou demais. Pode tentar de novo."],
+  ["alta.retry", "Reintentar", "Tornar-hi", "Retry", "Réessayer", "Tentar de novo"],
+  ["alta.pendingWinery", "Falta la bodega. Puedes guardarla como pendiente.", "Falta el celler. El pots desar com a pendent.", "The winery is missing. You can save it as pending.", "Le domaine manque. Vous pouvez l'enregistrer comme en attente.", "Falta o produtor. Pode guardá-lo como pendente."],
+  ["alta.suggestWinery", "Bodega del catálogo: {name}", "Celler del catàleg: {name}", "Catalogue winery: {name}", "Domaine du catalogue : {name}", "Produtor do catálogo: {name}"],
+  ["alta.useWinery", "Usar esta bodega", "Fer servir aquest celler", "Use this winery", "Utiliser ce domaine", "Usar este produtor"],
+  ["alta.onlyBack", "Solo hay contraetiqueta. La ficha usará la ilustración hasta que fotografíes la etiqueta.", "Només hi ha contraetiqueta. La fitxa farà servir la il·lustració fins que fotografiïs l'etiqueta.", "There is only a back label. The sheet will use the illustration until you photograph the front label.", "Il n'y a que la contre-étiquette. La fiche utilisera l'illustration jusqu'à la photo de l'étiquette.", "Só há contra-rótulo. A ficha usará a ilustração até fotografar o rótulo."],
+  ["alta.shootFront", "Fotografiar etiqueta", "Fotografiar l'etiqueta", "Photograph the label", "Photographier l'étiquette", "Fotografar o rótulo"],
+  ["alta.which", "¿Esta foto es la etiqueta o la contraetiqueta?", "Aquesta foto és l'etiqueta o la contraetiqueta?", "Is this photo the label or the back label?", "Cette photo est-elle l'étiquette ou la contre-étiquette ?", "Esta foto é o rótulo ou o contra-rótulo?"],
+  ["alta.slotFront", "Etiqueta delantera", "Etiqueta frontal", "Front label", "Étiquette avant", "Rótulo frontal"],
+  ["alta.slotBack", "Contraetiqueta", "Contraetiqueta", "Back label", "Contre-étiquette", "Contra-rótulo"],
+  ["alta.slotsLead", "Fotografía la etiqueta delantera y, si quieres, la contraetiqueta. Las dos se leen juntas, en una sola ficha.", "Fotografia l'etiqueta frontal i, si vols, la contraetiqueta. Les dues es llegeixen juntes, en una sola fitxa.", "Photograph the front label and, if you want, the back label. Both are read together, into one sheet.", "Photographiez l'étiquette avant et, si vous voulez, la contre-étiquette. Les deux se lisent ensemble, dans une seule fiche.", "Fotografe o rótulo frontal e, se quiser, o contra-rótulo. Os dois leem-se juntos, numa só ficha."],
+  ["alta.readBoth", "Leer las fotos", "Llegir les fotos", "Read the photos", "Lire les photos", "Ler as fotos"],
+  ["alta.readAnyway", "Leer solo la contraetiqueta", "Llegir només la contraetiqueta", "Read only the back label", "Lire seulement la contre-étiquette", "Ler só o contra-rótulo"],
+  ["sheet.edit", "Completar ficha", "Completar la fitxa", "Complete the sheet", "Compléter la fiche", "Completar a ficha"],
+  ["sheet.addVintage", "Añadir añada", "Afegir anyada", "Add vintage", "Ajouter le millésime", "Adicionar colheita"],
+  ["sheet.saved", "Ficha actualizada", "Fitxa actualitzada", "Sheet updated", "Fiche mise à jour", "Ficha atualizada"],
+  ["sheet.noBack", "Sin contraetiqueta.", "Sense contraetiqueta.", "No back label.", "Pas de contre-étiquette.", "Sem contra-rótulo."],
+  ["sheet.changeBack", "Cambiar contraetiqueta", "Canviar la contraetiqueta", "Change the back label", "Changer la contre-étiquette", "Mudar o contra-rótulo"],
+  ["sheet.addBack", "Añadir contraetiqueta", "Afegir contraetiqueta", "Add the back label", "Ajouter la contre-étiquette", "Adicionar contra-rótulo"],
+  ["sheet.gemini", "Completar con Gemini", "Completar amb Gemini", "Complete with Gemini", "Compléter avec Gemini", "Completar com Gemini"]
+]);
 window.I18N = I18N;
 if (document.body) {
   appLang = deviceLang();
