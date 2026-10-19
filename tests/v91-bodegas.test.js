@@ -1,4 +1,4 @@
-/* Las 37 bodegas ilustradas tienen ficha, alias y solo zonas que ya existen. */
+/* Las bodegas ilustradas tienen ficha, alias y solo zonas que ya existen. */
 const fs = require("fs");
 const path = require("path");
 const assert = require("assert");
@@ -40,7 +40,7 @@ eval(extractFunction(v91, "fuzzyWineryHit"));
 const zoneSrc = vinoteca.slice(0, vinoteca.indexOf("const ZONE_DO"));
 const zoneNames = new Set(Array.from(zoneSrc.matchAll(/name: "([^"]+)"/g)).map(hit => hit[1]));
 
-assert.strictEqual(WINERY_CARDS.length, 37);
+assert.strictEqual(WINERY_CARDS.length, 56);
 const files = {};
 const missing = [];
 WINERY_CARDS.forEach(card => {
@@ -74,7 +74,7 @@ assert.strictEqual(ygay && ygay.name, "Marqués de Murrieta");
 const coche = fuzzyWineryHit({ producer: { value: "Coche Dury" }, name: { value: "Meursault" } });
 assert.strictEqual(coche && coche.id, "coche-dury");
 const datos = JSON.parse(fs.readFileSync(path.join(root, "data/bodegas-datos.json"), "utf8"));
-assert.strictEqual(datos.length, 37);
+assert.strictEqual(datos.length, 56);
 const byName = {};
 WINERY_CARDS.forEach(card => { byName[card.name] = card; });
 assert.strictEqual(byName["Vega Sicilia"].web, "https://temposvegasicilia.com/");

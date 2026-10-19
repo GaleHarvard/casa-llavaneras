@@ -90,7 +90,7 @@ const zoneSrc = fs.readFileSync(path.join(root, "casa-vinoteca.js"), "utf8").spl
 const ZONES = new Function(zoneSrc + "\nreturn ZONES;")();
 eval(fs.readFileSync(path.join(root, "bodegas.js"), "utf8"));
 assert.strictEqual(ZONES.length, 115);
-assert.strictEqual(WINERY_CARDS.length, 37);
+assert.strictEqual(WINERY_CARDS.length, 56);
 
 const api = new Function("ZONES", "WINERY_CARDS", "foldWinery", [
   extractFunction(alta, "blankWineSheet"),
