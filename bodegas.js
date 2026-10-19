@@ -612,6 +612,7 @@ var WINERY_CARDS = [
     "aliases": [
       "Castillo Perelada",
       "Cavas del Castillo de Perelada",
+      "Grup Peralada",
       "Peralada"
     ],
     "country": "España",
