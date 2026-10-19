@@ -1513,3 +1513,14 @@ a.btn{text-decoration:none}
 .zone-tile small{display:block;color:#9a9a9a;margin-top:2px;font-size:11px}
 .dish-hit{cursor:pointer;-webkit-tap-highlight-color:rgba(198,163,90,.18)}
 .app.fiche #dish .scroll{padding-bottom:28px}
+.app.alta-flow #scan .scan-tools,
+.app.alta-flow #scan .scan-stage { display: none !important; }
+.alta-entry { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+.alta-entry .btn { min-height: 52px; font-size: 16px; }
+.alta-photo-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 8px 0; }
+.alta-shot img, .alta-asset img { width: 100%; max-height: 120px; object-fit: contain; background: #111; border-radius: 12px; display: block; }
+.alta-asset { background: none; border: 0; padding: 0; color: inherit; text-align: left; width: 100%; }
+.alta-shot { margin: 0; }
+#alta-confirm:disabled, #alta-another:disabled { opacity: .4; }
+#alta-assets { grid-template-columns: 1fr 1fr; }
+#alta-assets img { max-height: 132px; }

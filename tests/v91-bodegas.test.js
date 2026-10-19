@@ -92,9 +92,9 @@ assert.ok(v91.includes("wineries.sources"));
 assert.ok(v91.includes('precision === "municipio"'));
 
 assert.ok(html.includes('id="bodegas"'));
-assert.ok(html.includes("casa-v91.js?v=92"));
-assert.ok(app.includes('APP_VERSION = "v92"'));
-assert.ok(sw.includes("casa-llavaneras-ios-v92"));
+assert.ok(html.includes("casa-v91.js?v=93"));
+assert.ok(app.includes('APP_VERSION = "v93"'));
+assert.ok(sw.includes("casa-llavaneras-ios-v93"));
 assert.ok(sw.includes("./bodega-domaine-georges-roumier.jpg"));
 assert.ok(sw.includes("./casa-v91.js"));
 ["wineries.h1", "wineries.open", "wineries.artPending", "wineries.noZone", "wineries.sources"].forEach(key => {

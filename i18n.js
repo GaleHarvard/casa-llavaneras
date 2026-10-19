@@ -1585,6 +1585,30 @@ addI18n([
   ["sheet.addBack", "Añadir contraetiqueta", "Afegir contraetiqueta", "Add the back label", "Ajouter la contre-étiquette", "Adicionar contra-rótulo"],
   ["sheet.gemini", "Completar con Gemini", "Completar amb Gemini", "Complete with Gemini", "Compléter avec Gemini", "Completar com Gemini"]
 ]);
+addI18n([
+  ["alta.cam", "Cámara", "Càmera", "Camera", "Appareil", "Câmara"],
+  ["alta.lib", "Fototeca", "Fototeca", "Photo library", "Photothèque", "Fototeca"],
+  ["alta.stepFront", "Etiqueta delantera", "Etiqueta frontal", "Front label", "Étiquette avant", "Rótulo frontal"],
+  ["alta.stepBack", "Contraetiqueta", "Contraetiqueta", "Back label", "Contre-étiquette", "Contra-rótulo"],
+  ["alta.both", "Primero la delantera y después la trasera. Puedes seguir solo con la delantera.", "Primer la frontal i després la del darrere. Pots seguir només amb la frontal.", "Front label first, then the back. You can continue with only the front.", "D'abord l'avant, puis l'arrière. Vous pouvez continuer avec seulement l'avant.", "Primeiro o frontal e depois o de trás. Pode seguir só com o frontal."],
+  ["alta.onlyFront", "Seguir solo con la delantera", "Seguir només amb la frontal", "Continue with only the front label", "Continuer avec seulement l'avant", "Seguir só com o frontal"],
+  ["alta.analyzing", "Leyendo las fotos…", "Llegint les fotos…", "Reading the photos…", "Lecture des photos…", "A ler as fotos…"],
+  ["alta.preview", "Ficha preliminar", "Fitxa preliminar", "Preliminary sheet", "Fiche préliminaire", "Ficha preliminar"],
+  ["alta.confirm", "Confirmar alta definitiva", "Confirmar l'alta definitiva", "Confirm the final intake", "Confirmer l'entrée définitive", "Confirmar a entrada definitiva"],
+  ["alta.cellar", "Vinoteca", "Vinoteca", "Cellar", "Cave", "Garrafeira"],
+  ["alta.slot", "Hueco", "Forat", "Slot", "Casier", "Lugar"],
+  ["alta.zonePhoto", "Zona", "Zona", "Zone", "Zone", "Zona"],
+  ["alta.wineryPhoto", "Bodega", "Celler", "Winery", "Domaine", "Produtor"],
+  ["alta.confirmed", "Alta confirmada", "Alta confirmada", "Intake confirmed", "Entrée confirmée", "Entrada confirmada"],
+  ["alta.draft", "Borrador", "Esborrany", "Draft", "Brouillon", "Rascunho"],
+  ["alta.climate", "Clima y suelo", "Clima i sòl", "Climate and soil", "Climat et sol", "Clima e solo"],
+  ["alta.history", "Bodega", "Celler", "Winery", "Domaine", "Produtor"],
+  ["alta.source", "Fuente", "Font", "Source", "Source", "Fonte"],
+  ["alta.needPlace", "Elige la vinoteca y el hueco para confirmar.", "Tria la vinoteca i el forat per confirmar.", "Choose the cellar and the slot to confirm.", "Choisissez la cave et le casier pour confirmer.", "Escolha a garrafeira e o lugar para confirmar."],
+  ["alta.crianza", "Crianza", "Criança", "Ageing", "Élevage", "Estágio"],
+  ["alta.serve", "Servicio", "Servei", "Service", "Service", "Serviço"],
+  ["alta.pairing", "Maridaje", "Maridatge", "Pairing", "Accord", "Harmonização"]
+]);
 window.I18N = I18N;
 if (document.body) {
   appLang = deviceLang();

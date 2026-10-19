@@ -1,0 +1,777 @@
+/* Alta v93.
+   Borrador en memoria (altaFlow) hasta la confirmación.
+   status: "DRAFT" | "CONFIRMED"
+   step: "capture" | "analysis" | "preview"
+   ask: "front" | "back"
+   frontLabelImage: portada. Se guarda en IndexedDB (casa-llavaneras-labels) con la clave del vino
+     y se copia a labelThumb. Es la imagen principal de la ficha.
+   backLabelImage: contraetiqueta. Clave "back:" + id, campo propio, apartado Contraetiqueta.
+   sheet: { name, vintage, region, winery, grapes, abv, crianza, serveTemp, tasting, pairing }
+   assets: matchLocalAssets → { regionAssetImage, wineryAssetImage, zone, winery }
+   cellarLocation: { cellarId, bin } obligatorio para confirmar.
+   Las fotos no se copian al localStorage. La copia vinoteca.pro.max.v3.antes-v93 se hace una sola vez. */
+
+function blankWineSheet() {
+  return {
+    name: "", vintage: "", region: "", winery: "",
+    grapes: "", abv: "", crianza: "", serveTemp: "", tasting: "", pairing: ""
+  };
+}
+
+function blankAltaFlow() {
+  return {
+    status: "DRAFT",
+    step: "capture",
+    ask: "front",
+    source: "",
+    frontLabelImage: "",
+    backLabelImage: "",
+    sheet: blankWineSheet(),
+    assets: null,
+    zoneText: "",
+    wineryText: "",
+    sources: [],
+    failure: "",
+    failureReason: "",
+    cellarLocation: { cellarId: "", bin: "" },
+    qty: "1",
+    wineId: ""
+  };
+}
+
+var altaFlow = null;
+var ALTA_BACKUP_KEY = "vinoteca.pro.max.v3.antes-v93";
+
+function foldAlta(text) {
+  if (typeof foldWinery === "function") return foldWinery(text);
+  return String(text || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function phraseHit(hay, needle) {
+  if (!hay || !needle) return false;
+  if (hay === needle) return true;
+  const padded = " " + hay + " ";
+  if (padded.indexOf(" " + needle + " ") >= 0) return true;
+  if (hay.indexOf(needle + " ") === 0) return true;
+  return hay.length > needle.length && hay.lastIndexOf(" " + needle) === hay.length - needle.length - 1;
+}
+
+function altaLabels(item) {
+  const labels = [];
+  const push = value => {
+    const text = String(value || "").trim();
+    if (text) labels.push(text);
+  };
+  if (!item) return labels;
+  push(item.name);
+  String(item.keys || "").split(/[,]+/).forEach(chunk => {
+    const phrase = chunk.trim();
+    if (!phrase) return;
+    push(phrase);
+    phrase.split(/\s+/).forEach(push);
+  });
+  (item.aliases || []).forEach(push);
+  return labels;
+}
+
+function matchLocalAssets(region, winery) {
+  const regionBlob = foldAlta(region);
+  const wineryBlob = foldAlta([winery, region].filter(Boolean).join(" "));
+  const wineryOnly = foldAlta(winery);
+  let zone = null;
+  let zoneLen = 0;
+  (typeof ZONES !== "undefined" ? ZONES : []).forEach(item => {
+    if (!item) return;
+    const official = foldAlta(item.name);
+    altaLabels(item).forEach(label => {
+      const needle = foldAlta(label);
+      const min = needle && needle === official ? 3 : 4;
+      if (!needle || needle.length < min || needle.length <= zoneLen) return;
+      if (!phraseHit(regionBlob, needle)) return;
+      zone = item;
+      zoneLen = needle.length;
+    });
+  });
+  let card = null;
+  let cardLen = 0;
+  const cards = typeof WINERY_CARDS !== "undefined" ? WINERY_CARDS : [];
+  cards.forEach(item => {
+    if (!item) return;
+    altaLabels(item).forEach(label => {
+      const needle = foldAlta(label);
+      if (!needle || needle.length < 5 || needle.length <= cardLen) return;
+      if (!phraseHit(wineryBlob, needle) && !phraseHit(wineryOnly, needle)) return;
+      card = item;
+      cardLen = needle.length;
+    });
+  });
+  return {
+    regionAssetImage: zone && zone.map ? zone.map : "",
+    wineryAssetImage: card && card.file ? card.file : "",
+    zone: zone,
+    winery: card
+  };
+}
+
+function wineReadingSchema() {
+  const str = { type: "STRING" };
+  return {
+    type: "OBJECT",
+    properties: {
+      name: str, vintage: str, region: str, winery: str,
+      grapes: str, abv: str, crianza: str, serveTemp: str, tasting: str, pairing: str
+    },
+    required: ["name", "vintage", "region", "winery"]
+  };
+}
+
+function sheetFromParsed(parsed) {
+  const src = parsed || {};
+  const sheet = blankWineSheet();
+  Object.keys(sheet).forEach(key => {
+    const value = src[key];
+    const text = value && typeof value === "object" ? value.value : value;
+    sheet[key] = String(text || "").replace(/\s+/g, " ").trim();
+    if (/^sin dato$/i.test(sheet[key])) sheet[key] = "";
+  });
+  if (typeof vintageFromText === "function") {
+    const year = vintageFromText(sheet.vintage);
+    if (!year) sheet.vintage = "";
+    else sheet.vintage = year;
+  }
+  if (sheet.vintage && /lote|^\s*l\s*\d{4}/i.test(sheet.vintage)) sheet.vintage = "";
+  return sheet;
+}
+
+function missingIdentity(sheet) {
+  const row = sheet || {};
+  return ["name", "vintage", "region", "winery"].filter(key => !String(row[key] || "").trim());
+}
+
+function citedUri(outcome) {
+  const chunks = typeof groundingChunksOf === "function" ? groundingChunksOf(outcome && outcome.raw) : [];
+  const fromChunk = (chunks || []).map(chunk => chunk && chunk.uri).find(uri => /^https:\/\//i.test(uri || ""));
+  if (fromChunk) return fromChunk;
+  const parsed = outcome && outcome.parsed;
+  const written = parsed && (parsed.source || parsed.url || parsed.fuente);
+  return /^https:\/\//i.test(written || "") ? String(written) : "";
+}
+
+function fillEmptySheet(sheet, parsed) {
+  const next = sheet || blankWineSheet();
+  if (!parsed) return next;
+  Object.keys(next).forEach(key => {
+    if (String(next[key] || "").trim()) return;
+    const value = parsed[key];
+    const text = value && typeof value === "object" ? value.value : value;
+    const clean = String(text || "").replace(/\s+/g, " ").trim();
+    if (!clean || /^sin dato$/i.test(clean)) return;
+    next[key] = clean;
+  });
+  return next;
+}
+
+function readingFailureKind(outcome) {
+  const src = outcome || {};
+  if (src.quota) return "quota";
+  const reason = String(src.reason || "");
+  if (/tiempo agotado/i.test(reason)) return "timeout";
+  if (src.parsed) return "";
+  if (/clave/i.test(reason)) return "key";
+  if (/red o CORS|failed to fetch|network error|load failed/i.test(reason)) return "fetch";
+  if (src.fatal) return "other";
+  return src.parsed ? "" : "other";
+}
+
+async function postWineReading(key, parts, signal) {
+  const models = ["gemini-2.5-flash", "gemini-2.5-flash-lite"];
+  const schema = wineReadingSchema();
+  const prompt = [
+    "La primera imagen es la etiqueta delantera. Si hay una segunda, es la contraetiqueta. Léelas juntas.",
+    "Responde solo JSON con las claves name, vintage, region, winery, grapes, abv, crianza, serveTemp, tasting, pairing.",
+    "name es el vino. vintage es el año de cosecha, o vacío. No uses un lote L2023 como añada.",
+    "region es la DO o la zona. winery es la bodega.",
+    "grapes, abv, crianza, serveTemp, tasting y pairing solo si se leen. Si no constan, cadena vacía.",
+    "No inventes. No escribas «Sin dato»."
+  ].join("\n");
+  let last = { parsed: null, reason: "modelo no disponible", fatal: true };
+  for (let i = 0; i < models.length; i++) {
+    if (typeof geminiGenerate !== "function") return { parsed: null, reason: "red o CORS", fatal: true };
+    const outcome = await geminiGenerate(key, models[i], prompt, schema, signal, 2048, parts);
+    if (outcome && outcome.quota) return outcome;
+    if (outcome && outcome.parsed) return outcome;
+    last = outcome || last;
+    if (outcome && outcome.skipModel) continue;
+    if (readingFailureKind(outcome) === "quota" || readingFailureKind(outcome) === "timeout" || readingFailureKind(outcome) === "key" || readingFailureKind(outcome) === "fetch") return outcome;
+  }
+  return last;
+}
+
+async function postWineSearch(key, prompt, signal) {
+  const models = ["gemini-2.5-flash", "gemini-2.5-flash-lite"];
+  let last = { parsed: null, reason: "modelo no disponible", fatal: true };
+  for (let i = 0; i < models.length; i++) {
+    if (typeof geminiGrounded !== "function") return last;
+    const outcome = await geminiGrounded(key, models[i], prompt, signal);
+    if (outcome && outcome.quota) return outcome;
+    if (outcome && (outcome.skipModel || outcome.retryable)) {
+      last = outcome;
+      continue;
+    }
+    return outcome || last;
+  }
+  return last;
+}
+
+async function analyzeAndEnrichWine(front, back) {
+  const sheet = blankWineSheet();
+  const key = typeof storedGeminiKey === "function" ? storedGeminiKey() : "";
+  if (!key) return { ok: false, failure: "needKey", reason: "", sheet: sheet, assets: matchLocalAssets("", ""), sources: [] };
+  const images = [front, back].filter(Boolean);
+  const parts = images.map(image => typeof imagePart === "function" ? imagePart(image) : null).filter(Boolean);
+  if (!parts.length) return { ok: false, failure: "image", reason: "", sheet: sheet, assets: matchLocalAssets("", ""), sources: [] };
+  const ctrl = typeof AbortController === "function" ? new AbortController() : null;
+  const timer = setTimeout(() => { if (ctrl) ctrl.abort(); }, 22000);
+  const sources = [];
+  let zoneText = "";
+  let wineryText = "";
+  try {
+    const outcome = await postWineReading(key, parts, ctrl && ctrl.signal);
+    const kind = readingFailureKind(outcome);
+    const onLine = typeof navigator === "undefined" ? true : navigator.onLine;
+    if (kind === "quota" || kind === "timeout" || kind === "key") {
+      return { ok: false, failure: kind, reason: (outcome && outcome.reason) || "", sheet: sheet, assets: matchLocalAssets("", ""), sources: sources };
+    }
+    if (kind === "fetch" && typeof shouldUseOfflineRead === "function" && shouldUseOfflineRead(onLine, "fetch")) {
+      return { ok: false, failure: "offline", reason: "", sheet: sheet, assets: matchLocalAssets("", ""), sources: sources };
+    }
+    if (kind === "fetch" || (kind && !outcome.parsed)) {
+      return { ok: false, failure: kind || "fetch", reason: (outcome && outcome.reason) || "", sheet: sheet, assets: matchLocalAssets("", ""), sources: sources };
+    }
+    fillEmptySheet(sheet, sheetFromParsed(outcome && outcome.parsed));
+    if (missingIdentity(sheet).length) {
+      const search = await postWineSearch(key, [
+        "Completa solo los datos que falten de este vino. Usa Google Search.",
+        "Responde JSON: {\"name\":\"\",\"vintage\":\"\",\"region\":\"\",\"winery\":\"\",\"grapes\":\"\",\"abv\":\"\",\"crianza\":\"\",\"serveTemp\":\"\",\"tasting\":\"\",\"pairing\":\"\",\"source\":\"https://...\"}.",
+        "source es la página de donde sale el dato. Si no hay fuente, deja el campo vacío.",
+        "No inventes. No escribas «Sin dato».",
+        "Ya leído: " + [sheet.name, sheet.vintage, sheet.region, sheet.winery].filter(Boolean).join(" · ")
+      ].join("\n"), ctrl && ctrl.signal);
+      if (search && search.quota) {
+        return { ok: false, failure: "quota", reason: search.reason || "", sheet: sheet, assets: matchLocalAssets(sheet.region, sheet.winery), sources: sources };
+      }
+      const uri = citedUri(search);
+      if (uri && search.parsed) {
+        fillEmptySheet(sheet, sheetFromParsed(search.parsed));
+        sources.push(uri);
+      }
+    }
+    const assets = matchLocalAssets(sheet.region, sheet.winery);
+    if (!assets.zone && sheet.region) {
+      const place = await postWineSearch(key, [
+        "Describe la denominación o zona vinícola «" + sheet.region + "»: clima y suelo.",
+        "Responde JSON: {\"climate\":\"\",\"soil\":\"\",\"source\":\"https://...\"}.",
+        "Si no hay una página que lo sostenga, deja los campos vacíos. No inventes. No escribas «Sin dato»."
+      ].join("\n"), ctrl && ctrl.signal);
+      const uri = citedUri(place);
+      const parsed = place && place.parsed;
+      if (uri && parsed) {
+        zoneText = [parsed.climate, parsed.soil].map(bit => String(bit || "").trim()).filter(bit => bit && !/^sin dato$/i.test(bit)).join(" ");
+        if (zoneText) sources.push(uri);
+        else zoneText = "";
+      }
+    }
+    if (!assets.winery && sheet.winery) {
+      const house = await postWineSearch(key, [
+        "Describe la bodega «" + sheet.winery + "»: historia, fundación y ubicación.",
+        "Responde JSON: {\"history\":\"\",\"founded\":\"\",\"place\":\"\",\"source\":\"https://...\"}.",
+        "Si no hay una página que lo sostenga, deja los campos vacíos. No inventes. No escribas «Sin dato»."
+      ].join("\n"), ctrl && ctrl.signal);
+      const uri = citedUri(house);
+      const parsed = house && house.parsed;
+      if (uri && parsed) {
+        wineryText = [parsed.history, parsed.founded, parsed.place].map(bit => String(bit || "").trim()).filter(bit => bit && !/^sin dato$/i.test(bit)).join(" · ");
+        if (wineryText) sources.push(uri);
+        else wineryText = "";
+      }
+    }
+    return { ok: true, failure: "", reason: "", sheet: sheet, assets: assets, zoneText: zoneText, wineryText: wineryText, sources: sources };
+  } catch (err) {
+    const aborted = err && (err.name === "AbortError" || /abort/i.test(String(err.message || "")));
+    const failure = aborted ? "timeout" : "fetch";
+    const onLine = typeof navigator === "undefined" ? true : navigator.onLine;
+    if (!aborted && typeof shouldUseOfflineRead === "function" && shouldUseOfflineRead(onLine, "fetch")) {
+      return { ok: false, failure: "offline", reason: "", sheet: sheet, assets: matchLocalAssets("", ""), sources: [] };
+    }
+    return { ok: false, failure: failure, reason: aborted ? "tiempo agotado" : String(err && err.message || ""), sheet: sheet, assets: matchLocalAssets("", ""), sources: [] };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function altaCanConfirm(flow) {
+  const row = flow || {};
+  const place = row.cellarLocation || {};
+  return !!(place.cellarId && String(place.bin || "").trim());
+}
+
+function altaFailureText(kind, reason) {
+  if (kind === "offline") return t("alta.offline");
+  if (kind === "image") return t("alta.image");
+  if (typeof labelFailureText === "function") return labelFailureText(kind === "fetch" ? "fetch" : kind, reason) || "";
+  return String(reason || "");
+}
+
+function setAltaChrome(on) {
+  const app = document.querySelector(".app");
+  if (!app) return;
+  app.classList.remove("scan-slots");
+  app.classList.toggle("alta-flow", !!on);
+}
+
+function armAltaInputs() {
+  const cam = document.getElementById("scan-file-cam");
+  const lib = document.getElementById("scan-file-lib");
+  if (cam) {
+    cam.setAttribute("accept", "image/*");
+    cam.setAttribute("capture", "environment");
+  }
+  if (lib) {
+    lib.setAttribute("accept", "image/*");
+    lib.removeAttribute("capture");
+  }
+}
+
+function altaEntryButtons() {
+  return '<div class="alta-entry">'
+    + '<button type="button" class="btn btn-gold" id="alta-cam" onclick="altaPick(\'camara\')">' + escHtml(t("alta.cam")) + "</button>"
+    + '<button type="button" class="btn btn-ghost" id="alta-lib" onclick="altaPick(\'fototeca\')">' + escHtml(t("alta.lib")) + "</button>"
+    + "</div>";
+}
+
+function altaThumb(src, caption) {
+  if (!src) return "";
+  return '<figure class="alta-shot"><img src="' + escHtml(src) + '" alt="' + escHtml(caption) + '"><figcaption class="tiny">' + escHtml(caption) + "</figcaption></figure>";
+}
+
+function renderAltaCapture() {
+  if (!altaFlow) altaFlow = blankAltaFlow();
+  setAltaChrome(true);
+  armAltaInputs();
+  const box = document.getElementById("scan-results");
+  if (!box) return;
+  const front = altaFlow.ask === "back";
+  box.innerHTML = '<div class="card" id="alta-capture">'
+    + "<h2>" + escHtml(front ? t("alta.stepBack") : t("alta.stepFront")) + "</h2>"
+    + "<p>" + escHtml(t("alta.both")) + "</p>"
+    + '<div class="alta-photo-row">' + altaThumb(altaFlow.frontLabelImage, t("alta.slotFront")) + altaThumb(altaFlow.backLabelImage, t("alta.slotBack")) + "</div>"
+    + altaEntryButtons()
+    + (front ? '<button type="button" class="btn btn-ghost" id="alta-skip-back" style="width:100%;margin-top:8px" onclick="altaSkipBack()">' + escHtml(t("alta.onlyFront")) + "</button>" : "")
+    + "</div>";
+}
+
+function renderAltaAnalysis() {
+  setAltaChrome(true);
+  const box = document.getElementById("scan-results");
+  if (!box) return;
+  const failure = altaFlow && altaFlow.failure ? altaFailureText(altaFlow.failure, altaFlow.failureReason) : "";
+  box.innerHTML = '<div class="card" id="alta-analysis"><p>' + escHtml(failure || t("alta.analyzing")) + "</p>"
+    + (failure ? '<button type="button" class="btn btn-gold" id="alta-retry" style="width:100%;margin-top:8px" onclick="runAltaAnalysis()">' + escHtml(t("alta.retry")) + "</button>" : "")
+    + "</div>";
+}
+
+function altaBinChoices(cellarId, selected) {
+  let codes = [];
+  const caves = (typeof state !== "undefined" && state && state.vinotecas) || [];
+  const cave = caves.find(item => item && item.id === cellarId);
+  if (cave && typeof ensureCaveSlots === "function") ensureCaveSlots(cave);
+  if (typeof rackSlots === "function" && cellarId) codes = rackSlots(cellarId) || [];
+  if (!codes.length && cellarId && typeof nextBin === "function") codes = [nextBin(cellarId)];
+  const used = typeof takenBins === "function" && cellarId ? takenBins(cellarId) : new Set();
+  const free = codes.filter(code => !used.has(code));
+  const list = free.length ? free : codes;
+  const options = ['<option value=""></option>'].concat(list.slice(0, 80).map(code => {
+    return '<option value="' + escHtml(code) + '"' + (code === selected ? " selected" : "") + ">" + escHtml(code) + "</option>";
+  }));
+  return options.join("");
+}
+
+function altaShownFact(label, value) {
+  const text = String(value || "").trim();
+  if (!text || /^sin dato$/i.test(text)) return "";
+  return "<p><span class=\"tiny\">" + escHtml(label) + "</span><br>" + escHtml(text) + "</p>";
+}
+
+function renderAltaPreview() {
+  if (!altaFlow) return;
+  setAltaChrome(false);
+  if (typeof show === "function") show("alta");
+  const body = document.getElementById("alta-body");
+  if (!body) return;
+  const sheet = altaFlow.sheet || blankWineSheet();
+  const assets = altaFlow.assets || matchLocalAssets(sheet.region, sheet.winery);
+  const place = altaFlow.cellarLocation || { cellarId: "", bin: "" };
+  const caves = (typeof state !== "undefined" && state && state.vinotecas) || [];
+  const caveOptions = ['<option value=""></option>'].concat(caves.map(cave => {
+    return '<option value="' + escHtml(cave.id) + '"' + (cave.id === place.cellarId ? " selected" : "") + ">" + escHtml(cave.name) + "</option>";
+  })).join("");
+  const input = (key, label) => '<label class="field"><span>' + escHtml(label) + '</span><input id="alta-f-' + key + '" value="' + escHtml(sheet[key] || "") + '"></label>';
+  const asset = (src, caption, open) => {
+    if (!src) return "";
+    const click = open ? ' onclick="' + open + '"' : "";
+    return '<button type="button" class="alta-asset"' + click + '><img src="' + escHtml(src) + '" alt="' + escHtml(caption) + '"><span class="tiny">' + escHtml(caption) + "</span></button>";
+  };
+  const zoneOpen = assets.zone ? "openZona('" + String(assets.zone.name).replace(/'/g, "") + "')" : "";
+  const wineryOpen = assets.winery ? "openBodega('" + assets.winery.id + "')" : "";
+  const ready = altaCanConfirm(altaFlow);
+  body.innerHTML = '<div id="alta-preview">'
+    + '<p class="tiny">' + escHtml(t("alta.draft")) + "</p>"
+    + "<h1>" + escHtml(t("alta.preview")) + "</h1>"
+    + '<div class="alta-photo-row">'
+    + altaThumb(altaFlow.frontLabelImage, t("alta.slotFront"))
+    + altaThumb(altaFlow.backLabelImage, t("alta.slotBack"))
+    + asset(assets.regionAssetImage, assets.zone ? assets.zone.name : t("alta.zonePhoto"), zoneOpen)
+    + asset(assets.wineryAssetImage, assets.winery ? assets.winery.name : t("alta.wineryPhoto"), wineryOpen)
+    + "</div>"
+    + altaShownFact(t("alta.climate"), altaFlow.zoneText)
+    + altaShownFact(t("alta.history"), altaFlow.wineryText)
+    + ((altaFlow.sources || []).length ? '<p class="tiny">' + escHtml(t("alta.source")) + " · " + escHtml(altaFlow.sources[0]) + "</p>" : "")
+    + '<label class="field"><span>' + escHtml(t("alta.cellar")) + '</span><select id="alta-cellar" onchange="altaCellarPicked()">' + caveOptions + "</select></label>"
+    + '<label class="field"><span>' + escHtml(t("alta.slot")) + '</span><select id="alta-bin" onchange="altaLocationChanged()">' + altaBinChoices(place.cellarId, place.bin) + "</select></label>"
+    + '<p class="muted" id="alta-need-place">' + escHtml(ready ? "" : t("alta.needPlace")) + "</p>"
+    + '<button type="button" class="btn btn-gold" id="alta-confirm" style="width:100%;margin-top:8px" onclick="confirmAlta(false)"' + (ready ? "" : " disabled") + ">" + escHtml(t("alta.confirm")) + "</button>"
+    + '<button type="button" class="btn btn-ghost" id="alta-another" style="width:100%;margin-top:8px" onclick="confirmAlta(true)"' + (ready ? "" : " disabled") + ">" + escHtml(t("alta.saveAnother")) + "</button>"
+    + '<div class="alta-grid">'
+    + input("name", t("alta.name"))
+    + input("winery", t("alta.producer"))
+    + input("vintage", t("alta.vintage"))
+    + input("region", t("alta.appellation"))
+    + input("grapes", t("alta.grapes"))
+    + input("abv", t("alta.abv"))
+    + input("crianza", t("alta.crianza"))
+    + input("serveTemp", t("alta.serve"))
+    + input("tasting", t("wine.tasteTab"))
+    + input("pairing", t("alta.pairing"))
+    + '<label class="field"><span>' + escHtml(t("alta.qty")) + '</span><input id="alta-qty" type="number" min="1" value="' + escHtml(altaFlow.qty || "1") + '"></label>'
+    + "</div>"
+    + "</div>";
+}
+
+function renderAltaStep() {
+  if (!altaFlow) altaFlow = blankAltaFlow();
+  if (altaFlow.step === "preview") return renderAltaPreview();
+  if (altaFlow.step === "analysis") {
+    if (typeof show === "function") show("scan");
+    return renderAltaAnalysis();
+  }
+  if (typeof show === "function") show("scan");
+  return renderAltaCapture();
+}
+
+function altaPick(source) {
+  if (!altaFlow) altaFlow = blankAltaFlow();
+  if (altaFlow.step !== "capture") {
+    altaFlow.step = "capture";
+  }
+  altaFlow.source = source === "fototeca" ? "fototeca" : "camara";
+  armAltaInputs();
+  const input = document.getElementById(altaFlow.source === "fototeca" ? "scan-file-lib" : "scan-file-cam");
+  if (!input) return;
+  input.value = "";
+  input.onchange = () => {
+    const file = input.files && input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => altaAcceptPhoto(reader.result);
+    reader.readAsDataURL(file);
+  };
+  renderAltaStep();
+  input.click();
+}
+
+async function altaAcceptPhoto(dataUrl) {
+  const prepared = typeof prepareLabelImage === "function" ? await prepareLabelImage(dataUrl) : { ok: true, dataUrl: dataUrl };
+  if (!prepared.ok) {
+    if (typeof toast === "function") toast(t("alta.image"));
+    return;
+  }
+  if (!altaFlow) altaFlow = blankAltaFlow();
+  if (altaFlow.ask !== "back") {
+    altaFlow.frontLabelImage = prepared.dataUrl;
+    altaFlow.ask = "back";
+    altaFlow.step = "capture";
+    renderAltaStep();
+    return;
+  }
+  altaFlow.backLabelImage = prepared.dataUrl;
+  await runAltaAnalysis();
+}
+
+async function altaSkipBack() {
+  if (!altaFlow || !altaFlow.frontLabelImage) return;
+  altaFlow.backLabelImage = "";
+  await runAltaAnalysis();
+}
+
+async function runAltaAnalysis() {
+  if (!altaFlow || !altaFlow.frontLabelImage) return renderAltaCapture();
+  altaFlow.step = "analysis";
+  altaFlow.failure = "";
+  altaFlow.status = "DRAFT";
+  renderAltaStep();
+  const result = await analyzeAndEnrichWine(altaFlow.frontLabelImage, altaFlow.backLabelImage);
+  if (!altaFlow) return;
+  if (!result.ok) {
+    altaFlow.failure = result.failure || "other";
+    altaFlow.failureReason = result.reason || "";
+    altaFlow.step = "analysis";
+    renderAltaStep();
+    return;
+  }
+  altaFlow.sheet = result.sheet || blankWineSheet();
+  altaFlow.assets = result.assets || matchLocalAssets(altaFlow.sheet.region, altaFlow.sheet.winery);
+  altaFlow.zoneText = result.zoneText || "";
+  altaFlow.wineryText = result.wineryText || "";
+  altaFlow.sources = result.sources || [];
+  altaFlow.step = "preview";
+  altaFlow.status = "DRAFT";
+  renderAltaStep();
+}
+
+function captureAltaSheet() {
+  if (!altaFlow) return;
+  altaFlow.sheet = altaFlow.sheet || blankWineSheet();
+  Object.keys(altaFlow.sheet).forEach(key => {
+    const el = document.getElementById("alta-f-" + key);
+    if (el) altaFlow.sheet[key] = String(el.value || "").trim();
+  });
+  const qty = document.getElementById("alta-qty");
+  const cellar = document.getElementById("alta-cellar");
+  const bin = document.getElementById("alta-bin");
+  if (qty) altaFlow.qty = qty.value;
+  if (cellar || bin) {
+    altaFlow.cellarLocation = {
+      cellarId: cellar ? cellar.value : "",
+      bin: bin ? bin.value : ""
+    };
+  }
+}
+
+function altaCellarPicked() {
+  captureAltaSheet();
+  if (altaFlow && altaFlow.cellarLocation) altaFlow.cellarLocation.bin = "";
+  renderAltaPreview();
+}
+
+function altaLocationChanged() {
+  captureAltaSheet();
+  const ready = altaCanConfirm(altaFlow);
+  const confirm = document.getElementById("alta-confirm");
+  const another = document.getElementById("alta-another");
+  if (confirm) confirm.disabled = !ready;
+  if (another) another.disabled = !ready;
+}
+
+function altaWineId(sheet) {
+  const slug = foldAlta((sheet.winery || "") + " " + (sheet.name || "")).replace(/ /g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "").slice(0, 48);
+  const year = String(sheet.vintage || "").replace(/\D/g, "");
+  return (slug || "vino") + (year ? "-" + year : "");
+}
+
+function emptyAltaRatings() {
+  return {
+    vivino: { score: 0, scale: 5, note: "" },
+    penin: { score: 0, scale: 100, note: "" },
+    parker: { score: 0, scale: 100, note: "" },
+    spectator: { score: 0, scale: 100, note: "" },
+    decanter: { score: 0, scale: 100, note: "" }
+  };
+}
+
+async function storeAltaImage(key, dataUrl) {
+  if (!dataUrl) return "";
+  if (typeof saveWineLabelPhoto === "function") {
+    const ok = await saveWineLabelPhoto(key, dataUrl);
+    if (ok && typeof labelMarker === "function") return labelMarker(key);
+  }
+  if (String(dataUrl).length < 400000) return dataUrl;
+  return "";
+}
+
+async function confirmAlta(another) {
+  if (!altaFlow) return;
+  captureAltaSheet();
+  altaFlow.assets = matchLocalAssets(altaFlow.sheet.region, altaFlow.sheet.winery);
+  if (!altaCanConfirm(altaFlow)) {
+    renderAltaPreview();
+    return;
+  }
+  const sheet = altaFlow.sheet;
+  const assets = altaFlow.assets || {};
+  const card = assets.winery;
+  const zone = assets.zone;
+  const id = altaWineId(sheet);
+  const wine = {
+    id: id,
+    name: sheet.name || "",
+    producer: (card && card.name) || sheet.winery || "",
+    vintage: parseInt(sheet.vintage, 10) || 0,
+    region: (zone && zone.name) || sheet.region || "",
+    country: (zone && zone.country) || (card && card.country) || "",
+    appellation: (zone && zone.name) || sheet.region || "",
+    type: "",
+    style: "escaneo",
+    grapes: String(sheet.grapes || "").split(/[,;]/).map(part => part.trim()).filter(Boolean),
+    abv: parseFloat(String(sheet.abv || "").replace(",", ".")) || 0,
+    volume: "",
+    color: "#4a1020",
+    ratings: emptyAltaRatings(),
+    priceHint: "",
+    tasting: sheet.tasting || "",
+    provenance: {
+      intake: "usuario",
+      intakeStatus: "CONFIRMED",
+      zoneId: zone ? zone.name : "",
+      wineryId: card ? card.id : "",
+      sources: (altaFlow.sources || []).slice(),
+      zoneText: altaFlow.zoneText || "",
+      wineryText: altaFlow.wineryText || "",
+      crianza: sheet.crianza || "",
+      serveTemp: sheet.serveTemp || "",
+      pairingNote: sheet.pairing || ""
+    },
+    geo: card ? { lat: card.lat, lng: card.lng, web: card.web, address: card.address, zone: card.town || "" } : {},
+    zoneAsset: assets.regionAssetImage || "",
+    wineryAsset: assets.wineryAssetImage || ""
+  };
+  if (typeof normalizeWine === "function") normalizeWine(wine);
+  const stored = typeof upsertCustomWine === "function" ? upsertCustomWine(wine) : wine;
+  stored.frontLabelImage = await storeAltaImage(stored.id, altaFlow.frontLabelImage);
+  stored.backLabelImage = altaFlow.backLabelImage ? await storeAltaImage("back:" + stored.id, altaFlow.backLabelImage) : "";
+  if (stored.frontLabelImage) stored.labelThumb = stored.frontLabelImage;
+  if (stored.backLabelImage) stored.backLabel = stored.backLabelImage;
+  stored.provenance.intakeStatus = "CONFIRMED";
+  const cellarId = altaFlow.cellarLocation.cellarId;
+  const bin = altaFlow.cellarLocation.bin;
+  const qty = Math.max(1, parseInt(altaFlow.qty || "1", 10) || 1);
+  let lot = null;
+  if (typeof mergeOrCreateLot === "function") {
+    lot = mergeOrCreateLot({ wineId: stored.id, cellarId: cellarId, bin: bin, qty: qty, photo: "" });
+  }
+  altaFlow.status = "CONFIRMED";
+  altaFlow.wineId = stored.id;
+  if (typeof save === "function") save();
+  if (typeof toast === "function") toast(t("alta.confirmed"));
+  if (another) {
+    altaFlow = blankAltaFlow();
+    if (typeof show === "function") show("scan");
+    renderAltaCapture();
+    return stored;
+  }
+  setAltaChrome(false);
+  if (typeof openWine === "function") openWine(stored.id, lot);
+  return stored;
+}
+
+function altaAssetBlock(wine) {
+  if (!wine) return "";
+  const zoneSrc = wine.zoneAsset || "";
+  const winerySrc = wine.wineryAsset || "";
+  const photoOf = ref => {
+    if (!ref) return "";
+    if (typeof resolvedPhoto === "function") return resolvedPhoto(ref) || "";
+    return /^data:image\//i.test(ref) ? ref : "";
+  };
+  const frontSrc = photoOf(wine.labelThumb) || photoOf(wine.frontLabelImage);
+  const backSrc = photoOf(wine.backLabel) || photoOf(wine.backLabelImage);
+  const zoneText = wine.provenance && wine.provenance.zoneText;
+  const wineryText = wine.provenance && wine.provenance.wineryText;
+  const confirmed = wine.provenance && wine.provenance.intakeStatus === "CONFIRMED";
+  if (!zoneSrc && !winerySrc && !frontSrc && !backSrc && !zoneText && !wineryText) return "";
+  const zoneName = (wine.provenance && wine.provenance.zoneId) || wine.appellation || "";
+  const wineryId = wine.provenance && wine.provenance.wineryId;
+  const bits = [];
+  if (frontSrc) bits.push('<figure class="alta-shot"><img src="' + escHtml(frontSrc) + '" alt="' + escHtml(t("alta.slotFront")) + '"><figcaption class="tiny">' + escHtml(t("alta.slotFront")) + "</figcaption></figure>");
+  if (backSrc) bits.push('<figure class="alta-shot"><img src="' + escHtml(backSrc) + '" alt="' + escHtml(t("alta.slotBack")) + '"><figcaption class="tiny">' + escHtml(t("alta.slotBack")) + "</figcaption></figure>");
+  if (zoneSrc) bits.push('<button type="button" class="alta-asset" onclick="openZona(\'' + String(zoneName).replace(/'/g, "") + '\')"><img src="' + escHtml(zoneSrc) + '" alt=""><span class="tiny">' + escHtml(zoneName || t("alta.zonePhoto")) + "</span></button>");
+  if (winerySrc && wineryId) bits.push('<button type="button" class="alta-asset" onclick="openBodega(\'' + wineryId + '\')"><img src="' + escHtml(winerySrc) + '" alt=""><span class="tiny">' + escHtml(wine.producer || t("alta.wineryPhoto")) + "</span></button>");
+  const notes = altaShownFact(t("alta.climate"), zoneText) + altaShownFact(t("alta.history"), wineryText);
+  const mark = confirmed ? '<p class="tiny" id="alta-confirmed">' + escHtml(t("alta.confirmed")) + "</p>" : "";
+  return mark + '<div id="alta-assets" class="alta-photo-row">' + bits.join("") + "</div>" + notes;
+}
+
+var openWineAlta = openWine;
+openWine = function (wineId, bottle) {
+  openWineAlta(wineId, bottle);
+  setAltaChrome(false);
+  const wine = typeof wineById === "function" ? wineById(wineId) : null;
+  const body = document.getElementById("wine-body");
+  if (!wine || !body || document.getElementById("alta-assets")) return;
+  const html = altaAssetBlock(wine);
+  if (!html) return;
+  const hero = body.querySelector(".wine-hero");
+  if (hero) hero.insertAdjacentHTML("beforebegin", html);
+  else body.insertAdjacentHTML("afterbegin", html);
+};
+
+var startScanAlta = startScan;
+startScan = async function () {
+  setAltaChrome(true);
+  if (typeof stopCam === "function") stopCam();
+  altaFlow = blankAltaFlow();
+  if (typeof show === "function") show("scan");
+  renderAltaCapture();
+};
+
+var ingestLabelImageAlta = ingestLabelImage;
+ingestLabelImage = async function (dataUrl) {
+  await altaAcceptPhoto(dataUrl);
+};
+
+pickFromRoll = function () {
+  altaPick("fototeca");
+};
+
+captureOrOpenCamera = function () {
+  altaPick("camara");
+};
+
+function backupCellarBeforeV93() {
+  const store = typeof STORE !== "undefined" ? STORE : "vinoteca.pro.max.v3";
+  try {
+    if (localStorage.getItem(ALTA_BACKUP_KEY)) return false;
+    const raw = localStorage.getItem(store);
+    if (!raw) return false;
+    localStorage.setItem(ALTA_BACKUP_KEY, raw);
+    return true;
+  } catch (err) {
+    return false;
+  }
+}
+
+function migrateAltaPhotos() {
+  backupCellarBeforeV93();
+  if (typeof state === "undefined" || !state || !Array.isArray(state.customWines)) return false;
+  let changed = false;
+  state.customWines.forEach(wine => {
+    if (!wine) return;
+    if (!wine.frontLabelImage && wine.labelThumb) {
+      wine.frontLabelImage = wine.labelThumb;
+      changed = true;
+    }
+    if (!wine.backLabelImage && wine.backLabel) {
+      wine.backLabelImage = wine.backLabel;
+      changed = true;
+    }
+  });
+  if (changed && typeof save === "function") save();
+  return changed;
+}
+
+var prepareOwnLabelsAlta = prepareOwnLabels;
+prepareOwnLabels = function () {
+  return prepareOwnLabelsAlta().then(() => {
+    try { migrateAltaPhotos(); } catch (err) {}
+    return true;
+  });
+};
