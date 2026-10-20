@@ -961,23 +961,28 @@ label.field span {
   position: relative;
   height: auto;
   min-height: 0;
-  margin: 0 0 8px;
+  margin: 0 -15px 8px;
   display: block;
   min-width: 0;
-  max-width: 100%;
+  width: calc(100% + 30px);
+  max-width: none;
   overflow: hidden;
 }
 .hero-row {
   position: relative;
-  display: block;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 8px;
   width: 100%;
   max-width: 100%;
   min-width: 0;
 }
 .hero-art {
   display: block;
-  width: calc(100% - 50px);
-  max-width: 80vw;
+  flex: 0 0 63.5vw;
+  width: 63.5vw;
+  max-width: 65vw;
   min-width: 0;
   border: 0;
   background: #000;
@@ -994,22 +999,25 @@ label.field span {
   background: #000;
 }
 .hero-row .foil-wrap {
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  width: 42px;
-  height: 64px;
+  position: static;
+  flex: 0 0 31.5vw;
+  width: 31.5vw;
+  max-width: 33vw;
+  height: 280px;
   margin: 0;
   overflow: hidden;
   z-index: 1;
-  border-radius: 8px;
+  border-radius: 12px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
 }
 .hero-row .label-thumb-hero,
 .hero-row .bottle-photo {
-  width: 42px;
-  height: 64px;
+  width: 100%;
+  height: 270px;
   max-width: 100%;
-  object-fit: contain;
+  object-fit: cover;
   object-position: center bottom;
   margin: 0;
   -webkit-mask-image: none;
