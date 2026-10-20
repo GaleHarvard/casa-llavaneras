@@ -47,7 +47,26 @@ var WINERY_LIBRARY = [
   { name: "Bodegas Avelino Vegas", file: "vinedo.jpg", aliases: ["Avelino Vegas", "Circe"] },
   { name: "Domaine Coche-Dury", file: "bodega-domaine-coche-dury.jpg", aliases: ["Coche-Dury", "Coche Dury"] },
   { name: "Domaine Cécile Tremblay", file: "", aliases: ["Cécile Tremblay", "Cecile Tremblay"] },
-  { name: "Domaine Georges Roumier", file: "", aliases: ["Georges Roumier", "Roumier"] }
+  { name: "Domaine Georges Roumier", file: "", aliases: ["Georges Roumier", "Roumier"] },
+  { name: "Schloss Johannisberg", file: "bodega-schloss-johannisberg.jpg", aliases: ["Fürst von Metternich-Winneburg'sche Domäne Schloss Johannisberg"] },
+  { name: "Kühling-Gillot", file: "bodega-kuhling-gillot.jpg", aliases: ["Weingut Kühling-Gillot", "Kühling & Battenfeld"] },
+  { name: "Adega Cartuxa", file: "bodega-cartuxa.jpg", aliases: ["Cartuxa", "Fundação Eugénio de Almeida", "Quinta de Valbom"] },
+  { name: "Fitapreta", file: "bodega-fitapreta.jpg", aliases: ["Fita Preta Vinhos", "Herdade Fitapreta"] },
+  { name: "Vila Galé (Casa de Santa Vitória)", file: "bodega-vila-gale.jpg", aliases: ["Casa de Santa Vitória", "Santa Vitória", "Vila Galé Alentejo Vineyards"] },
+  { name: "Casa Ferreirinha", file: "bodega-casa-ferreirinha.jpg", aliases: ["A.A. Ferreira", "Ferreira", "Sogrape"] },
+  { name: "Churchill's", file: "bodega-churchills.jpg", aliases: ["Churchill Graham", "Quinta da Gricha"] },
+  { name: "Niepoort", file: "bodega-niepoort.jpg", aliases: ["Niepoort Vinhos", "Quinta de Nápoles"] },
+  { name: "Poças", file: "bodega-pocas.jpg", aliases: ["Poças Júnior"] },
+  { name: "Quinta do Bomfim (Symington Family Estates)", file: "bodega-quinta-do-bomfim.jpg", aliases: ["Symington", "Dow's", "Quinta do Bomfim"] },
+  { name: "Quinta do Crasto", file: "bodega-quinta-do-crasto.jpg", aliases: ["Crasto"] },
+  { name: "Quinta do Pessegueiro", file: "bodega-quinta-do-pessegueiro.jpg", aliases: ["Zannier"] },
+  { name: "Quinta Vale D. Maria", file: "bodega-quinta-vale-d-maria.jpg", aliases: ["Vale Dona Maria", "Van Zellers & Co"] },
+  { name: "Taylor's", file: "bodega-taylors.jpg", aliases: ["Taylor Fladgate", "Taylor's Port"] },
+  { name: "Wine & Soul", file: "bodega-wine-and-soul.jpg", aliases: ["Wine&Soul", "Vine & Soul", "Quinta da Manoella"] },
+  { name: "Casa Santos Lima", file: "bodega-casa-santos-lima.jpg", aliases: ["Quinta da Boavista"] },
+  { name: "Madeira Wine Company", file: "bodega-madeira-wine-company.jpg", aliases: ["Blandy's", "Madeira Wine Association"] },
+  { name: "Casa Ermelinda Freitas", file: "bodega-ermelinda-freitas.jpg", aliases: ["Ermelinda Freitas"] },
+  { name: "Aveleda", file: "bodega-aveleda.jpg", aliases: ["Quinta da Aveleda"] }
 ];
 
 /* Santiuste de San Juan Bautista: web https://avelinovegas.com/ y pin 41.161401, -4.574553. */
@@ -1277,6 +1296,524 @@ var WINERY_CARDS = [
       "https://www.hachette-vins.com/guide-vins/producteurs/23234/dom-de-la-romanee-conti-montrachet/",
       "https://fr.wikipedia.org/wiki/Domaine_de_la_Roman%C3%A9e-Conti",
       "https://en.wikipedia.org/wiki/Domaine_de_la_Roman%C3%A9e-Conti"
+    ]
+  },
+  {
+    "id": "schloss-johannisberg",
+    "name": "Schloss Johannisberg",
+    "aliases": [
+      "Fürst von Metternich-Winneburg'sche Domäne Schloss Johannisberg"
+    ],
+    "country": "Alemania",
+    "zone": "Rheingau",
+    "zoneText": "Rheingau",
+    "town": "Geisenheim-Johannisberg",
+    "web": "https://schloss-johannisberg.de/",
+    "address": "Schloss Johannisberg, 65366 Geisenheim-Johannisberg",
+    "lat": null,
+    "lng": null,
+    "precision": "",
+    "founded": 1720,
+    "about": "Antigua abadía benedictina (h. 1100) del Rheingau. Desde 1720 toda la finca está plantada de riesling: se presenta como el primer viñedo cerrado de riesling del mundo y la cuna de la Spätlese. 47,9 ha en la Grosse Lage Schloss Johannisberg (VDP).",
+    "wines": [
+      "Schloss Johannisberg Riesling"
+    ],
+    "file": "bodega-schloss-johannisberg.jpg",
+    "sources": [
+      "https://schloss-johannisberg.de/",
+      "https://schloss-johannisberg.de/kontakt/",
+      "https://schloss-johannisberg.de/historie/",
+      "https://www.vdp.de/de/die-winzer/rheingau/schloss-johannisberg"
+    ]
+  },
+  {
+    "id": "kuhling-gillot",
+    "name": "Kühling-Gillot",
+    "aliases": [
+      "Weingut Kühling-Gillot",
+      "Kühling & Battenfeld"
+    ],
+    "country": "Alemania",
+    "zone": "",
+    "zoneText": "Rheinhessen",
+    "town": "Bodenheim",
+    "web": "https://www.kuehling-gillot.de/",
+    "address": "Ölmühlstraße 25, 55294 Bodenheim",
+    "lat": null,
+    "lng": null,
+    "precision": "",
+    "founded": null,
+    "about": "Bodega familiar de Bodenheim dirigida desde 2006 por Carolin Spanier-Gillot, con viñas en el Roter Hang (Nierstein/Nackenheim); trabaja en biodinámica junto a Battenfeld-Spanier, con quien vinifica en Hohen-Sülzen.",
+    "wines": [
+      "Riesling GG Pettenthal",
+      "Riesling GG Hipping",
+      "Riesling GG Ölberg",
+      "Riesling GG Rothenberg"
+    ],
+    "file": "bodega-kuhling-gillot.jpg",
+    "sources": [
+      "https://www.weinkenner.de/weingueter/weingut-kuehling-gillot/",
+      "https://www.rheinhessen.de/en/search-producers/a-winery-carolin-spanier-gillot-amp-ho-spanier",
+      "https://www.feinschmecker.de/weingut/de/bodenheim/k%C3%BChling-gillot-7a"
+    ]
+  },
+  {
+    "id": "cartuxa",
+    "name": "Adega Cartuxa",
+    "aliases": [
+      "Cartuxa",
+      "Fundação Eugénio de Almeida",
+      "Quinta de Valbom"
+    ],
+    "country": "Portugal",
+    "zone": "Alentejo",
+    "zoneText": "DOC Alentejo (Évora)",
+    "town": "Évora",
+    "web": "https://www.cartuxa.pt/",
+    "address": "Quinta de Valbom, Estrada da Soeira, 7005-003 Évora",
+    "lat": null,
+    "lng": null,
+    "precision": "",
+    "founded": 1871,
+    "about": "Antigua casa de reposo de los jesuitas de la Universidad de Évora (1580), con lagar desde 1776; la familia Eugénio de Almeida la compró en 1871. Hoy es de la Fundação Eugénio de Almeida, con más de 600 ha de viñedo.",
+    "wines": [
+      "Pêra-Manca tinto",
+      "Pêra-Manca branco",
+      "Cartuxa",
+      "Scala Coeli",
+      "EA"
+    ],
+    "file": "bodega-cartuxa.jpg",
+    "sources": [
+      "https://www.cartuxa.pt/",
+      "https://www.cartuxa.pt/adega/"
+    ]
+  },
+  {
+    "id": "fitapreta",
+    "name": "Fitapreta",
+    "aliases": [
+      "Fita Preta Vinhos",
+      "Herdade Fitapreta"
+    ],
+    "country": "Portugal",
+    "zone": "Alentejo",
+    "zoneText": "DOC Alentejo",
+    "town": "Évora (Paço do Morgado de Oliveira)",
+    "web": "https://www.antoniomacanita.com/en/wineries/fitapreta/fitapreta",
+    "address": "",
+    "lat": null,
+    "lng": null,
+    "precision": "",
+    "founded": 2004,
+    "about": "Proyecto fundado en 2004 por António Maçanita y David Booth. La bodega está en el Paço do Morgado de Oliveira, un edificio medieval de 1306 a unos 10 km de Évora.",
+    "wines": [
+      "Preta"
+    ],
+    "file": "bodega-fitapreta.jpg",
+    "sources": [
+      "https://www.antoniomacanita.com/en/wineries/fitapreta/fitapreta",
+      "https://www.antoniomacanita.com/en/wineries/fitapreta/team",
+      "https://www.antoniomacanita.com/uploads/subcanais2_conteudos_ficheiros/book-fitapreta-2026-pt.pdf"
+    ]
+  },
+  {
+    "id": "vila-gale",
+    "name": "Vila Galé (Casa de Santa Vitória)",
+    "aliases": [
+      "Casa de Santa Vitória",
+      "Santa Vitória",
+      "Vila Galé Alentejo Vineyards"
+    ],
+    "country": "Portugal",
+    "zone": "Alentejo",
+    "zoneText": "Alentejo",
+    "town": "Santa Vitória (Beja)",
+    "web": "https://www.santavitoria.pt/",
+    "address": "Herdade da Malhada, 7800-730 Santa Vitória (Beja)",
+    "lat": null,
+    "lng": null,
+    "precision": "",
+    "founded": null,
+    "about": "Bodega del grupo Vila Galé en el Alentejo, con vinos y aceites Santa Vitória y el hotel Vila Galé Alentejo Vineyards en la finca.",
+    "wines": [],
+    "file": "bodega-vila-gale.jpg",
+    "sources": [
+      "https://www.santavitoria.pt/",
+      "https://www.santavitoria.pt/pages/contact",
+      "https://vilagale.com/en/hotels/alentejo/vila-gale-alentejo-vineyards"
+    ]
+  },
+  {
+    "id": "casa-ferreirinha",
+    "name": "Casa Ferreirinha",
+    "aliases": [
+      "A.A. Ferreira",
+      "Ferreira",
+      "Sogrape"
+    ],
+    "country": "Portugal",
+    "zone": "Douro",
+    "zoneText": "DOC Douro",
+    "town": "Vila Nova de Gaia (caves)",
+    "web": "https://sogrape.com/pt/brand/casa-ferreirinha",
+    "address": "Avenida Ramos Pinto, 70, 4400-082 Vila Nova de Gaia (Caves Ferreira)",
+    "lat": null,
+    "lng": null,
+    "precision": "",
+    "founded": 1751,
+    "about": "Casa del Douro ligada a la familia Ferreira (1751) y a Dona Antónia Adelaide Ferreira, «a Ferreirinha». Hoy pertenece a Sogrape; en 1952 nació aquí el Barca Velha, y la Quinta da Leda (1979) es su finca clave en el Douro Superior.",
+    "wines": [
+      "Barca Velha"
+    ],
+    "file": "bodega-casa-ferreirinha.jpg",
+    "sources": [
+      "https://sogrape.com/pt/brand/casa-ferreirinha",
+      "https://sogrape.com/tourism/caves-ferreira",
+      "https://portoferreira.com/en/dona-antonia",
+      "https://www.sograpevinhos.com/app/templates/media/kits_imprensa/casa-ferreirinha_press.pdf"
+    ]
+  },
+  {
+    "id": "churchills",
+    "name": "Churchill's",
+    "aliases": [
+      "Churchill Graham",
+      "Quinta da Gricha"
+    ],
+    "country": "Portugal",
+    "zone": "Douro",
+    "zoneText": "DOC Douro / Porto",
+    "town": "Vila Nova de Gaia",
+    "web": "https://drinkchurchills.com/",
+    "address": "Rua da Fonte Nova, 5, 4400-156 Vila Nova de Gaia",
+    "lat": null,
+    "lng": null,
+    "precision": "",
+    "founded": 1981,
+    "about": "Casa de oporto fundada en 1981 por John Graham. Su finca en el Douro es la Quinta da Gricha (Ervedosa do Douro) y su lodge está en Vila Nova de Gaia.",
+    "wines": [],
+    "file": "bodega-churchills.jpg",
+    "sources": [
+      "https://drinkchurchills.com/",
+      "https://drinkchurchills.com/products/tasting-at-churchills-lodge",
+      "https://drinkchurchills.com/pages/our-story",
+      "https://porttoportwine.blogspot.com/2019/05/churchills-and-quinta-da-gricha.html"
+    ]
+  },
+  {
+    "id": "niepoort",
+    "name": "Niepoort",
+    "aliases": [
+      "Niepoort Vinhos",
+      "Quinta de Nápoles"
+    ],
+    "country": "Portugal",
+    "zone": "Douro",
+    "zoneText": "DOC Douro / Porto",
+    "town": "Santo Adrião (Armamar)",
+    "web": "https://www.niepoort.pt/",
+    "address": "Quinta de Nápoles, 5110-543 Santo Adrião, Armamar",
+    "lat": null,
+    "lng": null,
+    "precision": "",
+    "founded": 1842,
+    "about": "Casa familiar de vinos de Oporto fundada en 1842. Su bodega en el Douro es la Quinta de Nápoles, en Santo Adrião (Armamar).",
+    "wines": [],
+    "file": "bodega-niepoort.jpg",
+    "sources": [
+      "https://www.niepoort.pt/",
+      "https://www.niepoort.pt/lugares/napoles/"
+    ]
+  },
+  {
+    "id": "pocas",
+    "name": "Poças",
+    "aliases": [
+      "Poças Júnior"
+    ],
+    "country": "Portugal",
+    "zone": "Douro",
+    "zoneText": "DOC Douro / Porto",
+    "town": "Vila Nova de Gaia",
+    "web": "https://www.pocas.pt/",
+    "address": "Rua Visconde das Devesas, 186, 4400-337 Vila Nova de Gaia",
+    "lat": null,
+    "lng": null,
+    "precision": "",
+    "founded": 1918,
+    "about": "Productor independiente de vinos de Oporto y DOC Douro, fundado en 1918 por Manoel Domingues Poças Júnior; sus caves y centro de visitas están en Vila Nova de Gaia (Rua Visconde das Devesas, 168).",
+    "wines": [],
+    "file": "bodega-pocas.jpg",
+    "sources": [
+      "https://www.pocas.pt/",
+      "https://www.pocas.pt/pages/contact-us",
+      "https://www.pocas.pt/en/pages/faq"
+    ]
+  },
+  {
+    "id": "quinta-do-bomfim",
+    "name": "Quinta do Bomfim (Symington Family Estates)",
+    "aliases": [
+      "Symington",
+      "Dow's",
+      "Quinta do Bomfim"
+    ],
+    "country": "Portugal",
+    "zone": "Douro",
+    "zoneText": "DOC Douro / Porto",
+    "town": "Pinhão (Alijó)",
+    "web": "https://www.symington.com/",
+    "address": "Quinta do Bomfim, 5085-060 Pinhão",
+    "lat": null,
+    "lng": null,
+    "precision": "",
+    "founded": 1896,
+    "about": "Quinta de Symington Family Estates en Pinhão, comprada en 1896 por George Warre para Dow's; su bodega de 1896 sigue en uso y desde 2015 tiene centro de visitas.",
+    "wines": [],
+    "file": "bodega-quinta-do-bomfim.jpg",
+    "sources": [
+      "https://www.symington.com/",
+      "https://www.symington.com/visit.php",
+      "https://www.symington.com/vineyard/quinta-do-bomfim",
+      "https://www.symington.com/winery/bomfim-winery"
+    ]
+  },
+  {
+    "id": "quinta-do-crasto",
+    "name": "Quinta do Crasto",
+    "aliases": [
+      "Crasto"
+    ],
+    "country": "Portugal",
+    "zone": "Douro",
+    "zoneText": "DOC Douro / Porto",
+    "town": "Gouvinhas (Sabrosa)",
+    "web": "https://www.quintadocrasto.wine/",
+    "address": "Gouvinhas, 5060-063 Sabrosa",
+    "lat": null,
+    "lng": null,
+    "precision": "",
+    "founded": "documentada desde 1615",
+    "about": "Quinta del Douro con historia documentada desde 1615; Constantino de Almeida la compró en 1918 y la familia Roquette la gestiona desde 1981.",
+    "wines": [],
+    "file": "bodega-quinta-do-crasto.jpg",
+    "sources": [
+      "https://www.quintadocrasto.wine/",
+      "https://www.quintadocrasto.wine/historia/"
+    ]
+  },
+  {
+    "id": "quinta-do-pessegueiro",
+    "name": "Quinta do Pessegueiro",
+    "aliases": [
+      "Zannier"
+    ],
+    "country": "Portugal",
+    "zone": "Douro",
+    "zoneText": "DOC Douro",
+    "town": "Ervedosa do Douro (São João da Pesqueira)",
+    "web": "https://www.quintadopessegueiro.com/",
+    "address": "5130-104 Ervedosa do Douro",
+    "lat": null,
+    "lng": null,
+    "precision": "",
+    "founded": null,
+    "about": "Quinta del Douro en Ervedosa do Douro, propiedad del grupo de Roger Zannier.",
+    "wines": [],
+    "file": "bodega-quinta-do-pessegueiro.jpg",
+    "sources": [
+      "https://www.quintadopessegueiro.com/",
+      "https://dourowinetourism.com/pt/unidades-enoturismo/quinta-do-pessegueiro",
+      "https://www.zannier.com/en/contact-us/"
+    ]
+  },
+  {
+    "id": "quinta-vale-d-maria",
+    "name": "Quinta Vale D. Maria",
+    "aliases": [
+      "Vale Dona Maria",
+      "Van Zellers & Co"
+    ],
+    "country": "Portugal",
+    "zone": "Douro",
+    "zoneText": "DOC Douro / Porto",
+    "town": "Sarzedinho (São João da Pesqueira)",
+    "web": "https://quintavaledonamaria.com/",
+    "address": "EM502, 5130-141 Ervedosa do Douro (Sarzedinho)",
+    "lat": null,
+    "lng": null,
+    "precision": "",
+    "founded": null,
+    "about": "Quinta del valle del río Torto que Cristiano van Zeller compró en 1996; desde 2017 pertenece a Aveleda.",
+    "wines": [],
+    "file": "bodega-quinta-vale-d-maria.jpg",
+    "sources": [
+      "https://quintavaledonamaria.com/",
+      "https://www.winesofportugal.com/en/discover/wine-tourism/quinta-vale-d-maria/",
+      "https://quintavaledonamaria.com/sobre-nos/"
+    ]
+  },
+  {
+    "id": "taylors",
+    "name": "Taylor's",
+    "aliases": [
+      "Taylor Fladgate",
+      "Taylor's Port"
+    ],
+    "country": "Portugal",
+    "zone": "Douro",
+    "zoneText": "DOC Douro / Porto",
+    "town": "Vila Nova de Gaia",
+    "web": "https://www.taylor.pt/",
+    "address": "Rua do Choupelo, 250, 4400-088 Vila Nova de Gaia",
+    "lat": null,
+    "lng": null,
+    "precision": "",
+    "founded": 1692,
+    "about": "Casa de vinos de Oporto fundada en 1692 por Job Bearsley. Desde 1893 es dueña de la Quinta de Vargellas, en el Douro Superior; sus caves están en Vila Nova de Gaia.",
+    "wines": [],
+    "file": "bodega-taylors.jpg",
+    "sources": [
+      "https://www.taylor.pt/",
+      "https://www.taylor.pt/pt/contactos",
+      "https://www.taylor.pt/en/about/our-history"
+    ]
+  },
+  {
+    "id": "wine-and-soul",
+    "name": "Wine & Soul",
+    "aliases": [
+      "Wine&Soul",
+      "Vine & Soul",
+      "Quinta da Manoella"
+    ],
+    "country": "Portugal",
+    "zone": "Douro",
+    "zoneText": "DOC Douro / Porto",
+    "town": "Valle del Pinhão",
+    "web": "https://wineandsoul.com/",
+    "address": "",
+    "lat": null,
+    "lng": null,
+    "precision": "",
+    "founded": 2001,
+    "about": "Fundada en 2001 por Sandra Tavares da Silva y Jorge Serôdio Borges en el valle del Pinhão, en un antiguo almacén de oporto con la viña Pintas. En 2009 compraron la Quinta da Manoella, con viñas que se remontan a 1838.",
+    "wines": [
+      "Pintas",
+      "Quinta da Manoella"
+    ],
+    "file": "bodega-wine-and-soul.jpg",
+    "sources": [
+      "https://wineandsoul.com/",
+      "https://wineandsoul.com/about-us/"
+    ]
+  },
+  {
+    "id": "casa-santos-lima",
+    "name": "Casa Santos Lima",
+    "aliases": [
+      "Quinta da Boavista"
+    ],
+    "country": "Portugal",
+    "zone": "Lisboa",
+    "zoneText": "Lisboa (Alenquer)",
+    "town": "Alenquer (Aldeia Galega da Merceana)",
+    "web": "https://www.casasantoslima.com/",
+    "address": "Quinta da Boavista, Aldeia Galega da Merceana, 2580-081 Alenquer",
+    "lat": null,
+    "lng": null,
+    "precision": "",
+    "founded": "finales del s. XIX (relanzada en 1990)",
+    "about": "Empresa familiar productora y exportadora con sede en la Quinta da Boavista (Alenquer). Sus orígenes se remontan a Joaquim Santos Lima a finales del siglo XIX; José Luís Santos Lima Oliveira da Silva la relanzó en 1990.",
+    "wines": [],
+    "file": "bodega-casa-santos-lima.jpg",
+    "sources": [
+      "https://www.casasantoslima.com/",
+      "https://www.casasantoslima.com/pt/contactos/",
+      "https://www.casasantoslima.com/en/casa-santos-lima/our-history/",
+      "https://casasantoslima.com/pt/casa-santos-lima/quem-somos/"
+    ]
+  },
+  {
+    "id": "madeira-wine-company",
+    "name": "Madeira Wine Company",
+    "aliases": [
+      "Blandy's",
+      "Madeira Wine Association"
+    ],
+    "country": "Portugal",
+    "zone": "Madeira",
+    "zoneText": "DOP Madeira",
+    "town": "Funchal",
+    "web": "https://www.madeirawinecompany.com/",
+    "address": "Avenida Arriaga, 28, 9000-064 Funchal (Blandy's Wine Lodge)",
+    "lat": null,
+    "lng": null,
+    "precision": "",
+    "founded": 1913,
+    "about": "Fundada en 1913 como Madeira Wine Association, a la que se unió Blandy's en 1925. Su Blandy's Wine Lodge, en el centro de Funchal, es la bodega de visita.",
+    "wines": [
+      "Blandy's"
+    ],
+    "file": "bodega-madeira-wine-company.jpg",
+    "sources": [
+      "https://www.madeirawinecompany.com/",
+      "https://blandys.com/en/contact-us/",
+      "https://madeirawinecompany.com/en/about-us/our-history.html"
+    ]
+  },
+  {
+    "id": "ermelinda-freitas",
+    "name": "Casa Ermelinda Freitas",
+    "aliases": [
+      "Ermelinda Freitas"
+    ],
+    "country": "Portugal",
+    "zone": "Setúbal",
+    "zoneText": "Península de Setúbal",
+    "town": "Palmela (Fernando Pó)",
+    "web": "https://www.ermelindafreitas.pt/",
+    "address": "Rua Manuel João de Freitas, Fernando Pó, 2965-595 Águas de Moura (Palmela)",
+    "lat": 38.5772,
+    "lng": -8.8733,
+    "precision": "bodega",
+    "founded": 1920,
+    "about": "Empresa familiar de Fernando Pó fundada en 1920 por Leonilde Freitas y dirigida por cuatro generaciones de mujeres; hoy la lleva Leonor Freitas, con 550 ha de viña en la península de Setúbal.",
+    "wines": [],
+    "file": "bodega-ermelinda-freitas.jpg",
+    "sources": [
+      "https://www.ermelindafreitas.pt/",
+      "https://redepatrimoniofids.amrs.pt/adega-ermelinda-freitas/",
+      "https://www.cmjornal.pt/c-studio/detalhe/casa-ermelinda-freitas-100-anos-de-vinhas-e-vinho"
+    ]
+  },
+  {
+    "id": "aveleda",
+    "name": "Aveleda",
+    "aliases": [
+      "Quinta da Aveleda"
+    ],
+    "country": "Portugal",
+    "zone": "Vinho Verde",
+    "zoneText": "Vinho Verde",
+    "town": "Penafiel",
+    "web": "https://www.aveleda.com/",
+    "address": "Rua da Aveleda, 2, 4560-570 Penafiel",
+    "lat": null,
+    "lng": null,
+    "precision": "",
+    "founded": 1870,
+    "about": "Empresa familiar fundada en 1870 por Manoel Pedro Guedes en la Quinta da Aveleda, en los Vinhos Verdes. Hoy, con la quinta generación, produce también en Douro, Bairrada, Lisboa y Algarve; su marca principal es Casal Garcia.",
+    "wines": [
+      "Casal Garcia"
+    ],
+    "file": "bodega-aveleda.jpg",
+    "sources": [
+      "https://www.aveleda.com/",
+      "https://www.company.aveleda.com/pt/contactos",
+      "https://www.company.aveleda.com/pt/empresa",
+      "https://company.aveleda.com/pt"
     ]
   }
 ];

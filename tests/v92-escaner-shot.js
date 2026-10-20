@@ -204,7 +204,7 @@ function pngSize(file) {
       edit: !!document.getElementById("ficha-edit")
     };
   });
-  assert.ok(sheet.hero.some(src => src.includes("botella")));
+  assert.ok(sheet.hero.some(src => src.includes("bodega-perelada.jpg")));
   assert.ok(!sheet.hero.some(src => src.startsWith("data:image")));
   assert.ok(sheet.back.startsWith("data:image"));
   assert.strictEqual(sheet.dash, false);

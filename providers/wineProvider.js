@@ -57,6 +57,14 @@
       if (wantImage && !supportsImage(model.raw)) return false;
       return true;
     }).sort(function (a, b) {
+      if (typeof root.geminiModelsFor === "function") {
+        const order = root.geminiModelsFor("read");
+        const ai = order.indexOf(a.id);
+        const bi = order.indexOf(b.id);
+        const ar = ai < 0 ? 1000 : ai;
+        const br = bi < 0 ? 1000 : bi;
+        if (ar !== br) return ar - br;
+      }
       const family = modelFamily(a.id) - modelFamily(b.id);
       if (family) return family;
       const av = modelVersion(a.id);
@@ -93,6 +101,10 @@
     writeModelCache(cache);
   }
   async function listGeminiModels(key) {
+    if (typeof root.listGeminiModelsOnce === "function") {
+      const ids = await root.listGeminiModelsOnce(key);
+      if (ids && ids.length) return ids.map(function (id) { return { name: "models/" + modelId(id) }; });
+    }
     const all = [];
     let pageToken = "";
     for (let n = 0; n < 6; n++) {
@@ -342,7 +354,9 @@
           return emptyEstimate(status ? ("Gemini HTTP " + status) : ("Sin conexión. " + ((err && err.message) || "fetch falló")));
         }
         if (!model) { last = "ningún modelo disponible"; break; }
-        const url = "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent";
+        const url = typeof root.geminiGenerateUrl === "function"
+          ? root.geminiGenerateUrl(model)
+          : ("https://generativelanguage.googleapis.com/v1beta/models/" + modelId(model) + ":generateContent");
         let res;
         let body = geminiBody(nombre, anada, region);
         try {
