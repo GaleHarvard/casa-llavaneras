@@ -85,10 +85,11 @@ const terras = {
   provenance: { wineryId: "cartuxa", zoneId: "Alentejo" }
 };
 const terrasHtml = mod.wineHeroHtml(terras);
-assert.strictEqual((terrasHtml.match(/sheet-cover/g) || []).length, 1);
+assert.strictEqual((terrasHtml.match(/label-thumb-hero/g) || []).length, 1);
+assert.ok(terrasHtml.includes("hero-art"));
 assert.ok(terrasHtml.includes(label));
 assert.ok(terrasHtml.includes("bodega-cartuxa.jpg"));
-assert.ok(terrasHtml.includes("sheet-illus"));
+assert.ok(!terrasHtml.includes("sheet-cover"));
 assert.ok(!terrasHtml.includes("Etiqueta delantera"));
 assert.ok(!terrasHtml.includes("vinedo.jpg"));
 
@@ -101,13 +102,15 @@ const capellanes = {
 };
 const capHtml = mod.wineHeroHtml(capellanes);
 assert.ok(capHtml.includes("mapa-ribera.jpg"));
+assert.ok(capHtml.includes("hero-art"));
 assert.ok(!capHtml.includes("vinedo.jpg"));
-assert.strictEqual((capHtml.match(/class="sheet-cover"/g) || []).length, 1);
+assert.strictEqual((capHtml.match(/label-thumb-hero/g) || []).length, 1);
 
 const bare = mod.wineHeroHtml({ producer: "Pago de los Capellanes", name: "Crianza", region: "Ribera del Duero", appellation: "Ribera del Duero" });
-assert.ok(bare.includes("sheet-cover-art"));
+assert.ok(bare.includes("hero-art"));
 assert.ok(bare.includes("mapa-ribera.jpg"));
-assert.ok(!bare.includes("sheet-illus"));
+assert.ok(!bare.includes("label-thumb-hero"));
+assert.ok(!bare.includes("vinedo.jpg"));
 
 const state = {
   customWines: [
@@ -133,6 +136,6 @@ assert.strictEqual(mod.migrateClearZones(), false);
 assert.ok(alta.includes("vintageSource: sheet.vintage ? \"etiqueta\" : \"\""));
 assert.ok(alta.includes("if (labelYear) sheet.vintage = labelYear"));
 assert.ok(fs.readFileSync(path.join(root, "casa-gemini.js"), "utf8").includes('vintageSource === "etiqueta"'));
-assert.ok(fs.readFileSync(path.join(root, "styles.css"), "utf8").includes(".sheet-cover"));
+assert.ok(fs.readFileSync(path.join(root, "styles.css"), "utf8").includes(".hero-art"));
 
 console.log("v94 ficha ok");
