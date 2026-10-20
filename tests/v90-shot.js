@@ -76,7 +76,7 @@ const out = "/opt/cursor/artifacts/v90-calificaciones-hd.png";
       tabTop: document.querySelector(".tabbar") ? document.querySelector(".tabbar").getBoundingClientRect().top : 0
     };
   });
-  assert.strictEqual(info.version, "v95");
+  assert.strictEqual(info.version, "v96");
   assert.strictEqual(info.sheet.h1, "Bodegas Faustino");
   assert.strictEqual(info.sheet.cuvee, "Crianza 2020");
   assert.strictEqual(info.form, false);
