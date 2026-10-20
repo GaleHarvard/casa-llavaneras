@@ -961,19 +961,64 @@ label.field span {
   position: relative;
   height: auto;
   min-height: 0;
-  margin: 0 0 14px;
+  margin: 0 0 8px;
   display: block;
   min-width: 0;
   max-width: 100%;
   overflow: hidden;
 }
-.sheet-head { width: 100%; max-width: 100%; display: flex; flex-direction: column; align-items: center; gap: 10px; }
-.sheet-cover { display: block; width: auto; max-width: 100%; max-height: 280px; margin: 0 auto; object-fit: contain; border-radius: 16px; background: #14110c; }
-.sheet-cover-art { width: 100%; max-height: 220px; background: #000; }
-.sheet-cover-btn, .sheet-illus { border: 0; background: transparent; padding: 0; color: inherit; max-width: 100%; }
-.sheet-cover-btn { width: 100%; }
-.sheet-illus { width: 38%; max-width: 148px; }
-.sheet-illus img { width: 100%; height: 64px; object-fit: contain; object-position: center; display: block; border-radius: 10px; background: #000; }
+.hero-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+.hero-art {
+  flex: 1 1 auto;
+  width: auto;
+  min-width: 0;
+  max-width: calc(100% - 106px);
+  border: 0;
+  background: #000;
+  padding: 0;
+  border-radius: 16px;
+  overflow: hidden;
+}
+.hero-art img, img.hero-art {
+  width: 100%;
+  height: 210px;
+  object-fit: contain;
+  object-position: center bottom;
+  display: block;
+  background: #000;
+}
+.hero-row .foil-wrap {
+  width: 96px;
+  flex: 0 0 96px;
+  height: 148px;
+  overflow: hidden;
+}
+.hero-row .label-thumb-hero {
+  width: 96px;
+  height: 132px;
+  max-width: 100%;
+  object-fit: contain;
+  margin: 0;
+}
+#back-label-photo {
+  width: 100%;
+  max-width: 100%;
+  max-height: 420px;
+  object-fit: contain;
+  display: block;
+  margin-top: 10px;
+  border-radius: 16px;
+  background: #111;
+}
+#back-label-photo[hidden] { display: none; }
 .foil-wrap {
   width: 34%;
   height: 220px;
@@ -1074,8 +1119,8 @@ label.field span {
 .app.cam-live .topbar { display: none !important; }
 .app.cam-live #scan .scroll { padding-top: 8px; padding-bottom: calc(12px + var(--safe-bot)); }
 .wine-producer {
-  font-size: 30px;
-  font-weight: 500;
+  font-size: 36px;
+  font-weight: 620;
   letter-spacing: -0.045em;
   line-height: 1.05;
   overflow-wrap: anywhere;

@@ -782,18 +782,16 @@ function sheetIllustration(wine, allowGeneric) {
 
 function wineHeroHtml(wine) {
   const front = frontCoverSrc(wine);
-  const illus = sheetIllustration(wine, !front);
-  const small = illus.src && front
+  const illus = sheetIllustration(wine, true);
+  const art = illus.src
     ? (illus.open
-      ? '<button type="button" class="sheet-illus" onclick="' + illus.open + '"><img src="' + escHtml(illus.src) + '" alt=""></button>'
-      : '<img class="sheet-illus" src="' + escHtml(illus.src) + '" alt="">')
+      ? '<button type="button" class="hero-art" onclick="' + illus.open + '"><img src="' + escHtml(illus.src) + '" alt=""></button>'
+      : '<img class="hero-art" src="' + escHtml(illus.src) + '" alt="">')
     : "";
-  if (front) return '<div class="sheet-head"><img class="sheet-cover" src="' + escHtml(front) + '" alt="">' + small + "</div>";
-  if (illus.src && illus.open) {
-    return '<div class="sheet-head"><button type="button" class="sheet-cover-btn" onclick="' + illus.open + '"><img class="sheet-cover sheet-cover-art" src="' + escHtml(illus.src) + '" alt=""></button></div>';
-  }
-  if (illus.src) return '<div class="sheet-head"><img class="sheet-cover sheet-cover-art" src="' + escHtml(illus.src) + '" alt=""></div>';
-  return typeof estateSVG === "function" ? estateSVG(wine) : "";
+  const side = front
+    ? '<img class="label-thumb label-thumb-hero" src="' + escHtml(front) + '" alt="">'
+    : (typeof bottleMarkup === "function" ? bottleMarkup(wine) : "");
+  return '<div class="hero-row">' + art + (side ? '<div class="foil-wrap">' + side + "</div>" : "") + "</div>";
 }
 
 function altaAssetBlock(wine) {

@@ -1581,6 +1581,7 @@ addI18n([
   ["sheet.addVintage", "Añadir añada", "Afegir anyada", "Add vintage", "Ajouter le millésime", "Adicionar colheita"],
   ["sheet.saved", "Ficha actualizada", "Fitxa actualitzada", "Sheet updated", "Fiche mise à jour", "Ficha atualizada"],
   ["sheet.noBack", "Sin contraetiqueta.", "Sense contraetiqueta.", "No back label.", "Pas de contre-étiquette.", "Sem contra-rótulo."],
+  ["sheet.backBtn", "Etiqueta posterior", "Etiqueta posterior", "Back label", "Étiquette postérieure", "Rótulo posterior"],
   ["sheet.changeBack", "Cambiar contraetiqueta", "Canviar la contraetiqueta", "Change the back label", "Changer la contre-étiquette", "Mudar o contra-rótulo"],
   ["sheet.addBack", "Añadir contraetiqueta", "Afegir contraetiqueta", "Add the back label", "Ajouter la contre-étiquette", "Adicionar contra-rótulo"],
   ["sheet.gemini", "Completar con Gemini", "Completar amb Gemini", "Complete with Gemini", "Compléter avec Gemini", "Completar com Gemini"]

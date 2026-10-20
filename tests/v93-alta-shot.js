@@ -58,7 +58,7 @@ function pngSize(file) {
       step: document.querySelector("#alta-capture h2").textContent
     };
   });
-  assert.strictEqual(capture.version, "v94");
+  assert.strictEqual(capture.version, "v95");
   assert.strictEqual(capture.cam.text, "Cámara");
   assert.strictEqual(capture.lib.text, "Fototeca");
   assert.strictEqual(capture.capture, "environment");
@@ -198,10 +198,10 @@ function pngSize(file) {
 
   const confirmed = await page.evaluate(async () => {
     const stored = await confirmAlta(false);
-    const hero = document.querySelector("#wine-body .sheet-cover");
-    const illus = document.querySelector("#wine-body .sheet-illus img");
-    const back = document.querySelector("#back-label img");
-    const covers = document.querySelectorAll("#wine-body .sheet-cover").length;
+    const hero = document.querySelector("#wine-body .label-thumb-hero");
+    const illus = document.querySelector("#wine-body .hero-art img");
+    const back = document.querySelector("#back-label-photo");
+    const covers = document.querySelectorAll("#wine-body .label-thumb-hero").length;
     return {
       id: stored && stored.id,
       status: stored && stored.provenance && stored.provenance.intakeStatus,
@@ -210,7 +210,7 @@ function pngSize(file) {
       zone: /Empordà/.test(document.getElementById("wine-body").innerText),
       house: illus ? illus.getAttribute("src") : "",
       backHero: covers === 1,
-      backSection: !!(back && back.getAttribute("src")),
+      backSection: !!(back && back.hidden && back.getAttribute("src")),
       sinDato: document.getElementById("wine-body").textContent.includes("Sin dato"),
       zoneTop: illus ? illus.getBoundingClientRect().top : -1,
       vh: window.innerHeight

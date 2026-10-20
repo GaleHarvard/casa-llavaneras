@@ -530,12 +530,20 @@ prepareOwnLabels = function () {
   return prepareOwnLabelsPrev().then(() => migrateStoredBackLabels().catch(() => false));
 };
 
+function toggleBackLabel() {
+  const photo = document.getElementById("back-label-photo");
+  const btn = document.getElementById("back-label-toggle");
+  if (!photo || !btn) return;
+  const open = photo.hidden;
+  photo.hidden = !open;
+  btn.setAttribute("aria-expanded", open ? "true" : "false");
+}
+
 function backLabelSection(w) {
   const src = resolvedPhoto(w && w.backLabel);
-  const img = src ? '<img src="' + escHtml(src) + '" alt="' + escHtml(t("alta.back")) + '">' : '<p class="muted">' + escHtml(t("sheet.noBack")) + "</p>";
-  const label = src ? t("sheet.changeBack") : t("sheet.addBack");
-  return '<div id="back-label"><div class="sec-head"><h2>' + escHtml(t("alta.back")) + '</h2></div>' + img
-    + '<button type="button" class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="changeBackLabel()">' + escHtml(label) + "</button></div>";
+  if (!src) return "";
+  return '<div id="back-label"><button type="button" class="btn btn-ghost" id="back-label-toggle" style="width:100%" aria-expanded="false" onclick="toggleBackLabel()">'
+    + escHtml(t("sheet.backBtn")) + '</button><img id="back-label-photo" hidden src="' + escHtml(src) + '" alt="' + escHtml(t("sheet.backBtn")) + '"></div>';
 }
 
 var openWinePrev = openWine;

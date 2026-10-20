@@ -191,15 +191,18 @@ function pngSize(file) {
   await page.waitForFunction(() => {
     const body = document.getElementById("wine-body");
     const back = document.getElementById("back-label");
-    return body && back && /3 Finques/.test(body.innerText) && /contraetiqueta/i.test(back.innerText) && /Completar ficha/.test(body.innerText);
+    const btn = document.getElementById("back-label-toggle");
+    const photo = document.getElementById("back-label-photo");
+    return body && back && btn && photo && photo.hidden && /3 Finques/.test(body.innerText) && /Etiqueta posterior/.test(btn.textContent) && /Completar ficha/.test(body.innerText);
   });
   const sheet = await page.evaluate(() => {
     const hero = Array.from(document.querySelectorAll(".wine-hero img")).map(img => img.getAttribute("src") || "");
-    const back = document.querySelector("#back-label img");
+    const back = document.querySelector("#back-label-photo");
     const dash = Array.from(document.querySelectorAll("#vintage-block .chip")).some(btn => btn.textContent.trim() === "—");
     return {
       hero: hero,
       back: back ? back.getAttribute("src").slice(0, 30) : "",
+      hidden: !!(back && back.hidden),
       dash: dash,
       edit: !!document.getElementById("ficha-edit")
     };
@@ -207,6 +210,7 @@ function pngSize(file) {
   assert.ok(sheet.hero.some(src => src.includes("bodega-perelada.jpg")));
   assert.ok(!sheet.hero.some(src => src.startsWith("data:image")));
   assert.ok(sheet.back.startsWith("data:image"));
+  assert.strictEqual(sheet.hidden, true);
   assert.strictEqual(sheet.dash, false);
   assert.strictEqual(sheet.edit, true);
   const fichaShot = "/opt/cursor/artifacts/v92-perelada-contraetiqueta.png";
