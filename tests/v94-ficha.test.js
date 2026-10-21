@@ -136,6 +136,11 @@ assert.strictEqual(mod.migrateClearZones(), false);
 assert.ok(alta.includes("vintageSource: sheet.vintage ? \"etiqueta\" : \"\""));
 assert.ok(alta.includes("if (labelYear) sheet.vintage = labelYear"));
 assert.ok(fs.readFileSync(path.join(root, "casa-gemini.js"), "utf8").includes('vintageSource === "etiqueta"'));
-assert.ok(fs.readFileSync(path.join(root, "styles.css"), "utf8").includes(".hero-art"));
+const css = fs.readFileSync(path.join(root, "styles.css"), "utf8");
+assert.ok(css.includes(".hero-art"));
+assert.ok(css.includes("isolation: isolate"));
+const foil = css.slice(css.indexOf(".hero-row .foil-wrap {"), css.indexOf(".hero-row .label-thumb-hero"));
+assert.ok(foil && !foil.includes("z-index"));
+assert.ok(fs.readFileSync(path.join(root, "casa-util.js"), "utf8").includes("startX <= 28"));
 
 console.log("v94 ficha ok");

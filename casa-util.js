@@ -336,6 +336,35 @@ function showSheet(id) {
   if (el) el.classList.add("show");
 }
 function hideSheets() { $$(".modal-bg").forEach(m => m.classList.remove("show")); }
+(function () {
+  let startX = 0;
+  let startY = 0;
+  let sheet = null;
+  function openSheet() {
+    return document.querySelector(".modal-bg.show:not(#corrupt-lock)");
+  }
+  document.addEventListener("pointerdown", function (ev) {
+    if (!ev.isPrimary) return;
+    const open = openSheet();
+    if (!open) { sheet = null; return; }
+    sheet = open;
+    startX = ev.clientX;
+    startY = ev.clientY;
+  });
+  document.addEventListener("pointerup", function (ev) {
+    const open = sheet;
+    sheet = null;
+    if (!open || !open.classList.contains("show") || open.id === "corrupt-lock") return;
+    const dx = ev.clientX - startX;
+    const dy = ev.clientY - startY;
+    if (startX <= 28 && dx > 64 && Math.abs(dy) < 48) open.classList.remove("show");
+  });
+  document.addEventListener("keydown", function (ev) {
+    if (ev.key !== "Escape") return;
+    const open = openSheet();
+    if (open) open.classList.remove("show");
+  });
+})();
 function toast(msg) {
   const t = $("#toast");
   t.textContent = msg;
