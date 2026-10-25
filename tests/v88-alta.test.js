@@ -177,11 +177,11 @@ assert.ok(i18n.includes("map.pinTown"));
 ["ca", "en", "fr", "pt"].forEach(code => {
   assert.ok(i18n.includes("alta.saveAnother"));
 });
-assert.ok(app.includes('APP_VERSION = "v100"'));
-assert.ok(sw.includes("casa-llavaneras-ios-v100"));
+assert.ok(app.includes('APP_VERSION = "v101"'));
+assert.ok(sw.includes("casa-llavaneras-ios-v101"));
 assert.ok(sw.includes("./casa-v88.js"));
-assert.ok(html.includes('content="v100"'));
-assert.ok(html.includes("casa-v88.js?v=100"));
+assert.ok(html.includes('content="v101"'));
+assert.ok(html.includes("casa-v88.js?v=101"));
 assert.ok(html.includes('id="alta"'));
 assert.ok(!html.includes("?v=87"));
 

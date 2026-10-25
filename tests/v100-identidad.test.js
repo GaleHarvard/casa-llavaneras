@@ -42,6 +42,12 @@ const api = new Function("WINE_CATALOG", [
   extractFunction(v89, "grapeListHas"),
   extractFunction(v89, "grapeColor"),
   extractFunction(v89, "typeFromGrapes"),
+  extractFunction(v89, "cuveeForWine"),
+  extractFunction(v89, "collectedGrapes"),
+  extractFunction(v89, "labelCorpus"),
+  extractFunction(v89, "labelHasWord"),
+  extractFunction(v89, "labelProtects"),
+  extractFunction(v89, "refineGrapeField"),
   extractFunction(v89, "canonType"),
   extractFunction(v89, "reconcileType"),
   extractFunction(v89, "categoryForName"),
@@ -176,10 +182,10 @@ assert.ok(alta.includes("alignWineWithGrapes"));
 assert.ok(!ficha.includes('|| "tinto"'));
 assert.ok(v92.includes("No pongas tinto por defecto"));
 assert.ok(v89.includes("function categoryForName"));
-assert.ok(app.includes('APP_VERSION = "v100"'));
-assert.ok(html.includes('content="v100"'));
-assert.ok(sw.includes('const CACHE = "casa-llavaneras-ios-v100"'));
-assert.ok(sw.includes('const VERSION = "v100"'));
-assert.ok(html.includes("casa-alta.js?v=100"));
+assert.ok(app.includes('APP_VERSION = "v101"'));
+assert.ok(html.includes('content="v101"'));
+assert.ok(sw.includes('const CACHE = "casa-llavaneras-ios-v101"'));
+assert.ok(sw.includes('const VERSION = "v101"'));
+assert.ok(html.includes("casa-alta.js?v=101"));
 console.log("v100-identidad ok");
 console.log(JSON.stringify(fixed));

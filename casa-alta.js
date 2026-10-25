@@ -940,7 +940,7 @@ async function confirmAlta(another) {
     appellation: place.label || "",
     type: typeof reconcileType === "function" ? reconcileType("", String(sheet.grapes || "")) : "",
     style: "escaneo",
-    grapes: String(sheet.grapes || "").split(/[,;]/).map(part => part.trim()).filter(Boolean),
+    grapes: typeof grapeParts === "function" ? grapeParts(sheet.grapes) : String(sheet.grapes || "").split(/[,;]/).map(part => part.trim()).filter(Boolean),
     abv: parseFloat(String(sheet.abv || "").replace(",", ".")) || 0,
     volume: "",
     color: "",
@@ -1085,6 +1085,12 @@ function altaAssetBlock(wine) {
 
 var openWineAlta = openWine;
 openWine = function (wineId, bottle) {
+  try {
+    if (!(typeof cellarLocked !== "undefined" && cellarLocked) && typeof migrateGrapeIdentity === "function") {
+      const rows = migrateGrapeIdentity(state);
+      if (rows && rows.length && typeof save === "function") save();
+    }
+  } catch (err) {}
   openWineAlta(wineId, bottle);
   setAltaChrome(false);
   const wine = typeof wineById === "function" ? wineById(wineId) : null;
