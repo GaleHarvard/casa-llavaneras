@@ -545,8 +545,252 @@ function altaPick(source) {
   input.click();
 }
 
+const ORIENT_PROBE = "/9j/4AAQSkZJRgABAQAAAQABAAD/4QAiRXhpZgAATU0AKgAAAAgAAQESAAMAAAABAAYAAAAAAAD/2wBDAAIBAQEBAQIBAQECAgICAgQDAgICAgUEBAMEBgUGBgYFBgYGBwkIBgcJBwYGCAsICQoKCgoKBggLDAsKDAkKCgr/2wBDAQICAgICAgUDAwUKBwYHCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgr/wAARCAAQACADAREAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD4vr+Uz/fw+Q6/6qD/AJrwoAKAPryv+Vc/6UD5Dr/qoP8AmvCgAoA//9k=";
+let labelOrientCached = "";
+
+function dataUrlBytes(dataUrl) {
+  const comma = String(dataUrl || "").indexOf(",");
+  if (comma < 0) return new Uint8Array(0);
+  const body = dataUrl.slice(comma + 1);
+  if (!/;base64/i.test(dataUrl.slice(0, comma))) return new Uint8Array(0);
+  const bin = atob(body);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i) & 255;
+  return out;
+}
+
+function dataUrlBlob(dataUrl) {
+  const mime = (String(dataUrl || "").match(/^data:([^;,]+)/) || [])[1] || "image/jpeg";
+  return new Blob([dataUrlBytes(dataUrl)], { type: mime });
+}
+
+function readJpegOrientation(bytes) {
+  if (!bytes || bytes.length < 4 || bytes[0] !== 0xff || bytes[1] !== 0xd8) return 1;
+  let i = 2;
+  while (i + 4 < bytes.length) {
+    if (bytes[i] !== 0xff) { i += 1; continue; }
+    const marker = bytes[i + 1];
+    if (marker === 0xd8) { i += 2; continue; }
+    if (marker === 0xd9 || marker === 0xda) break;
+    const len = (bytes[i + 2] << 8) | bytes[i + 3];
+    if (len < 2 || i + 2 + len > bytes.length) break;
+    if (marker === 0xe1 && len > 10 && bytes[i + 4] === 0x45 && bytes[i + 5] === 0x78 && bytes[i + 6] === 0x69 && bytes[i + 7] === 0x66) {
+      const tiff = i + 10;
+      const le = bytes[tiff] === 0x49;
+      const u16 = n => le ? (bytes[n] | (bytes[n + 1] << 8)) : ((bytes[n] << 8) | bytes[n + 1]);
+      const u32 = n => le ? (bytes[n] | (bytes[n + 1] << 8) | (bytes[n + 2] << 16) | (bytes[n + 3] << 24)) : ((bytes[n] << 24) | (bytes[n + 1] << 16) | (bytes[n + 2] << 8) | bytes[n + 3]);
+      let offset = tiff + u32(tiff + 4);
+      if (offset > 0 && offset + 2 < bytes.length) {
+        const count = u16(offset);
+        offset += 2;
+        for (let e = 0; e < count; e++) {
+          const ent = offset + e * 12;
+          if (ent + 12 > bytes.length) break;
+          if (u16(ent) === 0x0112) return u16(ent + 8) || 1;
+        }
+      }
+    }
+    i += 2 + len;
+  }
+  return 1;
+}
+
+function readJpegSize(bytes) {
+  if (!bytes || bytes.length < 4 || bytes[0] !== 0xff || bytes[1] !== 0xd8) return null;
+  let i = 2;
+  while (i + 9 < bytes.length) {
+    if (bytes[i] !== 0xff) { i += 1; continue; }
+    const marker = bytes[i + 1];
+    if (marker === 0xd8) { i += 2; continue; }
+    if (marker === 0xd9 || marker === 0xda) break;
+    const len = (bytes[i + 2] << 8) | bytes[i + 3];
+    if (len < 2 || i + 2 + len > bytes.length) break;
+    if ((marker >= 0xc0 && marker <= 0xc3) || (marker >= 0xc5 && marker <= 0xc7) || (marker >= 0xc9 && marker <= 0xcb) || (marker >= 0xcd && marker <= 0xcf)) {
+      return { height: (bytes[i + 5] << 8) | bytes[i + 6], width: (bytes[i + 7] << 8) | bytes[i + 8] };
+    }
+    i += 2 + len;
+  }
+  return null;
+}
+
+function loadImageEl(src) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error("image"));
+    img.src = src;
+  });
+}
+
+function sourceSize(source) {
+  return {
+    w: source.naturalWidth || source.width || 1,
+    h: source.naturalHeight || source.height || 1
+  };
+}
+
+function drawUpright(source, orientation) {
+  const size = sourceSize(source);
+  const sw = size.w;
+  const sh = size.h;
+  const turn = orientation > 4 && orientation < 9;
+  const dw = turn ? sh : sw;
+  const dh = turn ? sw : sh;
+  const edge = Math.max(dw, dh);
+  const scale = edge > 1600 ? 1600 / edge : 1;
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.round(dw * scale));
+  canvas.height = Math.max(1, Math.round(dh * scale));
+  const ctx = canvas.getContext("2d");
+  const w = sw * scale;
+  const h = sh * scale;
+  switch (orientation) {
+    case 2: ctx.transform(-1, 0, 0, 1, w, 0); break;
+    case 3: ctx.transform(-1, 0, 0, -1, w, h); break;
+    case 4: ctx.transform(1, 0, 0, -1, 0, h); break;
+    case 5: ctx.transform(0, 1, 1, 0, 0, 0); break;
+    case 6: ctx.transform(0, 1, -1, 0, h, 0); break;
+    case 7: ctx.transform(0, -1, -1, 0, h, w); break;
+    case 8: ctx.transform(0, -1, 1, 0, 0, w); break;
+    default: break;
+  }
+  ctx.drawImage(source, 0, 0, w, h);
+  return canvas;
+}
+
+function canvasToJpeg(canvas) {
+  return canvas.toDataURL("image/jpeg", 0.82);
+}
+
+function sampleProbe(source) {
+  const size = sourceSize(source);
+  const canvas = document.createElement("canvas");
+  canvas.width = size.w;
+  canvas.height = size.h;
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(source, 0, 0, size.w, size.h);
+  const redAt = (x, y) => {
+    const px = ctx.getImageData(Math.max(0, x), Math.max(0, y), 1, 1).data;
+    return px[0] > 180 && px[0] > px[2] + 40;
+  };
+  if (size.h > size.w) return redAt(2, 2) ? "top" : "other";
+  return redAt(2, 2) ? "left" : "other";
+}
+
+async function labelOrientMode() {
+  if (labelOrientCached) return labelOrientCached;
+  const url = "data:image/jpeg;base64," + ORIENT_PROBE;
+  const blob = dataUrlBlob(url);
+  try {
+    if (typeof createImageBitmap === "function") {
+      const bmp = await createImageBitmap(blob, { imageOrientation: "from-image" });
+      const place = sampleProbe(bmp);
+      const upright = place === "top" && bmp.height > bmp.width;
+      if (bmp.close) bmp.close();
+      if (upright) {
+        labelOrientCached = "from-image";
+        return labelOrientCached;
+      }
+      try {
+        const raw = await createImageBitmap(blob, { imageOrientation: "none" });
+        const rawPlace = sampleProbe(raw);
+        const rawOk = rawPlace === "left" && raw.width > raw.height;
+        if (raw.close) raw.close();
+        if (rawOk) {
+          labelOrientCached = "none";
+          return labelOrientCached;
+        }
+      } catch (err) {}
+    }
+  } catch (err) {}
+  try {
+    const img = await loadImageEl(url);
+    labelOrientCached = sampleProbe(img) === "top" ? "already" : "raw";
+  } catch (err) {
+    labelOrientCached = "raw";
+  }
+  return labelOrientCached;
+}
+
+async function uprightLabelData(dataUrl) {
+  if (!dataUrl || String(dataUrl).indexOf("data:image") !== 0) return dataUrl || "";
+  const bytes = dataUrlBytes(dataUrl);
+  const orient = readJpegOrientation(bytes) || 1;
+  if (orient < 2 || orient > 8) return dataUrl;
+  const mode = await labelOrientMode();
+  try {
+    if (mode === "from-image" && typeof createImageBitmap === "function") {
+      const bmp = await createImageBitmap(dataUrlBlob(dataUrl), { imageOrientation: "from-image" });
+      const url = canvasToJpeg(drawUpright(bmp, 1));
+      if (bmp.close) bmp.close();
+      return url;
+    }
+    if (mode === "none" && typeof createImageBitmap === "function") {
+      const bmp = await createImageBitmap(dataUrlBlob(dataUrl), { imageOrientation: "none" });
+      const url = canvasToJpeg(drawUpright(bmp, orient));
+      if (bmp.close) bmp.close();
+      return url;
+    }
+    const img = await loadImageEl(dataUrl);
+    const sof = readJpegSize(bytes);
+    let applied = mode === "already";
+    if (sof && orient > 4) {
+      if (img.naturalWidth === sof.height && img.naturalHeight === sof.width) applied = true;
+      else if (img.naturalWidth === sof.width && img.naturalHeight === sof.height) applied = false;
+    }
+    return canvasToJpeg(drawUpright(img, applied ? 1 : orient));
+  } catch (err) {
+    return dataUrl;
+  }
+}
+
+async function rotateSavedLabel() {
+  const wine = typeof currentWine !== "undefined" ? currentWine : null;
+  if (!wine) return;
+  const bottle = typeof currentBottle !== "undefined" ? currentBottle : null;
+  const src = typeof ownLabel === "function" ? ownLabel(wine, bottle) : "";
+  if (!src || src.indexOf("data:image") !== 0) {
+    if (typeof toast === "function") toast(t("label.unread"));
+    return;
+  }
+  const img = await loadImageEl(src);
+  const turned = canvasToJpeg(drawUpright(img, 6));
+  const lot = bottle && bottle.labelPhoto && String(bottle.labelPhoto).indexOf("idb:lot:") === 0;
+  const key = lot ? bottle.labelPhoto.slice(4) : wine.id;
+  let ok = false;
+  if (typeof saveWineLabelPhoto === "function") ok = await saveWineLabelPhoto(key, turned);
+  const marker = ok && typeof labelMarker === "function" ? labelMarker(key) : turned;
+  const stored = typeof wineById === "function" ? wineById(wine.id) : wine;
+  if (stored && !lot) {
+    stored.labelThumb = marker;
+    if (stored.frontLabelImage) stored.frontLabelImage = marker;
+  }
+  if (bottle && lot) bottle.labelPhoto = marker;
+  if (typeof save === "function") save();
+  if (typeof openWine === "function") openWine(wine.id, bottle);
+}
+
+function ensureRotateLabelButton(wine, bottle) {
+  const body = document.getElementById("wine-body");
+  if (!body || document.getElementById("label-rotate")) return;
+  const change = body.querySelector(".label-change");
+  if (!change || typeof hasOwnLabel !== "function" || !hasOwnLabel(wine, bottle)) return;
+  const row = document.createElement("div");
+  row.className = "label-actions";
+  change.parentNode.insertBefore(row, change);
+  row.appendChild(change);
+  const rot = document.createElement("button");
+  rot.type = "button";
+  rot.className = "btn btn-ghost label-rotate";
+  rot.id = "label-rotate";
+  rot.textContent = t("label.rotate");
+  rot.onclick = () => rotateSavedLabel();
+  row.appendChild(rot);
+}
+
 async function altaAcceptPhoto(dataUrl) {
-  const prepared = typeof prepareLabelImage === "function" ? await prepareLabelImage(dataUrl) : { ok: true, dataUrl: dataUrl };
+  const straight = await uprightLabelData(dataUrl);
+  const prepared = typeof prepareLabelImage === "function" ? await prepareLabelImage(straight || dataUrl) : { ok: true, dataUrl: straight || dataUrl };
   if (!prepared.ok) {
     if (typeof toast === "function") toast(t("alta.image"));
     return;
@@ -827,6 +1071,7 @@ openWine = function (wineId, bottle) {
   setAltaChrome(false);
   const wine = typeof wineById === "function" ? wineById(wineId) : null;
   const body = document.getElementById("wine-body");
+  if (wine && body) ensureRotateLabelButton(wine, bottle);
   if (!wine || !body || document.getElementById("alta-assets")) return;
   const hero = body.querySelector(".wine-hero");
   if (hero) hero.innerHTML = wineHeroHtml(wine);
@@ -920,10 +1165,47 @@ function migrateAltaPhotos() {
   return changed;
 }
 
+function linkIllustratedCellar() {
+  if (typeof state === "undefined" || !state || !Array.isArray(state.customWines)) return false;
+  if (typeof wineryCardFor !== "function") return false;
+  const wanted = { "luis-canas": 1, "garcia-figuero": 1 };
+  const generic = typeof GENERIC_ESTATE !== "undefined" ? GENERIC_ESTATE : "vinedo.jpg";
+  let changed = false;
+  state.customWines.forEach(wine => {
+    if (!wine) return;
+    const card = wineryCardFor(wine);
+    if (!card || !wanted[card.id] || !card.file) return;
+    wine.provenance = wine.provenance || {};
+    if (!wine.provenance.wineryId) {
+      wine.provenance.wineryId = card.id;
+      changed = true;
+    }
+    if (!wine.wineryAsset || wine.wineryAsset === generic) {
+      wine.wineryAsset = card.file;
+      changed = true;
+    }
+    if ((!wine.zoneAsset || wine.zoneAsset === generic) && card.zone && typeof zoneByName === "function") {
+      const zone = zoneByName(card.zone);
+      if (zone && zone.map) {
+        wine.zoneAsset = zone.map;
+        if (!wine.provenance.zoneId) wine.provenance.zoneId = zone.name;
+        changed = true;
+      }
+    }
+  });
+  if (changed && typeof save === "function") save();
+  return changed;
+}
+
+var compressLabelThumbStraight = compressLabelThumb;
+compressLabelThumb = function (dataUrl) {
+  return uprightLabelData(dataUrl).then(straight => compressLabelThumbStraight(straight || dataUrl));
+};
+
 var prepareOwnLabelsAlta = prepareOwnLabels;
 prepareOwnLabels = function () {
   return prepareOwnLabelsAlta().then(() => {
-    try { migrateAltaPhotos(); migrateClearZones(); } catch (err) {}
+    try { migrateAltaPhotos(); migrateClearZones(); linkIllustratedCellar(); } catch (err) {}
     return true;
   });
 };

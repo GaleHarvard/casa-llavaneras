@@ -1682,5 +1682,67 @@
       "vinos": "https://www.company.aveleda.com/pt/empresa"
     },
     "imagen": "bodega-aveleda.jpg"
+  },
+  {
+    "nombre": "Bodegas Luis Cañas",
+    "alias": [
+      "Luis Cañas",
+      "Luis Canas"
+    ],
+    "pais": "España",
+    "zona": "DOCa Rioja (Rioja Alavesa)",
+    "municipio": "Villabuena de Álava",
+    "web": "https://www.luiscanas.com/",
+    "direccion": "Ctra. Samaniego nº 10, 01307 Villabuena de Álava (Álava)",
+    "lat": 42.5452782,
+    "lon": -2.6673477,
+    "precision_coord": "bodega",
+    "fundacion": 1970,
+    "descripcion": "Familia de Villabuena de Álava que elaboraba vino joven en la Cueva de los Curas. En 1970 Luis Cañas empezó a embotellar y levantó la bodega que lleva su nombre, junto a esa cueva.",
+    "vinos": [
+      "Luis Cañas",
+      "Amaren"
+    ],
+    "fuentes": {
+      "web": "https://www.luiscanas.com/",
+      "direccion": "https://www.luiscanas.com/contacto",
+      "coordenadas": "https://www.openstreetmap.org/way/516611093",
+      "fundacion": "https://www.luiscanas.com/bodega",
+      "descripcion": "https://www.luiscanas.com/bodega",
+      "vinos": "https://www.luiscanas.com/"
+    },
+    "imagen": "bodega-luis-canas.jpg"
+  },
+  {
+    "nombre": "Bodegas y Viñedos García Figuero",
+    "alias": [
+      "García Figuero",
+      "Garcia Figuero",
+      "Tinto Figuero",
+      "Figuero",
+      "Figuero Viñas Viejas"
+    ],
+    "pais": "España",
+    "zona": "DO Ribera del Duero",
+    "municipio": "La Horra",
+    "web": "https://figuero.es/",
+    "direccion": "Ctra. La Horra a Roa, km 2,2, 09311 La Horra (Burgos)",
+    "lat": 41.729,
+    "lon": -3.884,
+    "precision_coord": "bodega",
+    "fundacion": 2001,
+    "descripcion": "Bodega familiar de La Horra, nacida en 2001 del proyecto de José María García y Milagros Figuero con sus hijos. Elabora tempranillo de las parcelas de alrededor; Figuero Viñas Viejas es su vino de viñas viejas.",
+    "vinos": [
+      "Figuero Viñas Viejas",
+      "Tinto Figuero"
+    ],
+    "fuentes": {
+      "web": "https://figuero.es/",
+      "direccion": "https://figuero.es/contacto/",
+      "fundacion": "https://figuero.es/en/figuero-vinas-viejas-el-vino-milagro-nacido-en-el-corazon-de-la-ribera-del-duero/",
+      "descripcion": "https://figuero.es/en/figuero-vinas-viejas-el-vino-milagro-nacido-en-el-corazon-de-la-ribera-del-duero/",
+      "vinos": "https://figuero.es/"
+    },
+    "imagen": "bodega-garcia-figuero.jpg"
   }
 ]
