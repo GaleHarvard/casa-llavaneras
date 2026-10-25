@@ -1421,6 +1421,9 @@ a.btn{text-decoration:none}
 .foil-wrap .label-thumb-hero{align-self:flex-end}
 .label-fallback{object-fit:contain;padding:6px;background:#0c0c0c}
 .label-change{display:block;margin:0 auto 8px}
+.label-actions{display:flex;gap:8px;align-items:center;justify-content:center;margin:0 0 8px}
+.label-actions .label-change{width:auto;margin:0;flex:1}
+.label-actions .label-rotate{width:auto;margin:0;flex:0 0 auto;padding:8px 12px;font-size:13px}
 .label-row{display:flex;gap:12px;align-items:center}
 .label-copy{flex:1;min-width:0}
 .wine-tile .label-thumb{width:72px;height:72px;margin:0 auto}

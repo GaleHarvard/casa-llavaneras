@@ -40,7 +40,7 @@ eval(extractFunction(v91, "fuzzyWineryHit"));
 const zoneSrc = vinoteca.slice(0, vinoteca.indexOf("const ZONE_DO"));
 const zoneNames = new Set(Array.from(zoneSrc.matchAll(/name: "([^"]+)"/g)).map(hit => hit[1]));
 
-assert.strictEqual(WINERY_CARDS.length, 56);
+assert.strictEqual(WINERY_CARDS.length, 58);
 const files = {};
 const missing = [];
 WINERY_CARDS.forEach(card => {
@@ -74,7 +74,7 @@ assert.strictEqual(ygay && ygay.name, "Marqués de Murrieta");
 const coche = fuzzyWineryHit({ producer: { value: "Coche Dury" }, name: { value: "Meursault" } });
 assert.strictEqual(coche && coche.id, "coche-dury");
 const datos = JSON.parse(fs.readFileSync(path.join(root, "data/bodegas-datos.json"), "utf8"));
-assert.strictEqual(datos.length, 56);
+assert.strictEqual(datos.length, 58);
 const byName = {};
 WINERY_CARDS.forEach(card => { byName[card.name] = card; });
 assert.strictEqual(byName["Vega Sicilia"].web, "https://temposvegasicilia.com/");
@@ -86,15 +86,26 @@ assert.strictEqual(byName["Château Massamier la Mignarde"].web, "https://massam
 assert.strictEqual(byName["Familia Torres"].precision, "municipio");
 assert.strictEqual(byName["Petrus"].founded, "siglo XVIII");
 assert.ok(byName["Vega Sicilia"].sources.length);
+assert.strictEqual(byName["Bodegas Luis Cañas"].file, "bodega-luis-canas.jpg");
+assert.strictEqual(byName["Bodegas Luis Cañas"].zone, "Rioja");
+assert.ok(byName["Bodegas Luis Cañas"].wines.includes("Luis Cañas"));
+assert.strictEqual(byName["Bodegas y Viñedos García Figuero"].file, "bodega-garcia-figuero.jpg");
+assert.strictEqual(byName["Bodegas y Viñedos García Figuero"].zone, "Ribera del Duero");
+assert.ok(byName["Bodegas y Viñedos García Figuero"].wines.includes("Figuero Viñas Viejas"));
+assert.ok(sw.includes("./bodega-luis-canas.jpg"));
+assert.ok(sw.includes("./bodega-garcia-figuero.jpg"));
+assert.strictEqual(wineryImageFor({ producer: "Bodegas Luis Cañas", name: "Luis Cañas" }), "bodega-luis-canas.jpg");
+assert.strictEqual(wineryImageFor({ producer: "Bodegas y Viñedos García Figuero", name: "Viñas Viejas" }), "bodega-garcia-figuero.jpg");
+assert.strictEqual(wineryImageFor({ producer: "Figuero", name: "Figuero Viñas Viejas" }), "bodega-garcia-figuero.jpg");
 assert.ok(vino.includes("https://temposvegasicilia.com/"));
 assert.ok(vinoteca.includes("https://bodegasramonbilbao.com/"));
 assert.ok(v91.includes("wineries.sources"));
 assert.ok(v91.includes('precision === "municipio"'));
 
 assert.ok(html.includes('id="bodegas"'));
-assert.ok(html.includes("casa-v91.js?v=97"));
-assert.ok(app.includes('APP_VERSION = "v97"'));
-assert.ok(sw.includes("casa-llavaneras-ios-v97"));
+assert.ok(html.includes("casa-v91.js?v=98"));
+assert.ok(app.includes('APP_VERSION = "v98"'));
+assert.ok(sw.includes("casa-llavaneras-ios-v98"));
 assert.ok(sw.includes("./bodega-domaine-georges-roumier.jpg"));
 assert.ok(sw.includes("./casa-v91.js"));
 ["wineries.h1", "wineries.open", "wineries.artPending", "wineries.noZone", "wineries.sources"].forEach(key => {

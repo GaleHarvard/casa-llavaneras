@@ -66,7 +66,9 @@ var WINERY_LIBRARY = [
   { name: "Casa Santos Lima", file: "bodega-casa-santos-lima.jpg", aliases: ["Quinta da Boavista"] },
   { name: "Madeira Wine Company", file: "bodega-madeira-wine-company.jpg", aliases: ["Blandy's", "Madeira Wine Association"] },
   { name: "Casa Ermelinda Freitas", file: "bodega-ermelinda-freitas.jpg", aliases: ["Ermelinda Freitas"] },
-  { name: "Aveleda", file: "bodega-aveleda.jpg", aliases: ["Quinta da Aveleda"] }
+  { name: "Aveleda", file: "bodega-aveleda.jpg", aliases: ["Quinta da Aveleda"] },
+  { name: "Bodegas Luis Cañas", file: "bodega-luis-canas.jpg", aliases: ["Luis Cañas", "Luis Canas"] },
+  { name: "Bodegas y Viñedos García Figuero", file: "bodega-garcia-figuero.jpg", aliases: ["García Figuero", "Garcia Figuero", "Tinto Figuero", "Figuero", "Figuero Viñas Viejas"] }
 ];
 
 /* Santiuste de San Juan Bautista: web https://avelinovegas.com/ y pin 41.161401, -4.574553. */
@@ -1814,6 +1816,67 @@ var WINERY_CARDS = [
       "https://www.company.aveleda.com/pt/contactos",
       "https://www.company.aveleda.com/pt/empresa",
       "https://company.aveleda.com/pt"
+    ]
+  },
+  {
+    "id": "luis-canas",
+    "name": "Bodegas Luis Cañas",
+    "aliases": [
+      "Luis Cañas",
+      "Luis Canas"
+    ],
+    "country": "España",
+    "zone": "Rioja",
+    "zoneText": "DOCa Rioja (Rioja Alavesa)",
+    "town": "Villabuena de Álava",
+    "web": "https://www.luiscanas.com/",
+    "address": "Ctra. Samaniego nº 10, 01307 Villabuena de Álava (Álava)",
+    "lat": 42.5452782,
+    "lng": -2.6673477,
+    "precision": "bodega",
+    "founded": 1970,
+    "about": "Familia de Villabuena de Álava que elaboraba vino joven en la Cueva de los Curas. En 1970 Luis Cañas empezó a embotellar y levantó la bodega que lleva su nombre, junto a esa cueva.",
+    "wines": [
+      "Luis Cañas",
+      "Amaren"
+    ],
+    "file": "bodega-luis-canas.jpg",
+    "sources": [
+      "https://www.luiscanas.com/bodega",
+      "https://www.luiscanas.com/contacto",
+      "https://www.openstreetmap.org/way/516611093"
+    ]
+  },
+  {
+    "id": "garcia-figuero",
+    "name": "Bodegas y Viñedos García Figuero",
+    "aliases": [
+      "García Figuero",
+      "Garcia Figuero",
+      "Tinto Figuero",
+      "Figuero",
+      "Figuero Viñas Viejas"
+    ],
+    "country": "España",
+    "zone": "Ribera del Duero",
+    "zoneText": "DO Ribera del Duero",
+    "town": "La Horra",
+    "web": "https://figuero.es/",
+    "address": "Ctra. La Horra a Roa, km 2,2, 09311 La Horra (Burgos)",
+    "lat": 41.729,
+    "lng": -3.884,
+    "precision": "bodega",
+    "founded": 2001,
+    "about": "Bodega familiar de La Horra, nacida en 2001 del proyecto de José María García y Milagros Figuero con sus hijos. Elabora tempranillo de las parcelas de alrededor; Figuero Viñas Viejas es su vino de viñas viejas.",
+    "wines": [
+      "Figuero Viñas Viejas",
+      "Tinto Figuero"
+    ],
+    "file": "bodega-garcia-figuero.jpg",
+    "sources": [
+      "https://figuero.es/",
+      "https://figuero.es/contacto/",
+      "https://figuero.es/en/figuero-vinas-viejas-el-vino-milagro-nacido-en-el-corazon-de-la-ribera-del-duero/"
     ]
   }
 ];

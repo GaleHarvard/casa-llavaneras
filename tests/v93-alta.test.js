@@ -31,14 +31,14 @@ const css = fs.readFileSync(path.join(root, "styles.css"), "utf8");
 const i18n = fs.readFileSync(path.join(root, "i18n.js"), "utf8");
 const v92 = fs.readFileSync(path.join(root, "casa-v92.js"), "utf8");
 
-assert.ok(app.includes('APP_VERSION = "v97"'));
-assert.ok(html.includes('content="v97"'));
-assert.ok(html.includes("casa-alta.js?v=97"));
-assert.ok(html.indexOf("casa-v92.js?v=97") < html.indexOf("casa-alta.js?v=97"));
-assert.ok(html.indexOf("casa-alta.js?v=97") < html.indexOf("app.js?v=97"));
+assert.ok(app.includes('APP_VERSION = "v98"'));
+assert.ok(html.includes('content="v98"'));
+assert.ok(html.includes("casa-alta.js?v=98"));
+assert.ok(html.indexOf("casa-v92.js?v=98") < html.indexOf("casa-alta.js?v=98"));
+assert.ok(html.indexOf("casa-alta.js?v=98") < html.indexOf("app.js?v=98"));
 assert.ok(sw.includes("./casa-alta.js"));
-assert.ok(sw.includes('const CACHE = "casa-llavaneras-ios-v97"'));
-assert.ok(sw.includes('const VERSION = "v97"'));
+assert.ok(sw.includes('const CACHE = "casa-llavaneras-ios-v98"'));
+assert.ok(sw.includes('const VERSION = "v98"'));
 assert.ok(fs.existsSync(path.join(root, "docs/alta-v93.md")));
 assert.ok(fs.existsSync(path.join(root, "archivo/app hoy.js")));
 
@@ -90,7 +90,7 @@ const zoneSrc = fs.readFileSync(path.join(root, "casa-vinoteca.js"), "utf8").spl
 const ZONES = new Function(zoneSrc + "\nreturn ZONES;")();
 eval(fs.readFileSync(path.join(root, "bodegas.js"), "utf8"));
 assert.strictEqual(ZONES.length, 115);
-assert.strictEqual(WINERY_CARDS.length, 56);
+assert.strictEqual(WINERY_CARDS.length, 58);
 
 const api = new Function("ZONES", "WINERY_CARDS", "foldWinery", [
   extractFunction(alta, "blankWineSheet"),
@@ -130,6 +130,14 @@ assert.strictEqual(mod.matchLocalAssets("DO Empordà", "Castillo Perelada").wine
 assert.strictEqual(mod.matchLocalAssets("Figueres", "Perelada").regionAssetImage, "mapa-emporda.jpg");
 assert.strictEqual(mod.matchLocalAssets("Atlantis", "Bodega Inventada Larga").regionAssetImage, "");
 assert.strictEqual(mod.matchLocalAssets("Atlantis", "Bodega Inventada Larga").wineryAssetImage, "");
+const canas = mod.matchLocalAssets("Rioja", "Bodegas Luis Cañas");
+assert.strictEqual(canas.winery.id, "luis-canas");
+assert.strictEqual(canas.wineryAssetImage, "bodega-luis-canas.jpg");
+assert.strictEqual(canas.regionAssetImage, "mapa-rioja.jpg");
+const figuero = mod.matchLocalAssets("Ribera del Duero", "Figuero Viñas Viejas");
+assert.strictEqual(figuero.winery.id, "garcia-figuero");
+assert.strictEqual(figuero.wineryAssetImage, "bodega-garcia-figuero.jpg");
+assert.strictEqual(figuero.regionAssetImage, "mapa-ribera.jpg");
 
 const schema = mod.wineReadingSchema();
 assert.deepStrictEqual(schema.required, ["name", "vintage", "region", "winery"]);
