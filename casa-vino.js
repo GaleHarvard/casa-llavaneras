@@ -342,15 +342,14 @@ function bottleSrcFromTone(tone) {
 }
 function estateSVG(w) {
   const art = estateArt(w);
-  const land = art.land ? `<img class="estate-photo" src="${art.land}" alt="" onerror="this.style.display='none'">` : "";
   const bottle = currentBottle && w && currentBottle.wineId === w.id ? currentBottle : null;
-  const visual = labelSrc(w, bottle)
-    ? labelThumbHtml(w, "label-thumb label-thumb-hero", bottle)
-    : bottleMarkup(w);
+  const src = typeof labelSrc === "function" ? labelSrc(w, bottle) : "";
+  const land = art.land ? `<img class="estate-photo${src ? "" : " estate-photo-full"}" src="${art.land}" alt="" onerror="this.style.display='none'">` : "";
+  if (!src) return land;
   return `
     ${land}
     <div class="foil-wrap">
-      ${visual}
+      ${labelThumbHtml(w, "label-thumb label-thumb-hero", bottle)}
     </div>`;
 }
 function normalizeWine(w) {

@@ -1,4 +1,4 @@
-/* Fichas v98: etiqueta derecha, botón Girar foto, Luis Cañas y Figuero. */
+/* Fichas v99: etiqueta derecha, botón Girar foto, Luis Cañas y Figuero. */
 const assert = require("assert");
 const fs = require("fs");
 const { execFileSync } = require("child_process");
@@ -27,13 +27,13 @@ def card(title, year, path, exif=False):
         stored.save(path, "JPEG", quality=85, exif=ex)
     else:
         im.save(path, "JPEG", quality=85)
-card("LUIS CANAS", "RIOJA 2024", "/tmp/v98-orient6.jpg", True)
-card("FIGUERO", "VINAS VIEJAS", "/tmp/v98-figuero-label.jpg", False)
+card("LUIS CANAS", "RIOJA 2024", "/tmp/v99-orient6.jpg", True)
+card("FIGUERO", "VINAS VIEJAS", "/tmp/v99-figuero-label.jpg", False)
 print("labels")
 `]);
 
-const orientB64 = fs.readFileSync("/tmp/v98-orient6.jpg").toString("base64");
-const figueroB64 = fs.readFileSync("/tmp/v98-figuero-label.jpg").toString("base64");
+const orientB64 = fs.readFileSync("/tmp/v99-orient6.jpg").toString("base64");
+const figueroB64 = fs.readFileSync("/tmp/v99-figuero-label.jpg").toString("base64");
 
 (async () => {
   const browser = await playwright.webkit.launch();
@@ -164,7 +164,7 @@ const figueroB64 = fs.readFileSync("/tmp/v98-figuero-label.jpg").toString("base6
       linked: (wineById("luis-canas-2024").provenance || {}).wineryId
     };
   });
-  assert.strictEqual(luis.version, "v98");
+  assert.strictEqual(luis.version, "v99");
   assert.strictEqual(luis.art, "bodega-luis-canas.jpg");
   assert.strictEqual(luis.linked, "luis-canas");
   assert.ok(luis.title.indexOf("Luis Cañas") >= 0, luis.title);
@@ -211,9 +211,9 @@ const figueroB64 = fs.readFileSync("/tmp/v98-figuero-label.jpg").toString("base6
     const size = pngSize(file);
     assert.deepStrictEqual(size, { width: 1170, height: 2532 });
   };
-  await shot("v98-etiqueta-derecha.png");
-  await shot("v98-girar-foto.png");
-  await shot("v98-luis-canas.png");
+  await shot("v99-etiqueta-derecha.png");
+  await shot("v99-girar-foto.png");
+  await shot("v99-luis-canas.png");
 
   await page.evaluate(() => openWine("figuero-vinas-viejas-2021"));
   await page.waitForFunction(() => {
@@ -233,10 +233,10 @@ const figueroB64 = fs.readFileSync("/tmp/v98-figuero-label.jpg").toString("base6
   assert.strictEqual(fig.linked, "garcia-figuero");
   assert.strictEqual(fig.file, "bodega-garcia-figuero.jpg");
   assert.ok(fig.sub.indexOf("2021") >= 0, fig.sub);
-  await shot("v98-figuero.png");
+  await shot("v99-figuero.png");
 
   await browser.close();
-  console.log("v98-shot ok", orient.mode);
+  console.log("v99-shot ok", orient.mode);
 })().catch(err => {
   console.error(err);
   process.exit(1);

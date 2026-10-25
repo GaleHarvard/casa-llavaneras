@@ -1001,6 +1001,12 @@ label.field span {
   display: block;
   background: #000;
 }
+.hero-row-solo .hero-art,
+.hero-art-full {
+  flex: 1 1 100%;
+  width: 100%;
+  max-width: none;
+}
 .hero-row .foil-wrap {
   position: static;
   flex: 0 0 31.5vw;
@@ -1389,6 +1395,10 @@ label.field span {
   object-fit: cover;
   object-position: center;
   border-radius: 14px;
+}
+.estate-photo-full {
+  width: 100%;
+  height: 280px;
 }
 
 .win-row .win-left{color:#e6e6e6;white-space:nowrap;margin-left:12px}
