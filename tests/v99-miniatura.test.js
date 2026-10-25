@@ -31,10 +31,10 @@ assert.ok(!heroFn.includes("bottleMarkup"));
 assert.ok(heroFn.includes("hero-art-full"));
 assert.ok(!estateFn.includes("bottleMarkup"));
 assert.ok(estateFn.includes("estate-photo-full"));
-assert.ok(app.includes('APP_VERSION = "v99"'));
-assert.ok(html.includes('content="v99"'));
-assert.ok(sw.includes('const CACHE = "casa-llavaneras-ios-v99"'));
-assert.ok(sw.includes('const VERSION = "v99"'));
+assert.ok(app.includes('APP_VERSION = "v100"'));
+assert.ok(html.includes('content="v100"'));
+assert.ok(sw.includes('const CACHE = "casa-llavaneras-ios-v100"'));
+assert.ok(sw.includes('const VERSION = "v100"'));
 
 const vinoteca = fs.readFileSync(path.join(root, "casa-vinoteca.js"), "utf8");
 const zoneSrc = vinoteca.slice(0, vinoteca.indexOf("const ZONE_DO"));
@@ -87,4 +87,4 @@ assert.ok(labeled.includes("foil-wrap"));
 assert.ok(!labeled.includes("hero-art-full"));
 assert.ok(!/botella-(tinto|blanco|espumoso)/.test(labeled));
 
-console.log("v99-miniatura ok");
+console.log("v100-miniatura ok");

@@ -195,7 +195,19 @@ function sheetFromParsed(parsed) {
     else sheet.vintage = year;
   }
   if (sheet.vintage && /lote|^\s*l\s*\d{4}/i.test(sheet.vintage)) sheet.vintage = "";
-  return sheet;
+  return typeof polishSheetIdentity === "function" ? polishSheetIdentity(sheet) : sheet;
+}
+
+function polishSheetIdentity(sheet) {
+  const row = sheet || {};
+  if (typeof stripContradictingStyle !== "function" || typeof typeFromGrapes !== "function") return row;
+  const grapeType = typeFromGrapes(row.grapes);
+  const next = stripContradictingStyle(row.name, grapeType);
+  if (next) row.name = next;
+  if (grapeType === "blanco" && row.crianza && typeof inventedStylePhrase === "function" && inventedStylePhrase(row.crianza) && /\btinto\b/i.test(row.crianza)) {
+    row.crianza = "";
+  }
+  return row;
 }
 
 function missingIdentity(sheet) {
@@ -244,6 +256,7 @@ async function postWineReading(key, parts, signal) {
     "La primera imagen es la etiqueta delantera. Si hay una segunda, es la contraetiqueta. Léelas juntas.",
     "Responde solo JSON con las claves name, vintage, region, winery, grapes, abv, crianza, serveTemp, tasting, pairing.",
     "name es el nombre impreso en la etiqueta, letra por letra. No lo cambies por otro vino parecido.",
+    "No añadas tinto, blanco, rosado, joven, crianza ni reserva si esas palabras no están impresas. No lo llames Tinto Joven.",
     "vintage es el año impreso en la etiqueta. No pongas otra añada que conozcas de ese vino. Si no está, déjalo vacío. No uses un lote L2023 como añada.",
     "region es la DO o la zona impresa. Nunca pongas el nombre de la bodega como zona. winery es la bodega.",
     "grapes, abv, crianza, serveTemp, tasting y pairing solo si se leen. Si no constan, cadena vacía.",
@@ -307,15 +320,19 @@ async function analyzeAndEnrichWine(front, back) {
         "source es la página de donde sale el dato. Si no hay fuente, deja el campo vacío.",
         "No inventes. No escribas «Sin dato».",
         "Si la añada ya figura en «Ya leído», devuelve vintage vacío. No la sustituyas por otro año.",
+        "Devuelve name vacío. No completes el nombre con otro vino de la bodega.",
         "Ya leído: " + [sheet.name, sheet.vintage, sheet.region, sheet.winery].filter(Boolean).join(" · ")
       ].join("\n"), ctrl && ctrl.signal);
       const uri = citedUri(search);
       if (uri && search && search.parsed) {
-        fillEmptySheet(sheet, sheetFromParsed(search.parsed));
+        const extra = sheetFromParsed(search.parsed);
+        extra.name = "";
+        fillEmptySheet(sheet, extra);
         sources.push(uri);
       }
     }
     if (labelYear) sheet.vintage = labelYear;
+    if (typeof polishSheetIdentity === "function") polishSheetIdentity(sheet);
     const found = placeForSheet(sheet.region, sheet.winery, sheet.name);
     if (found.label) sheet.region = found.label;
     const assets = found.assets || matchLocalAssets(sheet.region, sheet.winery);
@@ -921,12 +938,12 @@ async function confirmAlta(another) {
     region: place.label || "",
     country: (zone && zone.country) || (card && card.country) || "",
     appellation: place.label || "",
-    type: "",
+    type: typeof reconcileType === "function" ? reconcileType("", String(sheet.grapes || "")) : "",
     style: "escaneo",
     grapes: String(sheet.grapes || "").split(/[,;]/).map(part => part.trim()).filter(Boolean),
     abv: parseFloat(String(sheet.abv || "").replace(",", ".")) || 0,
     volume: "",
-    color: "#4a1020",
+    color: "",
     ratings: emptyAltaRatings(),
     priceHint: "",
     tasting: sheet.tasting || "",
@@ -947,6 +964,8 @@ async function confirmAlta(another) {
     zoneAsset: (zone && zone.map) || "",
     wineryAsset: (card && card.file) || assets.wineryAssetImage || ""
   };
+  if (typeof alignWineWithGrapes === "function") alignWineWithGrapes(wine);
+  if (!wine.color && wine.type && typeof colorForWineType === "function") wine.color = colorForWineType(wine.type);
   if (typeof normalizeWine === "function") normalizeWine(wine);
   const stored = typeof upsertCustomWine === "function" ? upsertCustomWine(wine) : wine;
   stored.frontLabelImage = await storeAltaImage(stored.id, altaFlow.frontLabelImage);
@@ -1204,7 +1223,12 @@ compressLabelThumb = function (dataUrl) {
 var prepareOwnLabelsAlta = prepareOwnLabels;
 prepareOwnLabels = function () {
   return prepareOwnLabelsAlta().then(() => {
-    try { migrateAltaPhotos(); migrateClearZones(); linkIllustratedCellar(); } catch (err) {}
+    try {
+      migrateAltaPhotos();
+      migrateClearZones();
+      linkIllustratedCellar();
+      if (typeof migrateGrapeIdentity === "function" && migrateGrapeIdentity(state).length && typeof save === "function") save();
+    } catch (err) {}
     return true;
   });
 };

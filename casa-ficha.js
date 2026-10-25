@@ -388,8 +388,8 @@ const AROMA_FAMILIES = [
   { id: "terciarios", label: "Terciarios", chips: ["Cuero", "Tabaco", "Tierra", "Setas", "Balsámico", "Miel"] }
 ];
 function hueOptions(w) {
-  const type = w && w.type === "rose" ? "rosado" : (w && w.type) || "tinto";
-  return HUE_BY_TYPE[type] || HUE_BY_TYPE.tinto;
+  const type = w && w.type === "rose" ? "rosado" : (w && w.type) || "";
+  return HUE_BY_TYPE[type] || [];
 }
 function tastingById(wineId, id) {
   return tastingsOf(wineId).find(t => t.id === id) || null;

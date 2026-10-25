@@ -27,11 +27,11 @@ const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
 const i18n = fs.readFileSync(path.join(root, "i18n.js"), "utf8");
 const css = fs.readFileSync(path.join(root, "styles.css"), "utf8");
 
-assert.ok(app.includes('APP_VERSION = "v99"'));
-assert.ok(html.includes('content="v99"'));
-assert.ok(html.includes("casa-alta.js?v=99"));
-assert.ok(sw.includes('const CACHE = "casa-llavaneras-ios-v99"'));
-assert.ok(sw.includes('const VERSION = "v99"'));
+assert.ok(app.includes('APP_VERSION = "v100"'));
+assert.ok(html.includes('content="v100"'));
+assert.ok(html.includes("casa-alta.js?v=100"));
+assert.ok(sw.includes('const CACHE = "casa-llavaneras-ios-v100"'));
+assert.ok(sw.includes('const VERSION = "v100"'));
 assert.ok(alta.includes('imageOrientation: "from-image"'));
 assert.ok(alta.includes('imageOrientation: "none"'));
 assert.ok(alta.includes("function uprightLabelData"));
@@ -54,4 +54,4 @@ assert.strictEqual(readJpegOrientation(bytes), 6);
 const size = readJpegSize(bytes);
 assert.ok(size.width > size.height);
 
-console.log("v99-orientacion ok");
+console.log("v100-orientacion ok");

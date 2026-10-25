@@ -18,9 +18,9 @@ d = ImageDraw.Draw(im)
 d.rectangle([0, 0, 420, 120], fill=(120, 24, 36))
 d.text((28, 260), "FOTO REAL", fill=(40, 24, 18), font=font)
 d.text((36, 330), "ETIQUETA", fill=(40, 24, 18), font=font)
-im.save("/tmp/v99-etiqueta.jpg", "JPEG", quality=85)
+im.save("/tmp/v100-etiqueta.jpg", "JPEG", quality=85)
 `]);
-const label = "data:image/jpeg;base64," + fs.readFileSync("/tmp/v99-etiqueta.jpg").toString("base64");
+const label = "data:image/jpeg;base64," + fs.readFileSync("/tmp/v100-etiqueta.jpg").toString("base64");
 
 (async () => {
   const browser = await playwright.webkit.launch();
@@ -80,7 +80,7 @@ const label = "data:image/jpeg;base64," + fs.readFileSync("/tmp/v99-etiqueta.jpg
       ratio: artBox.width / rowBox.width
     };
   });
-  assert.strictEqual(murrieta.version, "v99");
+  assert.strictEqual(murrieta.version, "v100");
   assert.strictEqual(murrieta.src, "bodega-marques-de-murrieta.jpg");
   assert.strictEqual(murrieta.full, true);
   assert.strictEqual(murrieta.foil, false);
@@ -95,12 +95,12 @@ const label = "data:image/jpeg;base64," + fs.readFileSync("/tmp/v99-etiqueta.jpg
     const size = pngSize(file);
     assert.deepStrictEqual(size, { width: 1170, height: 2532 });
   };
-  await shot("v99-murrieta-rosado.png");
+  await shot("v100-murrieta-rosado.png");
 
   await page.evaluate(photo => {
     state.customWines = state.customWines || [];
     state.customWines.push({
-      id: "foto-real-v99",
+      id: "foto-real-v100",
       name: "Luis Cañas",
       producer: "Bodegas Luis Cañas",
       vintage: 2024,
@@ -115,7 +115,7 @@ const label = "data:image/jpeg;base64," + fs.readFileSync("/tmp/v99-etiqueta.jpg
       frontLabelImage: photo
     });
     if (typeof normalizeWine === "function") normalizeWine(state.customWines[state.customWines.length - 1]);
-    openWine("foto-real-v99");
+    openWine("foto-real-v100");
   }, label);
   await page.waitForFunction(() => {
     const thumb = document.querySelector("#wine-body .label-thumb-hero");
@@ -135,10 +135,10 @@ const label = "data:image/jpeg;base64," + fs.readFileSync("/tmp/v99-etiqueta.jpg
   assert.strictEqual(real.bottle, false);
   assert.strictEqual(real.full, false);
   assert.ok(real.ratio < 0.8, String(real.ratio));
-  await shot("v99-foto-real.png");
+  await shot("v100-foto-real.png");
 
   await browser.close();
-  console.log("v99-shot ok");
+  console.log("v100-shot ok");
 })().catch(err => {
   console.error(err);
   process.exit(1);
