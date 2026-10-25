@@ -39,7 +39,7 @@ const playwright = require("/tmp/pw/node_modules/playwright");
       text: text.slice(0, 400)
     };
   });
-  assert.strictEqual(list.version, "v99");
+  assert.strictEqual(list.version, "v100");
   assert.strictEqual(list.h1, "Bodegas");
   assert.strictEqual(list.outline, "none");
   assert.ok(list.tiles >= 4, String(list.tiles));

@@ -1979,7 +1979,7 @@ function geminiBlockSpecs() {
           humidity: str, position: str, light: str, drinkFrom: num, peakStart: num, peakEnd: num, holdTo: num, structure: num
         }
       },
-      ask: "Bloque datos y fechas. type: tinto, blanco, rosado, espumoso o generoso. style: reserva, crianza, roble, joven o gran reserva. grapeMix: cada uva con name y pct (0 si no sabes el porcentaje). elevageMonths son los meses de crianza. elevageVessel: barrica, fudre, deposito, anfora, botella o mixto. elevageOak: frances, americano, hungaro, mixto o ninguno. elevageNewOak: porcentaje de roble nuevo, 0 si no se sabe. crianza es el texto libre, sin URL. tasting es la nota de cata, sin URL y sin precio. serveMin/serveMax y cellarMin/cellarMax en grados. drinkFrom, peakStart, peakEnd y holdTo son años, en ese orden; peakEnd es el último año para beber. Si no estás seguro, cadena vacía o 0."
+      ask: "Bloque datos y fechas. type: tinto, blanco, rosado, espumoso o generoso, o vacío. No pongas tinto por defecto: si las uvas son solo blancas, type es blanco. style: reserva, crianza, roble, joven o gran reserva, solo si consta. No inventes joven ni Tinto Joven en el nombre. grapeMix: cada uva con name y pct (0 si no sabes el porcentaje). elevageMonths son los meses de crianza. elevageVessel: barrica, fudre, deposito, anfora, botella o mixto. elevageOak: frances, americano, hungaro, mixto o ninguno. elevageNewOak: porcentaje de roble nuevo, 0 si no se sabe. crianza es el texto libre, sin URL. tasting es la nota de cata, sin URL y sin precio. serveMin/serveMax y cellarMin/cellarMax en grados. drinkFrom, peakStart, peakEnd y holdTo son años, en ese orden; peakEnd es el último año para beber. Si no estás seguro, cadena vacía o 0."
     },
     pairings: {
       name: "pairings",
@@ -2825,7 +2825,7 @@ function wineFromInternetHit(hit) {
     country: (zone && zone.country) || idn.country || "",
     appellation: (zone && zone.name) || idn.appellation || "",
     type: type || "", style: "internet",
-    grapes: [], abv: 0, color: "#4a1020",
+    grapes: [], abv: 0, color: type ? colorForWineType(type) : "",
     ratings: {
       vivino: { score: 0, count: 0, scale: 5, note: "" },
       penin: { score: 0, scale: 100, note: "" },
@@ -3176,7 +3176,7 @@ function inferWineFromText(raw) {
   const w = {
     id, name: label, producer: label, vintage: year,
     region: "", country: "", appellation: "", type: wineTypeFromText(raw) || "", style: "escaneo",
-    grapes: [], abv: 13.5, color: "#4a1020",
+    grapes: [], abv: 13.5, color: wineTypeFromText(raw) ? colorForWineType(wineTypeFromText(raw)) : "",
     ratings: {
       vivino: { score: 0, count: 0, scale: 5, note: "" },
       penin: { score: 0, scale: 100, note: "" },

@@ -265,7 +265,7 @@ async function visionOnce(images) {
     "Responde solo JSON. Cada campo es {\"value\":\"...\",\"confidence\":0 a 1}.",
     "name: nombre del vino. producer: la bodega, no el importador.",
     "appellation: la DO o DOC. vintage: el año, o vacío si no se lee.",
-    "type: tinto, blanco, rosado, espumoso o generoso.",
+    "type: tinto, blanco, rosado, espumoso o generoso, o vacío si no está escrito. No pongas tinto por defecto.",
     "grapes: variedades separadas por comas. abv: el grado alcohólico. volume: el volumen de la botella.",
     "confidence 0 si no se lee y 1 si está claro. No inventes."
   ].join("\n");

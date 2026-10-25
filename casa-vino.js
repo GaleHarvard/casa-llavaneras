@@ -301,7 +301,7 @@ function bottleKind(w) {
   if (type === "generoso") return "generoso";
   const t = normTxt(`${w.style || ""} ${w.appellation || ""} ${w.region || ""} ${w.name || ""} ${(w.grapes || []).join(" ")}`);
   if (/\b(cava|champagne|espumoso|corpinnat)\b/.test(t)) return "spark";
-  if (/\b(albarino|riesling|godello|verdejo|viura|chardonnay)\b/.test(t) || t.indexOf("rias baixas") >= 0 || t.indexOf("alsace") >= 0 || t.indexOf("mosela") >= 0) return "slim";
+  if (/\b(albarino|riesling|godello|verdejo|viura|chardonnay|malvasia|macabeo|xarello|albillo)\b/.test(t) || /\btempranillo blanco\b/.test(t) || t.indexOf("rias baixas") >= 0 || t.indexOf("alsace") >= 0 || t.indexOf("mosela") >= 0) return "slim";
   if (/\b(blanco|white)\b/.test(t)) return "white";
   if (/\b(rosado|rose)\b/.test(t)) return "rose";
   return "red";

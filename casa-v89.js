@@ -78,6 +78,183 @@ function cleanVintage(value) {
   return m ? m[0] : "";
 }
 
+function foldGrapeName(text) {
+  return String(text || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, " ").trim();
+}
+
+function grapeParts(value) {
+  const bits = Array.isArray(value) ? value : [value];
+  const out = [];
+  bits.forEach(bit => {
+    String(bit || "").split(/\s*(?:,|;|\/|\sy\s)\s*/i).forEach(part => {
+      const clean = part.replace(/\s+/g, " ").trim();
+      if (clean) out.push(clean);
+    });
+  });
+  return out;
+}
+
+function grapeListHas(name, list) {
+  return list.some(grape => new RegExp("(^| )" + grape.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "( |$)").test(name));
+}
+
+function grapeColor(name) {
+  const n = foldGrapeName(name);
+  if (!n) return "";
+  if (/\btempranillo blanco\b|\bgarnacha blanca\b|\bgrenache blanc\b/.test(n)) return "white";
+  const white = ["viura", "macabeo", "malvasia", "albarino", "alvarinho", "godello", "verdejo", "chardonnay", "xarello", "xarelo", "parellada", "treixadura", "loureiro", "torrontes", "riesling", "sauvignon", "semillon", "gewurztraminer", "moscatel", "muscat", "pedro ximenez", "palomino", "airen", "albillo", "hondarrabi", "chenin", "pinot blanc", "vermentino", "garganega", "viognier", "roussanne", "marsanne", "aligote", "arinto", "encruzado", "rabigato", "bical", "sercial", "antao vaz", "fernao pires", "trebbiano", "ugni blanc", "picpoul", "colombard", "assyrtiko", "fiano", "greco", "falanghina", "gruner", "silvaner", "catarratto", "inzolia", "gros manseng", "petit manseng", "melon"];
+  const red = ["tinto fino", "tinta de toro", "tinta roriz", "tinta barroca", "tinta cao", "tinta francisca", "tempranillo", "garnacha", "grenache", "graciano", "mazuelo", "carinena", "carignan", "cabernet", "merlot", "petit verdot", "syrah", "shiraz", "pinot noir", "pinot meunier", "touriga", "mencia", "monastrell", "mourvedre", "bobal", "prieto picudo", "malbec", "carmenere", "zinfandel", "primitivo", "gamay", "sousao", "souzao", "bastardo", "rufete", "listan negro", "negramoll", "pinotage", "baga", "ramisco", "alfrocheiro", "trincadeira", "nebbiolo", "sangiovese", "barbera"];
+  const isWhite = grapeListHas(n, white);
+  const isRed = grapeListHas(n, red);
+  if (isWhite && !isRed) return "white";
+  if (isRed && !isWhite) return "red";
+  return "";
+}
+
+function typeFromGrapes(grapes) {
+  const parts = grapeParts(grapes);
+  if (!parts.length) return "";
+  let white = 0;
+  let red = 0;
+  let unknown = 0;
+  parts.forEach(part => {
+    const color = grapeColor(part);
+    if (color === "white") white += 1;
+    else if (color === "red") red += 1;
+    else unknown += 1;
+  });
+  if (unknown || (white && red)) return "";
+  if (white) return "blanco";
+  if (red) return "tinto";
+  return "";
+}
+
+function canonType(value) {
+  const n = foldGrapeName(value);
+  if (!n) return "";
+  if (/\bespumoso\b|\bcava\b|\bchampagne\b|\bbrut\b/.test(n)) return "espumoso";
+  if (/\bgeneroso\b|\bjerez\b|\bporto\b|\bport\b/.test(n)) return "generoso";
+  if (/\bdulce\b/.test(n)) return "dulce";
+  if (/\brosado\b|\brose\b/.test(n)) return "rosado";
+  if (/\bblanco\b|\bwhite\b/.test(n)) return "blanco";
+  if (/\btinto\b|\bred\b/.test(n)) return "tinto";
+  return "";
+}
+
+function reconcileType(current, grapes) {
+  const written = String(current || "").trim();
+  const type = canonType(written);
+  const from = typeFromGrapes(grapes);
+  if (type === "espumoso" || type === "generoso" || type === "dulce") return type;
+  if (from === "blanco") return "blanco";
+  if (from === "tinto") return type === "rosado" ? "rosado" : "tinto";
+  return type || written;
+}
+
+function categoryForName(category) {
+  return String(category || "")
+    .replace(/\b(tinto|tinta|tintos|blanco|blanca|blancos|rosado|rosada|espumoso|generoso|dulce|joven|red|white|rose|noir|negre|negra)\b/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function stripContradictingStyle(name, grapeType) {
+  let s = String(name || "").replace(/\s+/g, " ").trim();
+  if (!s || (grapeType !== "blanco" && grapeType !== "tinto")) return s;
+  const contradict = grapeType === "blanco"
+    ? /\b(tintos?|tintas?|red|noir|negre|negra)\b/ig
+    : /\b(blancos?|blancas?|white)\b/ig;
+  if (!contradict.test(s)) return s;
+  contradict.lastIndex = 0;
+  s = s.replace(contradict, " ");
+  if (grapeType === "blanco") s = s.replace(/\bjoven\b/ig, " ");
+  s = s.replace(/\s+/g, " ").replace(/^[\s,.\-–—]+|[\s,.\-–—]+$/g, "").trim();
+  return s || String(name || "").replace(/\s+/g, " ").trim();
+}
+
+function inventedStylePhrase(text) {
+  const folded = foldGrapeName(text);
+  if (!folded) return false;
+  return !folded.replace(/\b(tinto|tinta|tintos|blanco|blanca|blancos|rosado|rosada|joven|red|white|rose|noir|vino|vinos)\b/g, " ").replace(/[^a-z0-9]+/g, "");
+}
+
+function luisCanasPrintedName(wine, beforeName) {
+  const blob = typeof foldEstate === "function"
+    ? foldEstate((wine && wine.producer || "") + " " + beforeName)
+    : foldGrapeName((wine && wine.producer || "") + " " + beforeName);
+  if (!/luis canas/.test(blob)) return "";
+  if (typeFromGrapes(wine && wine.grapes) !== "blanco") return "";
+  if (!/\btinto\b|\bjoven\b/i.test(beforeName) && canonType(wine && wine.type) !== "tinto") return "";
+  const stripped = stripContradictingStyle(beforeName, "blanco");
+  const left = typeof foldEstate === "function" ? foldEstate(stripped) : foldGrapeName(stripped);
+  if (left !== "luis canas" && !/^luis canas (19|20)\d{2}$/.test(left) && left !== "bodegas luis canas" && !/^bodegas luis canas (19|20)\d{2}$/.test(left)) return stripped;
+  const fromName = String(beforeName || "").match(/\b(19|20)\d{2}\b/);
+  const fromVintage = String(wine && wine.vintage || "").match(/\b(19|20)\d{2}\b/);
+  const year = (fromName && fromName[0]) || (fromVintage && fromVintage[0]) || "";
+  return year ? "Luis Cañas " + year : "Luis Cañas";
+}
+
+function clearContradictingCrianza(wine, type) {
+  if (!wine || type !== "blanco") return false;
+  let changed = false;
+  const clear = holder => {
+    if (!holder || !holder.crianza) return;
+    if (!inventedStylePhrase(holder.crianza) || !/\btinto\b/i.test(holder.crianza)) return;
+    holder.crianza = "";
+    changed = true;
+  };
+  clear(wine);
+  clear(wine.provenance);
+  return changed;
+}
+
+function alignWineWithGrapes(wine) {
+  if (!wine) return false;
+  const beforeName = String(wine.name || "");
+  const beforeType = String(wine.type || "");
+  const grapeType = typeFromGrapes(wine.grapes);
+  let name = stripContradictingStyle(beforeName, grapeType);
+  let type = reconcileType(beforeType, wine.grapes);
+  const printed = luisCanasPrintedName(wine, beforeName);
+  if (printed) {
+    name = printed;
+    type = "blanco";
+  }
+  if (!name) name = beforeName;
+  const crianza = clearContradictingCrianza(wine, type);
+  if (name === beforeName && type === beforeType && !crianza) return false;
+  if (name !== beforeName) {
+    wine.provenance = wine.provenance || {};
+    if (!wine.provenance.originalTitle) wine.provenance.originalTitle = beforeName;
+    wine.name = name;
+  }
+  if (type !== beforeType) {
+    wine.type = type;
+    if (type && typeof colorForWineType === "function") wine.color = colorForWineType(type);
+  }
+  return true;
+}
+
+function migrateGrapeIdentity(bag) {
+  const st = bag || (typeof state !== "undefined" ? state : null);
+  const items = [];
+  if (!st || !Array.isArray(st.customWines)) return items;
+  st.customWines.forEach(wine => {
+    if (!wine) return;
+    const fromName = String(wine.name || "");
+    const fromType = String(wine.type || "");
+    if (!alignWineWithGrapes(wine)) return;
+    items.push({
+      id: wine.id || "",
+      name: fromName,
+      next: String(wine.name || ""),
+      type: fromType,
+      nextType: String(wine.type || "")
+    });
+  });
+  return items;
+}
+
 function genericWineName(name, producer) {
   const n = typeof foldEstate === "function" ? foldEstate(name) : String(name || "").toLowerCase();
   const p = typeof foldEstate === "function" ? foldEstate(producer) : String(producer || "").toLowerCase();
@@ -88,7 +265,7 @@ function genericWineName(name, producer) {
 }
 
 function composeWineName(producer, category, vintage) {
-  return clipText([producer, category, vintage].filter(Boolean).join(" "), 80);
+  return clipText([producer, categoryForName(category), vintage].filter(Boolean).join(" "), 80);
 }
 
 function normalizeLabelBag(bag) {
@@ -107,6 +284,9 @@ function normalizeLabelBag(bag) {
   out.appellation.value = clipText(collapseRun(out.appellation.value), 80);
   out.type.value = clipText(typeof normIntakeType === "function" ? normIntakeType(out.type.value) : out.type.value, 80);
   out.grapes.value = clipText(collapseRun(out.grapes.value), 80);
+  out.type.value = reconcileType(out.type.value, out.grapes.value);
+  const strippedName = stripContradictingStyle(out.name.value, typeFromGrapes(out.grapes.value));
+  if (strippedName) out.name.value = strippedName;
   out.abv.value = cleanAbv(out.abv.value);
   out.volume.value = cleanVolume(out.volume.value);
   out.web.value = clipText(out.web.value, 80);
@@ -544,6 +724,7 @@ wineForIntake = function (fields, catalogHit) {
   if (ean) wine.ean = ean;
   wine.provenance = wine.provenance || {};
   if (category) wine.provenance.category = category;
+  alignWineWithGrapes(wine);
   const href = /^https?:\/\//i.test(web) ? web : (web ? ("https://" + web.replace(/^\/+/, "")) : "");
   if (href && wine.geo && !wine.geo.web && !(typeof isShopUrl === "function" && isShopUrl(href))) wine.geo.web = href;
   return built;
@@ -571,10 +752,28 @@ saveAlta = function (another) {
   return saveAltaV88(another);
 };
 
+var applyPageFactsPrev = typeof applyPageFacts === "function" ? applyPageFacts : null;
+if (applyPageFactsPrev) {
+  applyPageFacts = function (wine, facts, url) {
+    applyPageFactsPrev(wine, facts, url);
+    alignWineWithGrapes(wine);
+  };
+}
+
+var applyGeminiFactsPrev = typeof applyGeminiFacts === "function" ? applyGeminiFacts : null;
+if (applyGeminiFactsPrev) {
+  applyGeminiFacts = function (wine, raw) {
+    applyGeminiFactsPrev(wine, raw);
+    alignWineWithGrapes(wine);
+  };
+}
+
 (function () {
   if (typeof state === "undefined" || !state || state._corrupt) return;
   if (typeof cellarLocked !== "undefined" && cellarLocked) return;
   try {
-    if (repairRepeatedTitles(state) && typeof save === "function") save();
+    const titles = repairRepeatedTitles(state);
+    const grapes = migrateGrapeIdentity(state);
+    if ((titles || grapes.length) && typeof save === "function") save();
   } catch (err) {}
 })();

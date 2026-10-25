@@ -54,6 +54,20 @@ const api = new Function("WINE_CATALOG", [
   extractFunction(v89, "cleanAbv"),
   extractFunction(v89, "cleanVolume"),
   extractFunction(v89, "cleanVintage"),
+  extractFunction(v89, "foldGrapeName"),
+  extractFunction(v89, "grapeParts"),
+  extractFunction(v89, "grapeListHas"),
+  extractFunction(v89, "grapeColor"),
+  extractFunction(v89, "typeFromGrapes"),
+  extractFunction(v89, "canonType"),
+  extractFunction(v89, "reconcileType"),
+  extractFunction(v89, "categoryForName"),
+  extractFunction(v89, "stripContradictingStyle"),
+  extractFunction(v89, "inventedStylePhrase"),
+  extractFunction(v89, "luisCanasPrintedName"),
+  extractFunction(v89, "clearContradictingCrianza"),
+  extractFunction(v89, "alignWineWithGrapes"),
+  extractFunction(v89, "migrateGrapeIdentity"),
   extractFunction(v89, "genericWineName"),
   extractFunction(v89, "composeWineName"),
   extractFunction(v89, "normalizeLabelBag"),
@@ -257,13 +271,13 @@ assert.ok(i18n.includes("Gemini did not respond: network failure."));
 assert.ok(i18n.includes("La réponse de Gemini a été coupée."));
 assert.ok(i18n.includes("O Gemini não respondeu: falha de rede."));
 
-assert.ok(app.includes('APP_VERSION = "v99"'));
-assert.ok(sw.includes("casa-llavaneras-ios-v99"));
+assert.ok(app.includes('APP_VERSION = "v100"'));
+assert.ok(sw.includes("casa-llavaneras-ios-v100"));
 assert.ok(sw.includes("./casa-v89.js"));
 assert.ok(sw.includes("zxing"));
 assert.ok(!sw.includes("./vendor/zxing/zxing.min.js"));
-assert.ok(html.includes('content="v99"'));
-assert.ok(html.includes("casa-v89.js?v=99"));
+assert.ok(html.includes('content="v100"'));
+assert.ok(html.includes("casa-v89.js?v=100"));
 assert.ok(!html.includes("?v=88"));
 assert.ok(fs.existsSync(path.join(root, "vendor/zxing/zxing.min.js")));
 assert.ok(fs.existsSync(path.join(root, "tests/fixtures/juve-contraetiqueta.png")));
