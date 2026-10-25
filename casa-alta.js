@@ -1027,15 +1027,14 @@ function sheetIllustration(wine, allowGeneric) {
 function wineHeroHtml(wine) {
   const front = frontCoverSrc(wine);
   const illus = sheetIllustration(wine, true);
+  const wide = front ? "" : " hero-art-full";
   const art = illus.src
     ? (illus.open
-      ? '<button type="button" class="hero-art" onclick="' + illus.open + '"><img src="' + escHtml(illus.src) + '" alt=""></button>'
-      : '<img class="hero-art" src="' + escHtml(illus.src) + '" alt="">')
+      ? '<button type="button" class="hero-art' + wide + '" onclick="' + illus.open + '"><img src="' + escHtml(illus.src) + '" alt=""></button>'
+      : '<img class="hero-art' + wide + '" src="' + escHtml(illus.src) + '" alt="">')
     : "";
-  const side = front
-    ? '<img class="label-thumb label-thumb-hero" src="' + escHtml(front) + '" alt="">'
-    : (typeof bottleMarkup === "function" ? bottleMarkup(wine) : "");
-  return '<div class="hero-row">' + art + (side ? '<div class="foil-wrap">' + side + "</div>" : "") + "</div>";
+  if (!front) return '<div class="hero-row hero-row-solo">' + art + "</div>";
+  return '<div class="hero-row">' + art + '<div class="foil-wrap"><img class="label-thumb label-thumb-hero" src="' + escHtml(front) + '" alt=""></div></div>';
 }
 
 function altaAssetBlock(wine) {
