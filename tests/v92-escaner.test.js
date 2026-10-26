@@ -26,12 +26,12 @@ const sw = fs.readFileSync(path.join(root, "sw.js"), "utf8");
 const i18n = fs.readFileSync(path.join(root, "i18n.js"), "utf8");
 const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
 
-assert.strictEqual(app.includes('APP_VERSION = "v101"'), true);
-assert.ok(html.includes("casa-v92.js?v=101"));
-assert.ok(html.indexOf("casa-v91.js?v=101") < html.indexOf("casa-v92.js?v=101"));
-assert.ok(html.indexOf("casa-v92.js?v=101") < html.indexOf("app.js?v=101"));
+assert.strictEqual(app.includes('APP_VERSION = "v102"'), true);
+assert.ok(html.includes("casa-v92.js?v=102"));
+assert.ok(html.indexOf("casa-v91.js?v=102") < html.indexOf("casa-v92.js?v=102"));
+assert.ok(html.indexOf("casa-v92.js?v=102") < html.indexOf("app.js?v=102"));
 assert.ok(sw.includes("./casa-v92.js"));
-assert.ok(sw.includes('const CACHE = "casa-llavaneras-ios-v101"'));
+assert.ok(sw.includes('const CACHE = "casa-llavaneras-ios-v102"'));
 assert.ok(i18n.includes('["sheet.backBtn", "Etiqueta posterior"'));
 const backFn = extractFunction(v92, "backLabelSection");
 assert.ok(backFn.includes('if (!src) return ""'));
