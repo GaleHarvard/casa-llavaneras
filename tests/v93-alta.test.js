@@ -31,14 +31,14 @@ const css = fs.readFileSync(path.join(root, "styles.css"), "utf8");
 const i18n = fs.readFileSync(path.join(root, "i18n.js"), "utf8");
 const v92 = fs.readFileSync(path.join(root, "casa-v92.js"), "utf8");
 
-assert.ok(app.includes('APP_VERSION = "v101"'));
-assert.ok(html.includes('content="v101"'));
-assert.ok(html.includes("casa-alta.js?v=101"));
-assert.ok(html.indexOf("casa-v92.js?v=101") < html.indexOf("casa-alta.js?v=101"));
-assert.ok(html.indexOf("casa-alta.js?v=101") < html.indexOf("app.js?v=101"));
+assert.ok(app.includes('APP_VERSION = "v102"'));
+assert.ok(html.includes('content="v102"'));
+assert.ok(html.includes("casa-alta.js?v=102"));
+assert.ok(html.indexOf("casa-v92.js?v=102") < html.indexOf("casa-alta.js?v=102"));
+assert.ok(html.indexOf("casa-alta.js?v=102") < html.indexOf("app.js?v=102"));
 assert.ok(sw.includes("./casa-alta.js"));
-assert.ok(sw.includes('const CACHE = "casa-llavaneras-ios-v101"'));
-assert.ok(sw.includes('const VERSION = "v101"'));
+assert.ok(sw.includes('const CACHE = "casa-llavaneras-ios-v102"'));
+assert.ok(sw.includes('const VERSION = "v102"'));
 assert.ok(fs.existsSync(path.join(root, "docs/alta-v93.md")));
 assert.ok(fs.existsSync(path.join(root, "archivo/app hoy.js")));
 
@@ -90,7 +90,7 @@ const zoneSrc = fs.readFileSync(path.join(root, "casa-vinoteca.js"), "utf8").spl
 const ZONES = new Function(zoneSrc + "\nreturn ZONES;")();
 eval(fs.readFileSync(path.join(root, "bodegas.js"), "utf8"));
 assert.strictEqual(ZONES.length, 115);
-assert.strictEqual(WINERY_CARDS.length, 58);
+assert.strictEqual(WINERY_CARDS.length, 59);
 
 const api = new Function("ZONES", "WINERY_CARDS", "foldWinery", [
   extractFunction(alta, "blankWineSheet"),

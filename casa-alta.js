@@ -1192,7 +1192,7 @@ function migrateAltaPhotos() {
 function linkIllustratedCellar() {
   if (typeof state === "undefined" || !state || !Array.isArray(state.customWines)) return false;
   if (typeof wineryCardFor !== "function") return false;
-  const wanted = { "luis-canas": 1, "garcia-figuero": 1 };
+  const wanted = { "luis-canas": 1, "garcia-figuero": 1, "pago-de-los-capellanes": 1 };
   const generic = typeof GENERIC_ESTATE !== "undefined" ? GENERIC_ESTATE : "vinedo.jpg";
   let changed = false;
   state.customWines.forEach(wine => {

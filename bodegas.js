@@ -68,7 +68,8 @@ var WINERY_LIBRARY = [
   { name: "Casa Ermelinda Freitas", file: "bodega-ermelinda-freitas.jpg", aliases: ["Ermelinda Freitas"] },
   { name: "Aveleda", file: "bodega-aveleda.jpg", aliases: ["Quinta da Aveleda"] },
   { name: "Bodegas Luis Cañas", file: "bodega-luis-canas.jpg", aliases: ["Luis Cañas", "Luis Canas"] },
-  { name: "Bodegas y Viñedos García Figuero", file: "bodega-garcia-figuero.jpg", aliases: ["García Figuero", "Garcia Figuero", "Tinto Figuero", "Figuero", "Figuero Viñas Viejas"] }
+  { name: "Bodegas y Viñedos García Figuero", file: "bodega-garcia-figuero.jpg", aliases: ["García Figuero", "Garcia Figuero", "Tinto Figuero", "Figuero", "Figuero Viñas Viejas"] },
+  { name: "Pago de los Capellanes", file: "bodega-pago-de-los-capellanes.jpg", aliases: ["Pago de Capellanes", "Pago de los Capellanes", "Bodegas Pago de los Capellanes"] }
 ];
 
 /* Santiuste de San Juan Bautista: web https://avelinovegas.com/ y pin 41.161401, -4.574553. */
@@ -1877,6 +1878,37 @@ var WINERY_CARDS = [
       "https://figuero.es/",
       "https://figuero.es/contacto/",
       "https://figuero.es/en/figuero-vinas-viejas-el-vino-milagro-nacido-en-el-corazon-de-la-ribera-del-duero/"
+    ]
+  },
+  {
+    "id": "pago-de-los-capellanes",
+    "name": "Pago de los Capellanes",
+    "aliases": [
+      "Pago de Capellanes",
+      "Pago de los Capellanes",
+      "Bodegas Pago de los Capellanes"
+    ],
+    "country": "España",
+    "zone": "Ribera del Duero",
+    "zoneText": "DO Ribera del Duero",
+    "town": "Pedrosa de Duero",
+    "web": "https://pagodeloscapellanes.com/",
+    "address": "Camino de la Ampudia S/N, 09314 Pedrosa de Duero, Burgos (España)",
+    "lat": null,
+    "lng": null,
+    "precision": "",
+    "founded": 1996,
+    "about": "Bodega de Pedrosa de Duero, en la Ribera del Duero. En 1996 Paco y Conchita fundaron la casa.",
+    "wines": [
+      "Parcela El Nogal",
+      "Parcela El Picón",
+      "Doroteo"
+    ],
+    "file": "bodega-pago-de-los-capellanes.jpg",
+    "sources": [
+      "https://pagodeloscapellanes.com/contacto/",
+      "https://pagodeloscapellanes.com/familia-y-paisaje/",
+      "https://pagodeloscapellanes.com/nuestros-vinos/"
     ]
   }
 ];
