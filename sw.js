@@ -1,5 +1,5 @@
-const CACHE = "casa-llavaneras-ios-v100";
-const VERSION = "v100";
+const CACHE = "casa-llavaneras-ios-v101";
+const VERSION = "v101";
 const NEXT = CACHE + "-next";
 const ASSETS = ["./", "./index.html", "./styles.css", "./i18n.js", "./casa-util.js", "./casa-vino.js", "./casa-estado.js", "./casa-inicio.js", "./casa-vinoteca.js", "./casa-bodega.js", "./casa-ficha.js", "./casa-mesa.js", "./casa-bebidas.js", "./casa-gemini.js", "./casa-ajustes.js", "./casa-v86.js", "./casa-v88.js", "./casa-v89.js", "./casa-v90.js", "./casa-v91.js", "./casa-v92.js", "./casa-alta.js", "./app.js", "./wines.js", "./bodegas.js", "./dossiers.js", "./providers/wineProvider.js", "./pairings.js", "./catalog-i18n.js", "./manifest.json", "./icon.svg", "./apple-touch-icon.png", "./icon-192.png", "./icon-512.png", "./cave-principal.jpg", "./capsula.jpg", "./botella-tinto.jpg", "./botella-blanco.jpg", "./botella-espumoso.jpg", "./vinedo-chateau-margaux.jpg", "./bodega-domaine-georges-roumier.jpg", "./bodega-domaine-cecile-tremblay.jpg", "./bodega-perelada.jpg", "./bodega-schloss-johannisberg.jpg", "./bodega-kuhling-gillot.jpg", "./bodega-cartuxa.jpg", "./bodega-fitapreta.jpg", "./bodega-vila-gale.jpg", "./bodega-casa-ferreirinha.jpg", "./bodega-churchills.jpg", "./bodega-niepoort.jpg", "./bodega-pocas.jpg", "./bodega-quinta-do-bomfim.jpg", "./bodega-quinta-do-crasto.jpg", "./bodega-quinta-do-pessegueiro.jpg", "./bodega-quinta-vale-d-maria.jpg", "./bodega-taylors.jpg", "./bodega-wine-and-soul.jpg", "./bodega-casa-santos-lima.jpg", "./bodega-madeira-wine-company.jpg", "./bodega-ermelinda-freitas.jpg", "./bodega-aveleda.jpg", "./bodega-luis-canas.jpg", "./bodega-garcia-figuero.jpg"];
 const OCR = ["./vendor/tesseract/tesseract.min.js", "./vendor/tesseract/worker.min.js", "./vendor/tesseract/tesseract-core-lstm.wasm.js", "./vendor/tesseract/tesseract-core-simd-lstm.wasm.js", "./vendor/tesseract/spa.traineddata.gz", "./vendor/tesseract/eng.traineddata.gz", "./vendor/tesseract/por.traineddata.gz", "./vendor/tesseract/fra.traineddata.gz", "./vendor/tesseract/cat.traineddata.gz"];
@@ -93,12 +93,20 @@ function revalidateShell() {
   })().catch(async () => {});
 }
 
+async function putFresh(cache, path) {
+  const res = await fetch(new Request(path, { cache: "reload" }));
+  if (!res || !res.ok) throw new Error(path);
+  await cache.put(path, res);
+}
+
 self.addEventListener("install", e => {
   e.waitUntil((async () => {
     const cache = await caches.open(CACHE);
     try {
-      await cache.addAll(ASSETS);
-      try { await cache.addAll(OCR); } catch (err) {}
+      for (const path of ASSETS) await putFresh(cache, path);
+      for (const path of OCR) {
+        try { await putFresh(cache, path); } catch (err) {}
+      }
       if (!(await shellIsThisVersion(cache))) throw new Error("version");
       await self.skipWaiting();
     } catch (err) {
@@ -114,18 +122,24 @@ self.addEventListener("activate", e => {
     await Promise.all(keys.filter(k => k !== CACHE && k !== NEXT).map(k => caches.delete(k)));
     await self.clients.claim();
     const list = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
-    list.forEach(client => {
+    await Promise.all(list.map(async client => {
       try { client.postMessage({ type: "sw-activated", version: VERSION }); } catch (err) {}
-    });
+      try {
+        if (client.navigate && client.url) await client.navigate(client.url);
+      } catch (err) {}
+    }));
   })());
 });
 
 async function serveShell(request) {
   const cache = await activeCache();
-  const cached = await matchShell(cache, request);
-  if (cached) return cached;
+  const current = await shellIsThisVersion(cache);
+  if (current) {
+    const cached = await matchShell(cache, request);
+    if (cached) return cached;
+  }
   let fresh = null;
-  try { fresh = await fetchWithTimeout(request, 3000); } catch (err) { fresh = null; }
+  try { fresh = await fetchWithTimeout(request, 4000); } catch (err) { fresh = null; }
   if (fresh && fresh.ok) return fresh;
   const again = await matchShell(await activeCache(), request);
   if (again) return again;
@@ -173,6 +187,10 @@ self.addEventListener("fetch", e => {
 
 self.addEventListener("message", e => {
   const data = e.data || {};
+  if (data.type === "skip-waiting") {
+    e.waitUntil(self.skipWaiting());
+    return;
+  }
   if (data.type === "notify" && data.title) {
     e.waitUntil(self.registration.showNotification(data.title, {
       body: data.body || "",
