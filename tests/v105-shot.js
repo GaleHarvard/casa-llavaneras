@@ -71,7 +71,7 @@ async function boot(page, url) {
       bottles: state.bottles.map(b => b.wineId)
     };
   });
-  assert.strictEqual(joseMark.version, "v106");
+  assert.strictEqual(joseMark.version, "v107");
   assert.strictEqual(joseMark.edition, "");
   assert.strictEqual(joseMark.hero, true);
   assert.strictEqual(joseMark.title, "Casa Llavaneras");
@@ -98,7 +98,7 @@ async function boot(page, url) {
   assert.strictEqual(jesusMark.store, "jesus.vinoteca.pro.max.v3");
   assert.strictEqual(jesusMark.labels, "casa-llavaneras-labels-jesus");
   assert.strictEqual(jesusMark.provider, "vinoteca-jgc-provider-jesus");
-  assert.deepStrictEqual(jesusMark.bottles, []);
+  assert.deepStrictEqual(jesusMark.bottles.slice().sort(), ["margaux-2016", "riscal-reserva-2019", "vs-unico-2009"]);
   assert.deepStrictEqual(jesusMark.names, ["", ""]);
   assert.deepStrictEqual(jesusMark.countries, ["ES", "FR"]);
   assert.ok(jesusMark.slots >= 8);
@@ -265,7 +265,10 @@ async function boot(page, url) {
   assert.ok(!after.joseStore.includes("prueba-jesus-2024"));
   const jesusBag = JSON.parse(after.jesusStore);
   assert.ok(jesusBag.bottles.some(b => b.wineId === "prueba-jesus-2024"));
-  assert.ok(!jesusBag.bottles.some(b => b.wineId === "vs-unico-2009"));
+  assert.ok(jesusBag.bottles.some(b => b.wineId === "vs-unico-2009"));
+  assert.ok(!jesusBag.bottles.some(b => b.wineId === "tondonia-reserva-2011"));
+  assert.ok(!jesusBag.bottles.some(b => b.wineId === "pingus-2018"));
+  assert.ok(!after.joseStore.includes("j-ex-margaux"));
   assert.ok(after.joseKey.includes("clave-jose-v105"));
   assert.ok(!after.joseKey.includes("clave-jesus-v105"));
   assert.ok(after.jesusKey.includes("clave-jesus-v105"));

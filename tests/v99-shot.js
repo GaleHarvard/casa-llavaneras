@@ -80,7 +80,7 @@ const label = "data:image/jpeg;base64," + fs.readFileSync("/tmp/v100-etiqueta.jp
       ratio: artBox.width / rowBox.width
     };
   });
-  assert.strictEqual(murrieta.version, "v106");
+  assert.strictEqual(murrieta.version, "v107");
   assert.strictEqual(murrieta.src, "bodega-marques-de-murrieta.jpg");
   assert.strictEqual(murrieta.full, true);
   assert.strictEqual(murrieta.foil, false);

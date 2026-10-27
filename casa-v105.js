@@ -46,7 +46,7 @@
       img.dataset.casaAsset = "1";
       return;
     }
-    if (/^(\/|\.\.\/|asset\/)/.test(src)) return;
+    if (/^(\/|\.\.\/|asset\/|etiquetas\/)/.test(src)) return;
     img.dataset.casaAsset = "1";
     img.setAttribute("src", "../" + src);
   }

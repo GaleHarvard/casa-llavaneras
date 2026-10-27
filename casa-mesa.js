@@ -1,4 +1,27 @@
 /* Mesa y maridaje. */
+const JESUS_EXAMPLE_IDS = ["margaux-2016", "vs-unico-2009", "riscal-reserva-2019"];
+function jesusMesa() {
+  return typeof CASA_EDITION !== "undefined" && CASA_EDITION === "jesus";
+}
+function mesaSource() {
+  if (!jesusMesa()) return WINE_CATALOG;
+  const allow = {};
+  JESUS_EXAMPLE_IDS.forEach(id => { allow[id] = true; });
+  const examples = [];
+  JESUS_EXAMPLE_IDS.forEach(id => {
+    const wine = (WINE_CATALOG || []).find(w => w && w.id === id);
+    if (wine) examples.push(wine);
+  });
+  (state.customWines || []).forEach(w => {
+    if (w && !allow[w.id]) examples.push(w);
+  });
+  return examples;
+}
+function jesusOwnsWine(id) {
+  if (!id) return false;
+  if ((state.bottles || []).some(b => b.wineId === id)) return true;
+  return (state.customWines || []).some(w => w && w.id === id);
+}
 function dishArt() {
   return `<svg class="pair-art" viewBox="0 0 88 88" fill="none" stroke="currentColor" stroke-width="1.35">
     <ellipse cx="44" cy="72" rx="30" ry="7"/>
@@ -63,7 +86,7 @@ function renderPairings() {
   }
   const source = pairingMode === "cava"
     ? [...new Set(state.bottles.map(b => b.wineId))].map(wineById).filter(Boolean)
-    : WINE_CATALOG;
+    : (jesusMesa() ? mesaSource() : WINE_CATALOG);
   const list = source.filter(w => `${w.producer} ${w.name} ${w.region} ${(w.pairing || []).join(" ")}`.toLowerCase().includes(q) && winePasses(w, mesaFilters));
   $("#pair-body").innerHTML = list.map(w => {
     const pack = WINE_PAIRINGS[w.id];
@@ -91,6 +114,7 @@ function winesForDish(dishId) {
     if (!m) return null;
     const wine = wineById(id);
     if (!wine || !winePasses(wine, mesaFilters)) return null;
+    if (jesusMesa() && !jesusOwnsWine(wine.id)) return null;
     return { wine, score: m.score, why: m.why, pack: shown };
   }).filter(Boolean).sort((a, b) => b.score - a.score);
 }
@@ -141,7 +165,7 @@ function paintMesaFilterUi() {
   }
   const pool = pairingMode === "cava"
     ? [...new Set(state.bottles.map(b => b.wineId))].map(wineById).filter(Boolean)
-    : catalogWines();
+    : (jesusMesa() ? mesaSource() : catalogWines());
   fillGrapeSelect("mesa-grape", pool, mesaFilters.grape);
 }
 function toggleMesaFlag(key) {
