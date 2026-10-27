@@ -9,14 +9,14 @@
   <meta name="apple-mobile-web-app-title" content="Casa Llavaneras" />
   <meta name="application-name" content="Casa Llavaneras" />
   <meta name="theme-color" content="#000000" />
-  <meta name="app-version" content="v103" />
+  <meta name="app-version" content="v104" />
   <title>Casa Llavaneras</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="apple-touch-icon" href="apple-touch-icon.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
   <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png" />
-  <link rel="stylesheet" href="styles.css?v=103" />
+  <link rel="stylesheet" href="styles.css?v=104" />
 </head>
 <body>
   <div class="device">
@@ -190,7 +190,7 @@
           </div>
           <div id="scan-status" class="tiny"></div>
           <div class="scan-stage scan-stage-vert" onclick="onScanStage(event)">
-            <video id="cam" playsinline webkit-playsinline autoplay muted hidden></video>
+            <video id="cam" playsinline webkit-playsinline muted hidden></video>
             <img id="scan-preview" data-i18n-aria="scan.alt" alt="Etiqueta capturada" hidden />
             <canvas id="scan-canvas" hidden></canvas>
             <div class="viewfinder viewfinder-vert" id="scan-finder">
@@ -471,14 +471,26 @@
   </div>
 
   <script>
+    function casaReleaseSplash(el) {
+      if (!el) return;
+      el.style.pointerEvents = "none";
+      el.setAttribute("aria-hidden", "true");
+      el.classList.add("hide");
+      window.__splashHiddenAt = Date.now();
+      if (el.dataset.gone === "1") return;
+      el.dataset.gone = "1";
+      setTimeout(function () {
+        el.classList.add("is-gone");
+        el.style.display = "none";
+      }, 600);
+    }
     function casaHideSplash() {
       var el = document.getElementById("splash");
-      if (!el || el.classList.contains("hide")) return;
+      if (!el || el.dataset.hiding === "1" || el.dataset.gone === "1") return;
+      el.dataset.hiding = "1";
+      el.style.pointerEvents = "none";
       var wait = Math.max(0, 800 - (Date.now() - (window.__splashAt || Date.now())));
-      setTimeout(function () {
-        el.classList.add("hide");
-        window.__splashHiddenAt = Date.now();
-      }, wait);
+      setTimeout(function () { casaReleaseSplash(el); }, wait);
     }
     function casaMarkReady() {
       window.__casaReady = true;
@@ -491,7 +503,7 @@
     function casaShowBootError() {
       if (document.getElementById("boot-error")) return;
       var splash = document.getElementById("splash");
-      if (splash) splash.classList.add("hide");
+      if (splash) casaReleaseSplash(splash);
       var box = document.createElement("div");
       box.id = "boot-error";
       box.className = "boot-error";
@@ -526,33 +538,33 @@
       if (!window.__casaReady) casaShowBootError();
     }, 8000);
   </script>
-  <script src="wines.js?v=103"></script>
-  <script src="bodegas.js?v=103"></script>
-  <script src="dossiers.js?v=103"></script>
-  <script src="providers/wineProvider.js?v=103"></script>
-  <script src="pairings.js?v=103"></script>
-  <script src="catalog-i18n.js?v=103"></script>
-  <script src="i18n.js?v=103"></script>
-  <script src="casa-util.js?v=103"></script>
-  <script src="casa-vino.js?v=103"></script>
-  <script src="casa-estado.js?v=103"></script>
-  <script src="casa-inicio.js?v=103"></script>
-  <script src="casa-vinoteca.js?v=103"></script>
-  <script src="casa-bodega.js?v=103"></script>
-  <script src="casa-ficha.js?v=103"></script>
-  <script src="casa-mesa.js?v=103"></script>
-  <script src="casa-bebidas.js?v=103"></script>
-  <script src="casa-gemini.js?v=103"></script>
-  <script src="casa-ajustes.js?v=103"></script>
-  <script src="casa-v86.js?v=103"></script>
-  <script src="casa-v88.js?v=103"></script>
-  <script src="casa-v89.js?v=103"></script>
-  <script src="casa-v90.js?v=103"></script>
-  <script src="casa-v91.js?v=103"></script>
-  <script src="casa-v92.js?v=103"></script>
-  <script src="casa-alta.js?v=103"></script>
-  <script src="casa-v103.js?v=103"></script>
-  <script src="app.js?v=103"></script>
+  <script src="wines.js?v=104"></script>
+  <script src="bodegas.js?v=104"></script>
+  <script src="dossiers.js?v=104"></script>
+  <script src="providers/wineProvider.js?v=104"></script>
+  <script src="pairings.js?v=104"></script>
+  <script src="catalog-i18n.js?v=104"></script>
+  <script src="i18n.js?v=104"></script>
+  <script src="casa-util.js?v=104"></script>
+  <script src="casa-vino.js?v=104"></script>
+  <script src="casa-estado.js?v=104"></script>
+  <script src="casa-inicio.js?v=104"></script>
+  <script src="casa-vinoteca.js?v=104"></script>
+  <script src="casa-bodega.js?v=104"></script>
+  <script src="casa-ficha.js?v=104"></script>
+  <script src="casa-mesa.js?v=104"></script>
+  <script src="casa-bebidas.js?v=104"></script>
+  <script src="casa-gemini.js?v=104"></script>
+  <script src="casa-ajustes.js?v=104"></script>
+  <script src="casa-v86.js?v=104"></script>
+  <script src="casa-v88.js?v=104"></script>
+  <script src="casa-v89.js?v=104"></script>
+  <script src="casa-v90.js?v=104"></script>
+  <script src="casa-v91.js?v=104"></script>
+  <script src="casa-v92.js?v=104"></script>
+  <script src="casa-alta.js?v=104"></script>
+  <script src="casa-v103.js?v=104"></script>
+  <script src="app.js?v=104"></script>
   <script>
     document.querySelectorAll(".tab").forEach((t, i) => {
       const icons = [
@@ -595,7 +607,7 @@
         if (data.type !== "sw-activated") return;
         if (data.version && pageVersion && data.version !== pageVersion) reloadForSw(data.version);
       });
-      navigator.serviceWorker.register("sw.js?v=103").then((reg) => {
+      navigator.serviceWorker.register("sw.js?v=104").then((reg) => {
         askSkipWaiting(reg);
         const refresh = () => { reg.update().catch(() => {}); };
         refresh();

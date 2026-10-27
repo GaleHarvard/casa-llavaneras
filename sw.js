@@ -1,5 +1,5 @@
-const CACHE = "casa-llavaneras-ios-v103";
-const VERSION = "v103";
+const CACHE = "casa-llavaneras-ios-v104";
+const VERSION = "v104";
 const NEXT = CACHE + "-next";
 const ASSETS = ["./", "./index.html", "./styles.css", "./i18n.js", "./casa-util.js", "./casa-vino.js", "./casa-estado.js", "./casa-inicio.js", "./casa-vinoteca.js", "./casa-bodega.js", "./casa-ficha.js", "./casa-mesa.js", "./casa-bebidas.js", "./casa-gemini.js", "./casa-ajustes.js", "./casa-v86.js", "./casa-v88.js", "./casa-v89.js", "./casa-v90.js", "./casa-v91.js", "./casa-v92.js", "./casa-alta.js", "./casa-v103.js", "./app.js", "./wines.js", "./bodegas.js", "./dossiers.js", "./providers/wineProvider.js", "./pairings.js", "./catalog-i18n.js", "./manifest.json", "./icon.svg", "./apple-touch-icon.png", "./icon-192.png", "./icon-512.png", "./cave-principal.jpg", "./capsula.jpg", "./botella-tinto.jpg", "./botella-blanco.jpg", "./botella-espumoso.jpg", "./vinedo-chateau-margaux.jpg", "./bodega-domaine-georges-roumier.jpg", "./bodega-domaine-cecile-tremblay.jpg", "./bodega-perelada.jpg", "./bodega-schloss-johannisberg.jpg", "./bodega-kuhling-gillot.jpg", "./bodega-cartuxa.jpg", "./bodega-fitapreta.jpg", "./bodega-vila-gale.jpg", "./bodega-casa-ferreirinha.jpg", "./bodega-churchills.jpg", "./bodega-niepoort.jpg", "./bodega-pocas.jpg", "./bodega-quinta-do-bomfim.jpg", "./bodega-quinta-do-crasto.jpg", "./bodega-quinta-do-pessegueiro.jpg", "./bodega-quinta-vale-d-maria.jpg", "./bodega-taylors.jpg", "./bodega-wine-and-soul.jpg", "./bodega-casa-santos-lima.jpg", "./bodega-madeira-wine-company.jpg", "./bodega-ermelinda-freitas.jpg", "./bodega-aveleda.jpg", "./bodega-luis-canas.jpg", "./bodega-garcia-figuero.jpg", "./bodega-pago-de-los-capellanes.jpg"];
 const OCR = ["./vendor/tesseract/tesseract.min.js", "./vendor/tesseract/worker.min.js", "./vendor/tesseract/tesseract-core-lstm.wasm.js", "./vendor/tesseract/tesseract-core-simd-lstm.wasm.js", "./vendor/tesseract/spa.traineddata.gz", "./vendor/tesseract/eng.traineddata.gz", "./vendor/tesseract/por.traineddata.gz", "./vendor/tesseract/fra.traineddata.gz", "./vendor/tesseract/cat.traineddata.gz"];
@@ -117,19 +117,55 @@ self.addEventListener("install", e => {
 });
 
 self.addEventListener("activate", e => {
+  // La página ya está pintada cuando este worker toma el control. En Safari
+  // iOS la navegación no se despacha hasta que waitUntil termina, así que
+  // esperarla aquí deja el documento congelado: se ve Inicio y ningún toque
+  // entra. La recarga la hace la propia página (controllerchange / sw-activated).
   e.waitUntil((async () => {
     const keys = await caches.keys();
     await Promise.all(keys.filter(k => k !== CACHE && k !== NEXT).map(k => caches.delete(k)));
     await self.clients.claim();
     const list = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
-    await Promise.all(list.map(async client => {
+    list.forEach(client => {
       try { client.postMessage({ type: "sw-activated", version: VERSION }); } catch (err) {}
-      try {
-        if (client.navigate && client.url) await client.navigate(client.url);
-      } catch (err) {}
-    }));
+    });
   })());
 });
+
+function plainResponse() {
+  return new Response("Sin conexión", { status: 503, headers: { "Content-Type": "text/plain; charset=utf-8" } });
+}
+
+function settleWithin(work, ms, fallback) {
+  return new Promise(resolve => {
+    let settled = false;
+    const finish = (value) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve(value);
+    };
+    const timer = setTimeout(() => {
+      Promise.resolve().then(fallback).then(finish, () => finish(plainResponse()));
+    }, ms);
+    Promise.resolve().then(work).then(finish, () => {
+      Promise.resolve().then(fallback).then(finish, () => finish(plainResponse()));
+    });
+  });
+}
+
+async function shellFallback(request) {
+  try {
+    const fresh = await fetchWithTimeout(request, 3000);
+    if (fresh && fresh.ok) return fresh;
+  } catch (err) {}
+  try {
+    const cache = await caches.open(CACHE);
+    const hit = await matchShell(cache, request);
+    if (hit) return hit;
+  } catch (err) {}
+  return plainResponse();
+}
 
 async function serveShell(request) {
   const cache = await activeCache();
@@ -170,7 +206,11 @@ self.addEventListener("fetch", e => {
     return;
   }
   if (e.request.mode === "navigate" || /\.(js|css|html)$/.test(path)) {
-    e.respondWith(serveShell(e.request).then((res) => {
+    e.respondWith(settleWithin(
+      () => serveShell(e.request),
+      4500,
+      () => shellFallback(e.request)
+    ).then((res) => {
       revalidateShell();
       return res;
     }));
