@@ -37,7 +37,7 @@ const playwright = require("/tmp/pw/node_modules/playwright");
       src: img ? img.getAttribute("src") : ""
     };
   });
-  assert.strictEqual(sheet.version, "v105");
+  assert.strictEqual(sheet.version, "v106");
   assert.strictEqual(sheet.src, "bodega-domaine-georges-roumier.jpg");
   assert.ok(sheet.text.indexOf("Ilustración pendiente") < 0, sheet.text);
   assert.ok(sheet.text.indexOf("Chambolle-Musigny") >= 0);
