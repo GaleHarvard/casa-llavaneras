@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Vinoteca Jesús Gómez" />
+  <meta name="application-name" content="Vinoteca Jesús Gómez" />
+  <meta name="theme-color" content="#000000" />
+  <meta name="app-version" content="v105" />
+  <title>Vinoteca Jesús Gómez</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="../icon-192.png" />
+  <style>html,body{margin:0;background:#000;color:#e8c97a;font:16px/1.4 sans-serif}main{min-height:100vh;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px}</style>
+</head>
+<body>
+  <main id="jesus-boot">Vinoteca Jesús Gómez</main>
+  <script>
+    window.CASA_EDITION = "jesus";
+    window.__splashAt = Date.now();
+    (function () {
+      var CACHE = "casa-llavaneras-jesus-ios-v105";
+      function prefix(html) {
+        var viaSw = !!(navigator.serviceWorker && navigator.serviceWorker.controller);
+        var pre = viaSw ? "asset/" : "../";
+        html = html.replace(/<img class="home-hero-photo"[^>]*>/, "");
+        html = html.replace(/Casa Llavaneras/g, "Vinoteca Jesús Gómez");
+        html = html.replace(/(<head[^>]*>)/i, '$1<script>window.CASA_EDITION="jesus";<\/script>');
+        html = html.replace(/(\s(?:src|href)=")([^"]+)(")/g, function (all, a, url, c) {
+          if (/^(https?:|data:|blob:|#|\/|\.\.\/|asset\/)/.test(url)) return all;
+          if (url === "manifest.json" || url.indexOf("manifest.json?") === 0) return all;
+          if (url === "sw.js" || url.indexOf("sw.js?") === 0) return all;
+          return a + pre + url + c;
+        });
+        return html;
+      }
+      function show(html) {
+        document.open();
+        document.write(html);
+        document.close();
+      }
+      function fromCache() {
+        return caches.open(CACHE).then(function (cache) {
+          return cache.match("./shell.html");
+        }).then(function (hit) {
+          return hit ? hit.text() : "";
+        }).catch(function () { return ""; });
+      }
+      fetch("../index.html", { cache: "no-store" }).then(function (res) {
+        if (!res.ok) throw new Error("shell");
+        return res.text();
+      }).catch(function () {
+        return fromCache();
+      }).then(function (html) {
+        if (!html) {
+          document.getElementById("jesus-boot").textContent = "Sin conexión";
+          return;
+        }
+        show(prefix(html));
+      });
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("sw.js?v=105", { scope: "./" }).catch(function () {});
+      }
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,56 @@
+/* v105: Vinoteca Jesús Gómez comparte el código y no las claves de José. */
+const fs = require("fs");
+const path = require("path");
+const assert = require("assert");
+
+const root = path.join(__dirname, "..");
+const read = name => fs.readFileSync(path.join(root, name), "utf8");
+const estado = read("casa-estado.js");
+const sw = read("sw.js");
+const html = read("index.html");
+const app = read("app.js");
+const jesusHtml = read("jesus/index.html");
+const jesusSw = read("jesus/sw.js");
+const manifest = JSON.parse(read("jesus/manifest.json"));
+const joseManifest = JSON.parse(read("manifest.json"));
+const gemini = read("casa-gemini.js");
+const provider = read("providers/wineProvider.js");
+
+assert.strictEqual(manifest.name, "Vinoteca Jesús Gómez");
+assert.strictEqual(manifest.short_name, "Vinoteca Jesús Gómez");
+assert.strictEqual(manifest.start_url, "./");
+assert.strictEqual(manifest.scope, "./");
+assert.strictEqual(manifest.display, "standalone");
+assert.strictEqual(joseManifest.name, "Casa Llavaneras");
+assert.ok(jesusSw.includes('self.CASA_VARIANT = "jesus"'));
+assert.ok(jesusSw.includes('importScripts("../sw.js?v=105")'));
+assert.ok(jesusHtml.includes('content="v105"'));
+assert.ok(jesusHtml.includes("casa-llavaneras-jesus-ios-v105"));
+assert.ok(jesusHtml.includes('register("sw.js?v=105"'));
+assert.ok(jesusHtml.includes('scope: "./"'));
+assert.ok(sw.includes('"casa-llavaneras-ios-v105"'));
+assert.ok(sw.includes('"casa-llavaneras-jesus-ios-v105"'));
+assert.ok(sw.includes('k.startsWith(prefix)'));
+assert.ok(sw.includes('/\\/jesus(\\/|$)/'));
+assert.ok(!sw.includes("client.navigate"));
+assert.ok(app.includes('APP_VERSION = "v105"'));
+assert.ok(html.includes('content="v105"'));
+assert.ok(html.includes("casa-v105.js?v=105"));
+assert.ok(html.includes('swStoreKey'));
+assert.ok(estado.includes('"jesus.vinoteca.pro.max.v3"'));
+assert.ok(estado.includes('"vinoteca.pro.max.v3"'));
+assert.ok(estado.includes('"casa-llavaneras-labels-jesus"'));
+assert.ok(estado.includes('"casa-llavaneras-labels"'));
+assert.ok(estado.includes('CASA_EDITION !== "jesus"'));
+assert.ok(estado.includes("function jesusDefaultState"));
+assert.ok(estado.includes('name: ""'));
+assert.ok(estado.includes('type: "armario"'));
+assert.ok(gemini.includes('"vinoteca-jgc-provider-jesus"'));
+assert.ok(gemini.includes('"vinoteca-jgc-provider"'));
+assert.ok(provider.includes('"vinoteca-jgc-provider-jesus"'));
+assert.ok(provider.includes('"vinoteca-jgc-provider"'));
+assert.ok(!estado.includes("localStorage.clear"));
+assert.ok(!sw.includes("indexedDB.deleteDatabase"));
+assert.strictEqual(joseManifest.short_name, "Llavaneras");
+
+console.log("v105-jesus ok");

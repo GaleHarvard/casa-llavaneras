@@ -107,7 +107,7 @@ async function testNotification() {
   if (typeof Notification !== "undefined" && Notification.permission !== "granted") {
     await enableNotifications();
   }
-  await pushNote("Casa Llavaneras", t("notify.testBody"), "test", "home");
+  await pushNote(typeof brandName === "function" ? brandName() : "Casa Llavaneras", t("notify.testBody"), "test", "home");
   forceOnce = false;
   toast(t("notify.testSent"));
 }
@@ -137,7 +137,7 @@ function runNotifyCheck(force) {
 }
 function renderPerfil() {
   const p = prefs();
-  const house = (state.houses[0] && state.houses[0].name) || "Casa Llavaneras";
+  const house = (state.houses[0] && state.houses[0].name) || (typeof brandName === "function" ? brandName() : "Casa Llavaneras");
   $("#perfil-body").innerHTML = `
     <div class="hero">
       <p class="eyebrow">${t("eyebrow.cellar")}</p>

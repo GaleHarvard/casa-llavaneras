@@ -40,7 +40,7 @@ function blankAltaFlow() {
 }
 
 var altaFlow = null;
-var ALTA_BACKUP_KEY = "vinoteca.pro.max.v3.antes-v93";
+var ALTA_BACKUP_KEY = ((typeof CASA_EDITION !== "undefined" && CASA_EDITION === "jesus") ? "jesus." : "") + "vinoteca.pro.max.v3.antes-v93";
 
 function foldAlta(text) {
   if (typeof foldWinery === "function") return foldWinery(text);

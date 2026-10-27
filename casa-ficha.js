@@ -462,7 +462,7 @@ function tastingFormHtml(w, entry) {
       <textarea id="taste-note" placeholder="${t("taste.memoryPh")}">${escHtml(conclusion.note || "")}</textarea>
     </label>
     <button class="btn btn-gold" style="width:100%;margin-top:8px" onclick="saveTasting()">${t("taste.save")}</button>
-    <p class="cata-foot">Casa Llavaneras</p>
+    <p class="cata-foot">${typeof brandName === "function" ? brandName() : "Casa Llavaneras"}</p>
   </div>`;
 }
 function tastingScreen(w) {

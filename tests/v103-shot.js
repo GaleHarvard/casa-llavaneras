@@ -74,7 +74,7 @@ function pngSize(file) {
     save();
     return { version: APP_VERSION, bottles: bottles, first: first, wines: state.customWines.length };
   });
-  assert.strictEqual(before.version, "v104");
+  assert.strictEqual(before.version, "v105");
 
   await page.evaluate(() => {
     const prose = "Texto descriptivo de prueba de Bodeboca que cuenta el paisaje familiar la cueva y la historia del viñedo durante muchos años sin ser un dato concreto.";

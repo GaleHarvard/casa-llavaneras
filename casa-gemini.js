@@ -1,5 +1,5 @@
 /* Escaneo, ficha de internet y Gemini. */
-const PRICE_CFG_KEY = "vinoteca-jgc-provider";
+const PRICE_CFG_KEY = (typeof window !== "undefined" && window.CASA_EDITION === "jesus") ? "vinoteca-jgc-provider-jesus" : "vinoteca-jgc-provider";
 function escapeReg(s) {
   return String(s || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
@@ -1823,7 +1823,7 @@ const GEMINI_MODELS = [
   { id: "gemini-2.5-flash-lite", read: true, ground: true },
   { id: "gemini-2.0-flash", read: true, ground: true }
 ];
-const GEMINI_LIST_KEY = "vinoteca-gemini-models";
+const GEMINI_LIST_KEY = (typeof window !== "undefined" && window.CASA_EDITION === "jesus") ? "vinoteca-gemini-models-jesus" : "vinoteca-gemini-models";
 const GEMINI_LIST_TTL = 24 * 60 * 60 * 1000;
 const geminiListed = {};
 
@@ -3343,9 +3343,9 @@ function hydratePriceFields() {
   if (keyEl && document.activeElement !== keyEl) keyEl.value = cfg.geminiKey || "";
   refreshGeminiKeyState();
 }
-const TR_DB_NAME = "casa-llavaneras-i18n";
+const TR_DB_NAME = (typeof window !== "undefined" && window.CASA_EDITION === "jesus") ? "casa-llavaneras-i18n-jesus" : "casa-llavaneras-i18n";
 const TR_STORE = "tr";
-const TR_LS_KEY = "vinoteca.i18n.cache";
+const TR_LS_KEY = (typeof window !== "undefined" && window.CASA_EDITION === "jesus") ? "jesus.vinoteca.i18n.cache" : "vinoteca.i18n.cache";
 const TR_LS_CAP = 350000;
 const TR_LANG_NAME = { ca: "Catalan", en: "English", fr: "French", pt: "European Portuguese" };
 const TR_WINE_TERM = { ca: "criança", en: "ageing", fr: "élevage", pt: "estágio" };

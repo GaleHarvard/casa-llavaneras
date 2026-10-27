@@ -6,10 +6,11 @@
    o de window.VINOTECA_CONFIG.geminiKey. En una PWA la clave queda en el
    iPhone; no la subas a GitHub. Vivino no se scrapea. */
 (function (root) {
-  const KEY = "vinoteca-jgc-provider";
-  const CACHE_KEY = "vinoteca-jgc-gemini-cache";
+  const jesusEdition = root.CASA_EDITION === "jesus";
+  const KEY = jesusEdition ? "vinoteca-jgc-provider-jesus" : "vinoteca-jgc-provider";
+  const CACHE_KEY = jesusEdition ? "vinoteca-jgc-gemini-cache-jesus" : "vinoteca-jgc-gemini-cache";
   const TIMEOUT_MS = 12000;
-  const MODEL_KEY = "vinoteca-gemini-model";
+  const MODEL_KEY = jesusEdition ? "vinoteca-gemini-model-jesus" : "vinoteca-gemini-model";
   const MODEL_TTL = 24 * 60 * 60 * 1000;
 
   function modelId(model) {
