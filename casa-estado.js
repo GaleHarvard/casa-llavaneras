@@ -632,11 +632,17 @@ function hasOwnLabel(w, bottle) {
   if ((state.inbox || []).some(b => b.wineId === w.id && (isOwnLabelRef(b.photo) || labelPhotoCache[w.id]))) return true;
   return false;
 }
+const JESUS_EXAMPLE_LABELS = {
+  "margaux-2016": "etiquetas/margaux-2016.png",
+  "vs-unico-2009": "etiquetas/vs-unico-2009.png",
+  "riscal-reserva-2019": "etiquetas/riscal-reserva-2019.png"
+};
 function labelSrc(w, bottle) {
   const own = ownLabel(w, bottle);
   if (own) return own;
   if (hasOwnLabel(w, bottle)) return "";
   if (w && w.labelUrl && /^https?:\/\//i.test(w.labelUrl)) return w.labelUrl;
+  if (CASA_EDITION === "jesus" && w && JESUS_EXAMPLE_LABELS[w.id]) return JESUS_EXAMPLE_LABELS[w.id];
   if (w && CATALOG_LABELS[w.id]) return CATALOG_LABELS[w.id];
   return "";
 }
