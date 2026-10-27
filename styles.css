@@ -809,7 +809,9 @@ label.field span {
   padding: 24px;
   transition: opacity .55s ease;
 }
-.splash.hide { opacity: 0; pointer-events: none; visibility: hidden; }
+.splash.hide { opacity: 0; pointer-events: none !important; visibility: hidden; }
+.splash.is-gone { display: none !important; }
+#cam[hidden] { pointer-events: none !important; }
 .mark {
   width: 96px; height: 96px;
   border-radius: 24px;

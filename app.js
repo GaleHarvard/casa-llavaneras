@@ -1,5 +1,5 @@
 /* Arranque y enlaces con la página. */
-const APP_VERSION = "v103";
+const APP_VERSION = "v104";
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.addEventListener("message", ev => {
     const d = ev.data || {};
@@ -116,8 +116,7 @@ window.setFilter = (t, btn) => {
 };
 document.addEventListener("DOMContentLoaded", () => {
   const hideSplash = () => {
-    const el = document.getElementById("splash");
-    if (el) el.classList.add("hide");
+    if (window.casaHideSplash) window.casaHideSplash();
   };
   let booted = false;
   let painted = false;
