@@ -60,12 +60,12 @@ function renderCellar() {
   } else if (cellarView === "lotes") {
     body = list.map(b => {
       const w = wineById(b.wineId);
-      return `<div class="card" role="button" onclick="openBottle('${b.uid}')"><div class="label-row">${labelThumbHtml(w, "label-thumb", b)}<div class="label-copy"><div class="row"><h3>${w.producer}</h3><span class="tiny">×${b.qty}</span></div><p class="muted">${w.name} ${w.vintage}</p><p class="tiny">${cellarName(b.cellarId)} · ${state.prefs.hideBin ? t("cellar.binHidden") : (b.bin || t("cellar.noBin"))}</p>${typeof heldMark === "function" ? heldMark(b) : ""}</div></div><button class="btn btn-ghost" style="margin-top:8px" onclick="event.stopPropagation();removeLot('${b.uid}')">${t("cellar.removeLot")}</button></div>`;
+      return `<div class="card" role="button" onclick="openBottle('${b.uid}')"><div class="label-row">${labelThumbHtml(w, "label-thumb", b)}<div class="label-copy"><div class="row"><h3>${w.producer}</h3><span class="tiny">×${b.qty}</span></div><p class="muted">${w.name} ${w.vintage}</p><p class="tiny">${cellarName(b.cellarId)} · ${state.prefs.hideBin ? t("cellar.binHidden") : escHtml(b.bin ? (typeof binPlaceLabel === "function" ? binPlaceLabel(b.cellarId, b.bin) : b.bin) : t("cellar.noBin"))}</p>${typeof heldMark === "function" ? heldMark(b) : ""}</div></div><button class="btn btn-ghost" style="margin-top:8px" onclick="event.stopPropagation();removeLot('${b.uid}')">${t("cellar.removeLot")}</button></div>`;
     }).join("");
   } else if (cellarView === "ubicaciones") {
     const by = {};
     list.forEach(b => {
-      const key = cellarName(b.cellarId) + " · " + (state.prefs.hideBin ? "—" : (b.bin || t("cellar.noBin")));
+      const key = cellarName(b.cellarId) + " · " + (state.prefs.hideBin ? "—" : (b.bin ? (typeof binPlaceLabel === "function" ? binPlaceLabel(b.cellarId, b.bin) : b.bin) : t("cellar.noBin")));
       (by[key] || (by[key] = [])).push(b);
     });
     body = Object.keys(by).sort().map(k => {
@@ -451,12 +451,43 @@ function paintFreeSlots() {
   const hint = $("#add-free-hint");
   const grid = $("#add-free-grid");
   if (!id || !grid) return;
-  const free = freeSlotCodes(id);
+  ensureAddShelf(id);
+  let free = freeSlotCodes(id);
+  const shelfSel = document.getElementById("add-shelf");
+  if (typeof jesusOn === "function" && jesusOn() && shelfSel && shelfSel.value !== "") {
+    const allowed = shelfCodesAt(id, shelfSel.value);
+    free = free.filter(code => allowed.indexOf(code) >= 0);
+  }
   const proposed = free[0] || "";
   if (input && input.dataset.touched !== "1") input.value = proposed;
-  if (hint) hint.textContent = proposed ? t("slot.proposed", { bin: proposed }) : t("slot.noneLeft");
+  const proposedLabel = typeof slotDisplay === "function" ? slotDisplay(id, proposed) : proposed;
+  if (hint) hint.textContent = proposed ? t("slot.proposed", { bin: proposedLabel }) : t("slot.noneLeft");
   const current = input ? input.value.trim() : "";
-  grid.innerHTML = free.length ? free.map(code => `<button type="button" class="rack-slot rack-free ${code === current ? "on" : ""}" onclick="pickFreeSlot('${code}')"><b>${escHtml(code)}</b><small>${t("slot.free")}</small></button>`).join("") : `<p class="muted">${t("slot.none")}</p>`;
+  grid.innerHTML = free.length ? free.map(code => {
+    const label = typeof slotDisplay === "function" ? slotDisplay(id, code) : code;
+    return `<button type="button" class="rack-slot rack-free ${code === current ? "on" : ""}" onclick="pickFreeSlot('${code}')"><b>${escHtml(label)}</b><small>${t("slot.free")}</small></button>`;
+  }).join("") : `<p class="muted">${t("slot.none")}</p>`;
+}
+function ensureAddShelf(cellarId) {
+  const old = document.getElementById("add-shelf-field");
+  if (typeof jesusOn !== "function" || !jesusOn()) {
+    if (old) old.remove();
+    return;
+  }
+  const bin = document.getElementById("add-bin");
+  if (!bin || !bin.parentElement) return;
+  if (!old) bin.parentElement.insertAdjacentHTML("beforebegin", `<label class="field" id="add-shelf-field"><span>${escHtml(t("jesus.shelf"))}</span><select id="add-shelf" onchange="onAddShelfChange()"></select></label>`);
+  const sel = document.getElementById("add-shelf");
+  if (!sel) return;
+  const cur = sel.value;
+  const rows = shelfRows((state.vinotecas || []).find(x => x.id === cellarId));
+  sel.innerHTML = `<option value="">${escHtml(t("jesus.allShelves"))}</option>` + rows.map((item, i) => `<option value="${i}">${escHtml(item.row.name || "")}</option>`).join("");
+  if (cur !== "" && sel.querySelector('option[value="' + cur + '"]')) sel.value = cur;
+}
+function onAddShelfChange() {
+  const input = $("#add-bin");
+  if (input) input.dataset.touched = "";
+  paintFreeSlots();
 }
 function onAddCellarChange() {
   const input = $("#add-bin");

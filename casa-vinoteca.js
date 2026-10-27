@@ -350,18 +350,96 @@ function openZona(name) {
 function cellarName(id) {
   return (state.vinotecas.find(v => v.id === id) || { name: "—" }).name;
 }
+function jesusOn() {
+  return typeof CASA_EDITION !== "undefined" && CASA_EDITION === "jesus";
+}
+function cellarCountryCode(v) {
+  const raw = String(v && v.country || "").trim();
+  if (raw === "ES" || raw === "FR") return raw;
+  const fold = raw.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  if (fold === "espana" || fold === "spain" || fold === "espagne" || fold === "espanha") return "ES";
+  if (fold === "francia" || fold === "france" || fold === "franca") return "FR";
+  return "";
+}
+function cellarCountryName(v) {
+  const code = cellarCountryCode(v);
+  if (code === "ES") return t("jesus.spain");
+  if (code === "FR") return t("jesus.france");
+  return "";
+}
+function flagSvg(code) {
+  if (code === "ES") return `<svg class="cave-flag" viewBox="0 0 30 20" width="28" height="18" aria-hidden="true"><rect width="30" height="20" fill="#c60b1e"/><rect y="5" width="30" height="10" fill="#ffc400"/></svg>`;
+  if (code === "FR") return `<svg class="cave-flag" viewBox="0 0 30 20" width="28" height="18" aria-hidden="true"><rect width="10" height="20" fill="#0055a4"/><rect x="10" width="10" height="20" fill="#ffffff"/><rect x="20" width="10" height="20" fill="#ef4135"/></svg>`;
+  return "";
+}
+function renamePencil() {
+  return `<svg class="rename-pencil" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M4 20h4l10-10-4-4L4 16v4z"/><path d="M12 6l4 4"/></svg>`;
+}
+function shelfRows(v) {
+  const out = [];
+  ((v && v.layout && v.layout.zones) || []).forEach((z, zi) => {
+    (z.rows || []).forEach((r, ri) => out.push({ row: r, zi: zi, ri: ri, codes: rowCodes(r) }));
+  });
+  return out;
+}
+function slotCustomName(v, code) {
+  return String(v && v.slotNames && v.slotNames[code] || "").trim();
+}
+function slotDisplay(cellarId, code) {
+  const raw = String(code || "");
+  if (!jesusOn() || !raw) return raw;
+  const v = (state.vinotecas || []).find(x => x.id === cellarId);
+  return slotCustomName(v, raw) || raw;
+}
+function binPlaceLabel(cellarId, code) {
+  const raw = String(code || "");
+  if (!jesusOn() || !raw) return raw;
+  const v = (state.vinotecas || []).find(x => x.id === cellarId);
+  const hit = shelfRows(v).find(item => item.codes.indexOf(raw) >= 0);
+  const shelf = hit && String(hit.row.name || "").trim();
+  const slot = slotDisplay(cellarId, raw);
+  return shelf ? shelf + " · " + slot : slot;
+}
+function shelfIndexForCode(cellarId, code) {
+  const v = (state.vinotecas || []).find(x => x.id === cellarId);
+  const idx = shelfRows(v).findIndex(item => item.codes.indexOf(code) >= 0);
+  return idx >= 0 ? idx : 0;
+}
+function shelfCodesAt(cellarId, index) {
+  const v = (state.vinotecas || []).find(x => x.id === cellarId);
+  const item = shelfRows(v)[Number(index)];
+  return item ? item.codes.slice() : [];
+}
+function altaShelfChoices(cellarId, selectedIndex) {
+  return shelfRows((state.vinotecas || []).find(x => x.id === cellarId)).map((item, i) => {
+    return `<option value="${i}"${i === Number(selectedIndex) ? " selected" : ""}>${escHtml(item.row.name || t("jesus.shelf"))}</option>`;
+  }).join("");
+}
 function renderCaves() {
   syncUsed();
   const icoBot = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 3h6l-1 8a4 4 0 1 1-4 0L9 3z"/><path d="M10 21h4"/></svg>`;
   const icoTemp = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 3v10.2A3.2 3.2 0 1 1 9.6 16"/><path d="M12 3h2M12 7h1.6"/></svg>`;
-  $("#caves-list").innerHTML = state.vinotecas.map(v => {
-    const shot = v.photo || (v.role === "prestige" ? "cave-render-sommeliere.jpg" : "cave-render-eurocave.jpg");
+  const jesus = jesusOn();
+  const banner = jesus && state.vinotecas.some(v => !String(v.name || "").trim())
+    ? `<div class="card" id="jesus-name-cave"><h3>${t("jesus.nameCave")}</h3><p class="muted" style="margin-top:6px">${t("jesus.pendingLead")}</p></div>`
+    : "";
+  $("#caves-list").innerHTML = banner + state.vinotecas.map(v => {
+    const named = String(v.name || "").trim();
+    const title = named || (jesus ? t("jesus.nameCave") : v.name);
+    const shot = v.photo || (jesus ? "" : (v.role === "prestige" ? "cave-render-sommeliere.jpg" : "cave-render-eurocave.jpg"));
     const role = v.role === "prestige" ? t("caves.prestige") : t("caves.keeping");
-    return `<article class="cave-lux" role="button" tabindex="0" onclick="openCave('${v.id}')">
-      <img src="${shot}" alt="${v.name}" onerror="this.src='cave-principal.jpg'">
+    const open = named ? `openCave('${v.id}')` : `openCaveComposer('${v.id}')`;
+    const code = jesus ? cellarCountryCode(v) : "";
+    const flag = code ? flagSvg(code) : "";
+    const loc = code ? cellarCountryName(v) : "";
+    let brandLine = `${named ? (v.brand || "") : ""}${v.house ? " · " + v.house : ""}`;
+    if (loc) brandLine = brandLine ? brandLine + " · " + loc : loc;
+    const titleHtml = flag ? `<div class="cave-title-row">${flag}<h3>${escHtml(title)}</h3></div>` : `<h3>${escHtml(title)}</h3>`;
+    return `<article class="cave-lux" role="button" tabindex="0" onclick="${open}">
+      ${shot ? `<img src="${shot}" alt="${escHtml(title)}" onerror="this.remove()">` : ""}
       <div class="cave-lux-copy">
-        <h3>${v.name}</h3>
-        <p class="cave-lux-brand">${v.brand}${v.house ? " · " + v.house : ""}</p>
+        ${titleHtml}
+        <p class="cave-lux-brand">${escHtml(brandLine)}</p>
         <p class="cave-lux-role">${role}</p>
         <i class="cave-lux-rule"></i>
         <p class="cave-lux-stat">${icoBot}<b>${v.used}/${v.capacity}</b></p>
@@ -379,8 +457,27 @@ function openCave(id, highlightBin) {
   const v = state.vinotecas.find(x => x.id === id);
   if (!v) return;
   ensureCaveSlots(v);
-  $("#cave-house").textContent = v.house || v.brand || "Casa Llavaneras";
-  $("#cave-title").textContent = v.name;
+  const jesus = jesusOn();
+  const code = jesus ? cellarCountryCode(v) : "";
+  const loc = code ? cellarCountryName(v) : "";
+  const houseBits = [];
+  if (v.house) houseBits.push(v.house);
+  else if (v.brand) houseBits.push(v.brand);
+  else if (!jesus) houseBits.push(typeof brandName === "function" ? brandName() : "Casa Llavaneras");
+  if (loc) houseBits.push(loc);
+  $("#cave-house").textContent = houseBits.join(" · ");
+  const title = String(v.name || "").trim() || (jesus ? t("jesus.nameCave") : v.name);
+  const titleEl = $("#cave-title");
+  if (titleEl) {
+    titleEl.removeAttribute("data-i18n");
+    if (code) {
+      titleEl.classList.add("cave-title-flag");
+      titleEl.innerHTML = flagSvg(code) + `<span>${escHtml(title)}</span>`;
+    } else {
+      titleEl.classList.remove("cave-title-flag");
+      titleEl.textContent = title;
+    }
+  }
   const typeLine = v.layout && v.layout.type ? t("layout.type." + v.layout.type) : "";
   const depthLine = v.layout && Number(v.layout.depth) > 1 ? t("layout.depthN", { n: v.layout.depth }) : "";
   $("#cave-detail").innerHTML = `
@@ -388,7 +485,7 @@ function openCave(id, highlightBin) {
     ${typeLine || depthLine ? `<p class="tiny">${[typeLine, depthLine].filter(Boolean).join(" · ")}</p>` : ""}
     <button class="btn btn-ghost" style="width:100%;margin:8px 0" onclick="openCaveComposer('${v.id}')">${t("layout.define")}</button>
     <button class="btn btn-ghost" style="width:100%;margin:8px 0" onclick="openRecuento('${v.id}')">${t("count.h1")}</button>
-    <img class="cave-photo" src="${v.photo || "cave-render-sommeliere.jpg"}" alt="${v.name}" onerror="this.src='cave-principal.jpg'" />
+    ${(() => { const shot = v.photo || (jesus ? "" : "cave-render-sommeliere.jpg"); return shot ? `<img class="cave-photo" src="${shot}" alt="${escHtml(v.name)}" onerror="this.src='cave-principal.jpg'" />` : ""; })()}
     <h2>${t("caves.temp")}</h2>
     <div class="temp-grid" style="margin:12px 0">
       <label class="temp"><span class="tiny">${t("caves.high")}</span><input id="cave-thigh" type="number" step="0.1" value="${Number(v.tHigh).toFixed(1)}" style="width:100%;background:transparent;border:0;color:#c9a227;font:700 22px inherit" /></label>
@@ -396,6 +493,7 @@ function openCave(id, highlightBin) {
     </div>
     <label class="field"><span>${t("caves.humidity")}</span><input id="cave-hr" type="number" value="${v.humidity || 65}" /></label>
     <button class="btn btn-gold" style="width:100%;margin:8px 0" onclick="saveCaveTemp('${v.id}')">${t("caves.saveTemp")}</button>
+    ${jesus ? `<button type="button" class="btn btn-ghost cave-rename" id="cave-rename" onclick="openRenameSheet('${v.id}')">${renamePencil()} ${escHtml(t("jesus.rename"))}</button>` : ""}
     <h2>${t("caves.map")}</h2>
     ${rackGrid(id, highlightBin || "")}
     <button class="btn btn-ghost" style="width:100%;margin:8px 0" onclick="openSpaceSheet('${v.id}')">${t("caves.addSlots")}</button>
@@ -573,8 +671,9 @@ function rackCell(cellarId, code, highlight, byBin, pending) {
     const w = wineById(b.wineId) || {};
     const who = ((w.producer || "").split(" ").slice(-2).join(" ") + " " + (typeof shortWineName === "function" ? shortWineName(w) : "") + " " + (w.vintage || "")).trim();
     const held = typeof bottleHeld === "function" && bottleHeld(b);
+    const label = slotDisplay(cellarId, code);
     return `<button class="rack-slot${focus}${held ? " held" : ""}" data-slot="${escHtml(code)}" onclick="openBottle('${b.uid}')">
-      <b>${escHtml(code)}</b>
+      <b>${escHtml(label)}</b>
       <small>${escHtml(who)}${held ? " · " + escHtml(t("wish.held")) : ""}</small>
       <span class="rack-dot"></span>
     </button>`;
@@ -583,13 +682,16 @@ function rackCell(cellarId, code, highlight, byBin, pending) {
   if (p) {
     const w = wineById(p.wineId);
     const name = w ? (w.producer.split(" ").slice(-2).join(" ") + " " + w.vintage) : "Alta";
+    const label = slotDisplay(cellarId, code);
     return `<button class="rack-slot${focus}" data-slot="${escHtml(code)}" onclick="openWine('${p.wineId}')">
-      <b>${escHtml(code)}</b>
+      <b>${escHtml(label)}</b>
       <small>${escHtml(name)} · pendiente</small>
       <span class="rack-dot"></span>
     </button>`;
   }
-  return `<div class="rack-slot empty${focus}" data-slot="${escHtml(code)}"><b>${escHtml(code)}</b><small>—</small><span class="rack-dot off"></span></div>`;
+  const label = slotDisplay(cellarId, code);
+  const origin = label !== String(code) ? String(code) : "—";
+  return `<div class="rack-slot empty${focus}" data-slot="${escHtml(code)}"><b>${escHtml(label)}</b><small>${escHtml(origin)}</small><span class="rack-dot off"></span></div>`;
 }
 function rackGrid(cellarId, highlight) {
   const list = state.bottles.filter(b => b.cellarId === cellarId);
@@ -869,6 +971,7 @@ function freshCaveDraft() {
     tHigh: "13",
     tLow: "11",
     humidity: "68",
+    country: "",
     layout: {
       type: "clima",
       depth: 1,
@@ -899,6 +1002,7 @@ function draftFromCave(v) {
     tHigh: Number.isFinite(Number(v.tHigh)) ? String(v.tHigh) : "13",
     tLow: Number.isFinite(Number(v.tLow)) ? String(v.tLow) : "12",
     humidity: Number.isFinite(Number(v.humidity)) ? String(v.humidity) : "65",
+    country: v.country || "",
     layout: cloneLayout(v.layout)
   };
 }
@@ -928,6 +1032,8 @@ function readComposerFields() {
   if (tl) caveDraft.tLow = tl.value;
   const hr = $("#new-cave-hr");
   if (hr) caveDraft.humidity = hr.value;
+  const country = $("#new-cave-country");
+  if (country) caveDraft.country = country.value;
   const type = $("#cave-type");
   if (type) caveDraft.layout.type = type.value || "otro";
   const depthEl = $("#cave-depth");
@@ -984,6 +1090,7 @@ function paintCaveComposer() {
   if ($("#new-cave-hr")) $("#new-cave-hr").value = caveDraft.humidity || "";
   if ($("#cave-type")) $("#cave-type").value = caveDraft.layout.type || "otro";
   if ($("#cave-depth")) $("#cave-depth").value = Number(caveDraft.layout.depth) > 1 ? String(caveDraft.layout.depth) : "";
+  syncJesusCountryField();
   const box = $("#cave-layout");
   if (box) box.innerHTML = (caveDraft.layout.zones || []).map((z, zi) => zoneEditorHtml(z, zi)).join("")
     + `<div class="btn-row">
@@ -991,6 +1098,19 @@ function paintCaveComposer() {
       <button type="button" class="btn btn-ghost" onclick="addLayoutZone('free')">${t("layout.addFree")}</button>
     </div>`;
   updateLayoutPreview();
+}
+function syncJesusCountryField() {
+  if (!jesusOn()) return;
+  const cur = (caveDraft && caveDraft.country) || "";
+  let sel = document.getElementById("new-cave-country");
+  if (!sel) {
+    const name = document.getElementById("new-cave-name");
+    if (!name || !name.parentElement) return;
+    const opt = (value, label) => `<option value="${value}">${escHtml(label)}</option>`;
+    name.parentElement.insertAdjacentHTML("afterend", `<label class="field" id="jesus-country-field"><span>${escHtml(t("jesus.country"))}</span><select id="new-cave-country" onchange="touchCaveDraft()">${opt("", "—")}${opt("ES", t("jesus.spain"))}${opt("FR", t("jesus.france"))}</select></label>`);
+    sel = document.getElementById("new-cave-country");
+  }
+  if (sel) sel.value = cur;
 }
 function zoneEditorHtml(z, zi) {
   const moves = `<span class="layout-actions">
@@ -1128,8 +1248,10 @@ function moveLayoutRow(zi, ri, dir) {
 }
 function applyDraftToCave(v, codes, structural) {
   v.name = caveDraft.name.trim();
+  if (v.name) v.namePending = false;
   v.house = (caveDraft.house || "").trim();
-  v.brand = (caveDraft.brand || "").trim() || v.brand || "Vinoteca";
+  v.brand = (caveDraft.brand || "").trim() || v.brand || (jesusOn() && !v.name ? "" : "Vinoteca");
+  if (jesusOn()) v.country = (caveDraft.country || "").trim();
   v.place = (caveDraft.place || "").trim();
   const hi = parseFloat(caveDraft.tHigh);
   const lo = parseFloat(caveDraft.tLow);
@@ -1144,14 +1266,16 @@ function applyDraftToCave(v, codes, structural) {
   const cap = layoutCapacity(v.layout);
   if (structural) v.capacity = Math.max(cap, (state.bottles || []).filter(b => b.cellarId === v.id).reduce((n, b) => n + (Number(b.qty) || 0), 0));
   else v.capacity = Math.max(Number(v.capacity) || 0, cap);
-  if (!v.houseId) v.houseId = ensureHouse(v.house || "Casa Llavaneras");
+  if (!v.houseId) v.houseId = ensureHouse(v.house || (typeof brandName === "function" ? brandName() : "Casa Llavaneras"));
   else if (v.house) v.houseId = ensureHouse(v.house);
 }
 function commitCaveForm() {
   if (!caveDraft) caveDraft = freshCaveDraft();
   readComposerFields();
   const name = (caveDraft.name || "").trim();
-  if (!name) return toast(t("layout.needName"));
+  const editing = caveEditing ? state.vinotecas.find(x => x.id === caveEditing) : null;
+  const jesusPending = jesusOn() && editing && !String(editing.name || "").trim();
+  if (!name && !jesusPending) return toast(t("layout.needName"));
   const codes = codesFromLayout(caveDraft.layout);
   if (!codes.length) return toast(t("layout.needSlots"));
   const id = caveEditing;
@@ -1178,7 +1302,7 @@ function commitCaveForm() {
     used: 0,
     bins: "",
     zones: [(caveDraft.layout.zones[0] && caveDraft.layout.zones[0].name) || "Personalizada"],
-    houseId: ensureHouse((caveDraft.house || "").trim() || "Casa Llavaneras")
+    houseId: ensureHouse((caveDraft.house || "").trim() || (typeof brandName === "function" ? brandName() : "Casa Llavaneras"))
   };
   applyDraftToCave(v, codes, true);
   state.vinotecas.push(v);
@@ -1195,7 +1319,8 @@ function layoutRack(v, highlight, byBin, pending) {
     const rows = (z.rows || []).map(r => {
       const codes = rowCodes(r);
       const cells = codes.map(code => rackCell(v.id, code, highlight, byBin, pending)).join("") || `<div class="rack-slot empty"><b>—</b></div>`;
-      return `<div class="rack-row" style="grid-template-columns:repeat(${Math.max(codes.length, 1)},minmax(0,1fr))">${cells}</div>`;
+      const head = jesusOn() && r.name ? `<p class="rack-shelf">${escHtml(r.name)}</p>` : "";
+      return `${head}<div class="rack-row" style="grid-template-columns:repeat(${Math.max(codes.length, 1)},minmax(0,1fr))">${cells}</div>`;
     }).join("");
     return `<h3 class="cal-h">${escHtml(z.name || t("layout.kindGrid"))} ${temp}</h3><div class="rack-rows rack-fit">${rows}</div>`;
   }).join("");
@@ -1229,6 +1354,67 @@ function placeUnlocated(uid) {
   b.unplaced = false;
   save();
   openCave(b.cellarId, b.bin);
+}
+let renameCaveId = "";
+function ensureRenameSheet() {
+  if (document.getElementById("rename-sheet")) return;
+  document.body.insertAdjacentHTML("beforeend", `<div id="rename-sheet" class="modal-bg" onclick="if(event.target===this)hideSheets()"><div class="sheet"><div class="handle"></div><h3 class="rename-title" id="rename-title"></h3><p class="muted" id="rename-lead"></p><button type="button" class="btn btn-gold" style="width:100%;margin:8px 0" onclick="saveRenameSheet()" id="rename-save"></button><div id="rename-body"></div></div></div>`);
+}
+function resetRenameField(btn) {
+  const input = btn && btn.parentElement && btn.parentElement.querySelector("input");
+  if (input) input.value = btn.getAttribute("data-default") || "";
+}
+function openRenameSheet(id) {
+  if (!jesusOn()) return;
+  const v = (state.vinotecas || []).find(x => x.id === id);
+  if (!v) return;
+  renameCaveId = id;
+  ensureRenameSheet();
+  const title = document.getElementById("rename-title");
+  const lead = document.getElementById("rename-lead");
+  const saveBtn = document.getElementById("rename-save");
+  if (title) title.innerHTML = renamePencil() + " " + escHtml(t("jesus.rename"));
+  if (lead) lead.textContent = t("jesus.renameLead");
+  if (saveBtn) saveBtn.textContent = t("jesus.renameSave");
+  const rows = shelfRows(v);
+  const shelves = rows.map(item => {
+    const base = item.row.baseName || item.row.name || "";
+    return `<label class="field rename-line"><span>${escHtml(t("jesus.shelf"))} · ${escHtml(base)}</span><span class="rename-edit"><input id="rename-row-${item.zi}-${item.ri}" value="${escHtml(item.row.name || "")}" autocomplete="off"><button type="button" class="btn btn-ghost" data-default="${escHtml(base)}" onclick="resetRenameField(this)">${escHtml(t("jesus.renameDefault"))}</button></span></label>`;
+  }).join("");
+  const slots = rows.map(item => {
+    const cells = item.codes.map(code => `<label class="field rename-line"><span>${escHtml(code)}</span><span class="rename-edit"><input data-rename-slot="${escHtml(code)}" value="${escHtml(slotCustomName(v, code))}" placeholder="${escHtml(code)}" autocomplete="off"><button type="button" class="btn btn-ghost" data-default="" onclick="resetRenameField(this)">${escHtml(t("jesus.renameDefault"))}</button></span></label>`).join("");
+    return `<h2>${escHtml(item.row.name || t("jesus.shelf"))}</h2>${cells}`;
+  }).join("");
+  const body = document.getElementById("rename-body");
+  if (body) body.innerHTML = `<h2>${escHtml(t("jesus.shelves"))}</h2>${shelves}<h2>${escHtml(t("jesus.slots"))}</h2>${slots}`;
+  showSheet("rename-sheet");
+}
+function saveRenameSheet() {
+  if (!jesusOn()) return;
+  const v = (state.vinotecas || []).find(x => x.id === renameCaveId);
+  if (!v) return;
+  shelfRows(v).forEach(item => {
+    const input = document.getElementById("rename-row-" + item.zi + "-" + item.ri);
+    if (!input) return;
+    const next = input.value.trim();
+    if (!item.row.baseName) item.row.baseName = item.row.name || next;
+    item.row.name = next || item.row.baseName;
+  });
+  if (!v.slotNames || typeof v.slotNames !== "object") v.slotNames = {};
+  document.querySelectorAll("[data-rename-slot]").forEach(input => {
+    const code = input.getAttribute("data-rename-slot");
+    const next = input.value.trim();
+    if (!code) return;
+    if (!next || next === code) delete v.slotNames[code];
+    else v.slotNames[code] = next;
+  });
+  const live = {};
+  codesFromLayout(v.layout).forEach(code => { if (v.slotNames[code]) live[code] = v.slotNames[code]; });
+  v.slotNames = live;
+  save();
+  hideSheets();
+  toast(t("jesus.renameSaved"));
+  openCave(v.id);
 }
 if (typeof state !== "undefined" && state && state.vinotecas) {
   try {

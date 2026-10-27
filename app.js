@@ -1,5 +1,5 @@
 /* Arranque y enlaces con la página. */
-const APP_VERSION = "v104";
+const APP_VERSION = "v105";
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.addEventListener("message", ev => {
     const d = ev.data || {};

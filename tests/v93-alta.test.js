@@ -31,14 +31,15 @@ const css = fs.readFileSync(path.join(root, "styles.css"), "utf8");
 const i18n = fs.readFileSync(path.join(root, "i18n.js"), "utf8");
 const v92 = fs.readFileSync(path.join(root, "casa-v92.js"), "utf8");
 
-assert.ok(app.includes('APP_VERSION = "v104"'));
-assert.ok(html.includes('content="v104"'));
-assert.ok(html.includes("casa-alta.js?v=104"));
-assert.ok(html.indexOf("casa-v92.js?v=104") < html.indexOf("casa-alta.js?v=104"));
-assert.ok(html.indexOf("casa-alta.js?v=104") < html.indexOf("app.js?v=104"));
+assert.ok(app.includes('APP_VERSION = "v105"'));
+assert.ok(html.includes('content="v105"'));
+assert.ok(html.includes("casa-alta.js?v=105"));
+assert.ok(html.indexOf("casa-v92.js?v=105") < html.indexOf("casa-alta.js?v=105"));
+assert.ok(html.indexOf("casa-alta.js?v=105") < html.indexOf("app.js?v=105"));
 assert.ok(sw.includes("./casa-alta.js"));
-assert.ok(sw.includes('const CACHE = "casa-llavaneras-ios-v104"'));
-assert.ok(sw.includes('const VERSION = "v104"'));
+assert.ok(sw.includes('"casa-llavaneras-ios-v105"'));
+assert.ok(sw.includes('"casa-llavaneras-jesus-ios-v105"'));
+assert.ok(sw.includes('const VERSION = "v105"'));
 assert.ok(fs.existsSync(path.join(root, "docs/alta-v93.md")));
 assert.ok(fs.existsSync(path.join(root, "archivo/app hoy.js")));
 
@@ -106,7 +107,14 @@ const api = new Function("ZONES", "WINERY_CARDS", "foldWinery", [
   extractFunction(alta, "wineReadingSchema"),
   extractFunction(alta, "sheetFromParsed"),
   extractFunction(alta, "missingIdentity"),
+  extractFunction(alta, "tastingConflicts"),
+  extractFunction(alta, "sheetWordType"),
+  extractFunction(alta, "polishSheetIdentity"),
   extractFunction(alta, "citedUri"),
+  extractFunction(alta, "blurbConflicts"),
+  extractFunction(alta, "groundedClaim"),
+  extractFunction(alta, "peraMancaFiction"),
+  extractFunction(alta, "rescuePeraMancaSheet"),
   extractFunction(alta, "fillEmptySheet"),
   extractFunction(alta, "readingFailureKind"),
   extractFunction(alta, "postWineReading"),
@@ -215,12 +223,17 @@ global.geminiGrounded = async () => {
   const enriched = await mod.analyzeAndEnrichWine(jpeg, "");
   assert.strictEqual(enriched.ok, true);
   assert.strictEqual(enriched.sheet.name, "");
-  assert.strictEqual(enriched.sheet.grapes, "Listán");
-  assert.strictEqual(enriched.zoneText, "Atlántico Volcánico");
-  assert.ok(enriched.wineryText.includes("1901"));
-  assert.ok(enriched.sources.includes("https://example.com/vino"));
+  assert.strictEqual(enriched.sheet.grapes, "");
+  assert.strictEqual(enriched.sheet.winery, "");
+  assert.strictEqual(enriched.sheet.region, "");
+  assert.strictEqual(enriched.sheet.vintage, "");
+  assert.strictEqual(enriched.zoneText, "");
+  assert.strictEqual(enriched.wineryText, "");
+  assert.ok(!enriched.sources.includes("https://example.com/vino"));
   assert.ok(groundedCalls.every(call => call.model === "gemini-2.5-flash" || call.model === "gemini-2.5-flash-lite"));
-  assert.ok(groundedCalls.length >= 2);
+  assert.strictEqual(groundedCalls.length, 1);
+  assert.ok(groundedCalls[0].prompt.includes("Contrasta el productor"));
+  assert.ok(!groundedCalls[0].prompt.includes("Describe la bodega"));
 
   global.geminiGrounded = async () => ({ parsed: { climate: "Inventado", soil: "Sin dato", source: "nota interna" } });
   global.geminiGenerate = async () => ({ parsed: { name: "Nube", vintage: "2015", region: "Atlantis", winery: "Bodega Inventada Larga" } });

@@ -50,7 +50,7 @@ var WINERY_LIBRARY = [
   { name: "Domaine Georges Roumier", file: "", aliases: ["Georges Roumier", "Roumier"] },
   { name: "Schloss Johannisberg", file: "bodega-schloss-johannisberg.jpg", aliases: ["Fürst von Metternich-Winneburg'sche Domäne Schloss Johannisberg"] },
   { name: "Kühling-Gillot", file: "bodega-kuhling-gillot.jpg", aliases: ["Weingut Kühling-Gillot", "Kühling & Battenfeld"] },
-  { name: "Adega Cartuxa", file: "bodega-cartuxa.jpg", aliases: ["Cartuxa", "Fundação Eugénio de Almeida", "Quinta de Valbom"] },
+  { name: "Adega Cartuxa", file: "bodega-cartuxa.jpg", aliases: ["Cartuxa", "Fundação Eugénio de Almeida", "Fundacao Eugenio de Almeida", "Eugénio de Almeida", "Eugenio de Almeida", "Pêra-Manca", "Pera-Manca", "Pera Manca", "Quinta de Valbom"] },
   { name: "Fitapreta", file: "bodega-fitapreta.jpg", aliases: ["Fita Preta Vinhos", "Herdade Fitapreta"] },
   { name: "Vila Galé (Casa de Santa Vitória)", file: "bodega-vila-gale.jpg", aliases: ["Casa de Santa Vitória", "Santa Vitória", "Vila Galé Alentejo Vineyards"] },
   { name: "Casa Ferreirinha", file: "bodega-casa-ferreirinha.jpg", aliases: ["A.A. Ferreira", "Ferreira", "Sogrape"] },
@@ -1366,6 +1366,12 @@ var WINERY_CARDS = [
     "aliases": [
       "Cartuxa",
       "Fundação Eugénio de Almeida",
+      "Fundacao Eugenio de Almeida",
+      "Eugénio de Almeida",
+      "Eugenio de Almeida",
+      "Pêra-Manca",
+      "Pera-Manca",
+      "Pera Manca",
       "Quinta de Valbom"
     ],
     "country": "Portugal",

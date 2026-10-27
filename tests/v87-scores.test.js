@@ -110,9 +110,9 @@ assert.ok(gemini.includes("origin: \"web\""));
 assert.ok(gemini.includes("quotaTries < 2"));
 assert.ok(i18n.includes("score.catalog"));
 assert.ok(i18n.includes("score.noneLine"));
-assert.ok(app.includes('APP_VERSION = "v104"'));
-assert.ok(sw.includes("casa-llavaneras-ios-v104"));
-assert.ok(html.includes('content="v104"'));
+assert.ok(app.includes('APP_VERSION = "v105"'));
+assert.ok(sw.includes("casa-llavaneras-ios-v105"));
+assert.ok(html.includes('content="v105"'));
 assert.ok(!html.includes("?v=89"));
 
 console.log("v87-scores ok");

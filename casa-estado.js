@@ -1,6 +1,11 @@
 /* Estado, copia de seguridad y etiquetas. */
-const STORE = "vinoteca.pro.max.v3";
-const defaultState = () => ({
+const CASA_EDITION = (typeof window !== "undefined" && window.CASA_EDITION === "jesus") ? "jesus" : "";
+const STORE = CASA_EDITION === "jesus" ? "jesus.vinoteca.pro.max.v3" : "vinoteca.pro.max.v3";
+const LABEL_DB_NAME = CASA_EDITION === "jesus" ? "casa-llavaneras-labels-jesus" : "casa-llavaneras-labels";
+function brandName() {
+  return CASA_EDITION === "jesus" ? "Vinoteca Jesús Gómez" : "Casa Llavaneras";
+}
+const joseDefaultState = () => ({
   vinotecas: [
     {
       id: "v1",
@@ -51,6 +56,64 @@ const defaultState = () => ({
   counts: [],
   cuvees: {}
 });
+function jesusArmario(id, country) {
+  return {
+    id: id,
+    name: "",
+    namePending: true,
+    country: country,
+    brand: "",
+    house: "",
+    place: "",
+    capacity: 14,
+    used: 0,
+    tHigh: 14,
+    tLow: 12,
+    humidity: 70,
+    role: "keeping",
+    zones: ["Armario"],
+    photo: "",
+    layout: {
+      type: "armario",
+      depth: 1,
+      legacy: false,
+      zones: [{
+        id: "z1",
+        name: "Armario",
+        kind: "grid",
+        rows: [
+            { id: "r1", name: "Balda 1", baseName: "Balda 1", prefix: "A", capacity: 8 },
+            { id: "r2", name: "Balda 2", baseName: "Balda 2", prefix: "B", capacity: 6 }
+        ]
+      }]
+    }
+  };
+}
+function jesusDefaultState() {
+  return {
+    vinotecas: [jesusArmario("j-es", "ES"), jesusArmario("j-fr", "FR")],
+    bottles: [],
+    favorites: [],
+    notify: { on: false, evolve: true, ready: true, temp: true, last: {} },
+    tasting: {},
+    houses: [{ id: "h1", name: "", type: "Casa", note: "", namePending: true }],
+    prefs: {
+      hideValue: false, hidePrices: false, hideBin: false, scale: 10, decimals: true,
+      currency: "EUR", demo: false, lastBackup: null,
+      sources: { vivino: true, penin: true, parker: true, spectator: true, decanter: true, vinous: true, suckling: true }
+    },
+    activity: [],
+    consumption: [],
+    consumptionBackfilled: true,
+    customWines: [],
+    inbox: [],
+    wishlist: [],
+    reservations: [],
+    counts: [],
+    cuvees: {}
+  };
+}
+const defaultState = () => CASA_EDITION === "jesus" ? jesusDefaultState() : joseDefaultState();
 let cellarLocked = false;
 let cellarCorruptRaw = "";
 let cellarCorruptKey = "";
@@ -124,7 +187,8 @@ function lockCorruptStore(raw) {
 function load() {
   let raw = "";
   try {
-    raw = localStorage.getItem(STORE) || localStorage.getItem("vinoteca.pro.max.v1") || localStorage.getItem("vinoteca.pro.max.v2") || "";
+    raw = localStorage.getItem(STORE) || "";
+    if (CASA_EDITION !== "jesus") raw = raw || localStorage.getItem("vinoteca.pro.max.v1") || localStorage.getItem("vinoteca.pro.max.v2") || "";
   } catch (e) {
     raw = "";
   }
@@ -142,7 +206,7 @@ function load() {
     if (!parsed.notify) parsed.notify = { on: false, evolve: true, ready: true, temp: true, last: {} };
     if (!parsed.notify.last) parsed.notify.last = {};
     if (!parsed.tasting) parsed.tasting = {};
-    if (!parsed.houses) parsed.houses = [{ id: "h1", name: "Casa Llavaneras", type: "Casa", note: "" }];
+    if (!parsed.houses) parsed.houses = [{ id: "h1", name: brandName(), type: "Casa", note: "" }];
     if (!parsed.prefs) parsed.prefs = {};
     parsed.prefs = Object.assign({
       hideValue: false, hidePrices: false, hideBin: false, scale: 10, decimals: true,
@@ -296,7 +360,7 @@ function openLabelDbOnce() {
       fn(value);
     };
     let req;
-    try { req = indexedDB.open("casa-llavaneras-labels", 1); }
+    try { req = indexedDB.open(LABEL_DB_NAME, 1); }
     catch (err) { reject(err); return; }
     const timer = setTimeout(() => finish(reject, new Error("idb-timeout")), 1200);
     req.onupgradeneeded = () => {
@@ -827,10 +891,10 @@ let intakeBusy = false;
 let forceOnce = false;
 function prefs() { return state.prefs || (state.prefs = {}); }
 function houseName(id) {
-  return (state.houses.find(h => h.id === id) || { name: "Casa Llavaneras" }).name;
+  return (state.houses.find(h => h.id === id) || { name: brandName() }).name;
 }
 function ensureHouse(name) {
-  const n = (name || "").trim() || "Casa Llavaneras";
+  const n = (name || "").trim() || brandName();
   let h = state.houses.find(x => x.name.toLowerCase() === n.toLowerCase());
   if (!h) {
     h = { id: "h" + Date.now(), name: n, type: "Casa", note: "" };
@@ -881,7 +945,7 @@ function ensureStateShape(target) {
   if (!target.notify) target.notify = { on: false, evolve: true, ready: true, temp: true, last: {} };
   if (!target.notify.last) target.notify.last = {};
   if (!target.tasting) target.tasting = {};
-  if (!target.houses) target.houses = [{ id: "h1", name: "Casa Llavaneras", type: "Casa", note: "" }];
+  if (!target.houses) target.houses = [{ id: "h1", name: brandName(), type: "Casa", note: "" }];
   target.prefs = Object.assign({
     hideValue: false, hidePrices: false, hideBin: false, scale: 10, decimals: true,
     currency: "EUR", demo: true, lastBackup: null,
@@ -960,7 +1024,7 @@ async function exportBackup() {
     askPersistentStorage();
     const box = document.getElementById("backup-include-key");
     const payload = await collectBackup(!!(box && box.checked));
-    const name = "MiVinoteca_Backup_" + new Date().toISOString().slice(0, 10) + ".json";
+    const name = (CASA_EDITION === "jesus" ? "VinotecaJesusGomez_Backup_" : "MiVinoteca_Backup_") + new Date().toISOString().slice(0, 10) + ".json";
     const text = JSON.stringify(payload, null, 2);
     const file = new File([text], name, { type: "application/json" });
     if (navigator.share) {
@@ -1039,7 +1103,7 @@ function exportCsv() {
   const head = ["csv.name","csv.estate","csv.vintage","csv.region","csv.country","csv.type","csv.qty","csv.place","csv.score","csv.state","csv.price"].map(k => t(k));
   const rows = state.bottles.map(b => {
     const w = wineById(b.wineId) || {};
-    const loc = state.prefs.hideBin ? houseName(state.vinotecas.find(v=>v.id===b.cellarId)?.houseId) : (cellarName(b.cellarId) + " " + (b.bin||""));
+    const loc = state.prefs.hideBin ? houseName(state.vinotecas.find(v=>v.id===b.cellarId)?.houseId) : (cellarName(b.cellarId) + " " + (b.bin ? (typeof binPlaceLabel === "function" ? binPlaceLabel(b.cellarId, b.bin) : b.bin) : ""));
     const price = state.prefs.hidePrices ? "" : (b.price || "");
     const manual = typeof userScore === "function" ? userScore(w, "parker") : null;
     return [w.name, w.producer, w.vintage, w.region, w.country, w.type, b.qty, loc, manual ? manual.score : "", phaseOf(w).label, price];

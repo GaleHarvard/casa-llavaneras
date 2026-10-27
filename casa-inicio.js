@@ -1,14 +1,15 @@
 /* Pantalla de inicio, fechas y avisos de stock. */
 function renderHome() {
   const ready = bottlesReady();
-  const main = state.vinotecas.find(v => v.id === "v1");
+  const jesus = typeof CASA_EDITION !== "undefined" && CASA_EDITION === "jesus";
+  const main = state.vinotecas.find(v => v.id === "v1") || (jesus ? state.vinotecas[0] : null);
   syncUsed();
   const cap = state.vinotecas.reduce((n, v) => n + (v.capacity || 0), 0);
   $("#home-kpis").innerHTML = `
     <div class="kpi"><b>${totalBottles()}/${cap}</b><span>${t("home.inCellar")}</span></div>
     <div class="kpi" role="button" onclick="show('balance')"><b>${state.prefs.hideValue ? "—" : euro(cellarValue())}</b><span>${state.prefs.hideValue ? t("home.value") : t("home.costMarket", { m: euro(cellarMarketValue()) })}</span></div>
     <div class="kpi"><b>${ready.reduce((n,b)=>n+b.qty,0)}</b><span>${t("home.toServe")}</span></div>
-    <div class="kpi"><b>${main && Number.isFinite(Number(main.tHigh)) ? Number(main.tHigh).toFixed(1) + "°" : "—"}</b><span>VIP 185</span></div>`;
+    <div class="kpi"><b>${main && Number.isFinite(Number(main.tHigh)) ? Number(main.tHigh).toFixed(1) + "°" : "—"}</b><span>${jesus ? (String(main && main.name || "").trim() || t("jesus.slots")) : "VIP 185"}</span></div>`;
 
   const featured = pickFeaturedWine();
   $("#home-featured").innerHTML = featured ? `

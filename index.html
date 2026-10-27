@@ -9,14 +9,14 @@
   <meta name="apple-mobile-web-app-title" content="Casa Llavaneras" />
   <meta name="application-name" content="Casa Llavaneras" />
   <meta name="theme-color" content="#000000" />
-  <meta name="app-version" content="v104" />
+  <meta name="app-version" content="v105" />
   <title>Casa Llavaneras</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="apple-touch-icon" href="apple-touch-icon.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
   <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png" />
-  <link rel="stylesheet" href="styles.css?v=104" />
+  <link rel="stylesheet" href="styles.css?v=105" />
 </head>
 <body>
   <div class="device">
@@ -538,33 +538,34 @@
       if (!window.__casaReady) casaShowBootError();
     }, 8000);
   </script>
-  <script src="wines.js?v=104"></script>
-  <script src="bodegas.js?v=104"></script>
-  <script src="dossiers.js?v=104"></script>
-  <script src="providers/wineProvider.js?v=104"></script>
-  <script src="pairings.js?v=104"></script>
-  <script src="catalog-i18n.js?v=104"></script>
-  <script src="i18n.js?v=104"></script>
-  <script src="casa-util.js?v=104"></script>
-  <script src="casa-vino.js?v=104"></script>
-  <script src="casa-estado.js?v=104"></script>
-  <script src="casa-inicio.js?v=104"></script>
-  <script src="casa-vinoteca.js?v=104"></script>
-  <script src="casa-bodega.js?v=104"></script>
-  <script src="casa-ficha.js?v=104"></script>
-  <script src="casa-mesa.js?v=104"></script>
-  <script src="casa-bebidas.js?v=104"></script>
-  <script src="casa-gemini.js?v=104"></script>
-  <script src="casa-ajustes.js?v=104"></script>
-  <script src="casa-v86.js?v=104"></script>
-  <script src="casa-v88.js?v=104"></script>
-  <script src="casa-v89.js?v=104"></script>
-  <script src="casa-v90.js?v=104"></script>
-  <script src="casa-v91.js?v=104"></script>
-  <script src="casa-v92.js?v=104"></script>
-  <script src="casa-alta.js?v=104"></script>
-  <script src="casa-v103.js?v=104"></script>
-  <script src="app.js?v=104"></script>
+  <script src="wines.js?v=105"></script>
+  <script src="bodegas.js?v=105"></script>
+  <script src="dossiers.js?v=105"></script>
+  <script src="providers/wineProvider.js?v=105"></script>
+  <script src="pairings.js?v=105"></script>
+  <script src="catalog-i18n.js?v=105"></script>
+  <script src="i18n.js?v=105"></script>
+  <script src="casa-util.js?v=105"></script>
+  <script src="casa-vino.js?v=105"></script>
+  <script src="casa-estado.js?v=105"></script>
+  <script src="casa-inicio.js?v=105"></script>
+  <script src="casa-vinoteca.js?v=105"></script>
+  <script src="casa-bodega.js?v=105"></script>
+  <script src="casa-ficha.js?v=105"></script>
+  <script src="casa-mesa.js?v=105"></script>
+  <script src="casa-bebidas.js?v=105"></script>
+  <script src="casa-gemini.js?v=105"></script>
+  <script src="casa-ajustes.js?v=105"></script>
+  <script src="casa-v86.js?v=105"></script>
+  <script src="casa-v88.js?v=105"></script>
+  <script src="casa-v89.js?v=105"></script>
+  <script src="casa-v90.js?v=105"></script>
+  <script src="casa-v91.js?v=105"></script>
+  <script src="casa-v92.js?v=105"></script>
+  <script src="casa-alta.js?v=105"></script>
+  <script src="casa-v103.js?v=105"></script>
+  <script src="casa-v105.js?v=105"></script>
+  <script src="app.js?v=105"></script>
   <script>
     document.querySelectorAll(".tab").forEach((t, i) => {
       const icons = [
@@ -580,11 +581,12 @@
     });
     if ("serviceWorker" in navigator) {
       const pageVersion = (document.querySelector('meta[name="app-version"]') || {}).content || "";
+      const swStoreKey = (window.CASA_EDITION === "jesus" ? "jesus." : "") + "casa-sw-version";
       const reloadForSw = (nextVersion) => {
         const mark = nextVersion || pageVersion;
         try {
-          if (!mark || sessionStorage.getItem("casa-sw-version") === mark) return;
-          sessionStorage.setItem("casa-sw-version", mark);
+          if (!mark || sessionStorage.getItem(swStoreKey) === mark) return;
+          sessionStorage.setItem(swStoreKey, mark);
         } catch (err) {
           return;
         }
@@ -607,7 +609,7 @@
         if (data.type !== "sw-activated") return;
         if (data.version && pageVersion && data.version !== pageVersion) reloadForSw(data.version);
       });
-      navigator.serviceWorker.register("sw.js?v=104").then((reg) => {
+      navigator.serviceWorker.register("sw.js?v=105").then((reg) => {
         askSkipWaiting(reg);
         const refresh = () => { reg.update().catch(() => {}); };
         refresh();

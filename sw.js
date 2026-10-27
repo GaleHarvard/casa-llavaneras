@@ -1,7 +1,8 @@
-const CACHE = "casa-llavaneras-ios-v104";
-const VERSION = "v104";
+const CASA_VARIANT = self.CASA_VARIANT === "jesus" ? "jesus" : "";
+const CACHE = CASA_VARIANT === "jesus" ? "casa-llavaneras-jesus-ios-v105" : "casa-llavaneras-ios-v105";
+const VERSION = "v105";
 const NEXT = CACHE + "-next";
-const ASSETS = ["./", "./index.html", "./styles.css", "./i18n.js", "./casa-util.js", "./casa-vino.js", "./casa-estado.js", "./casa-inicio.js", "./casa-vinoteca.js", "./casa-bodega.js", "./casa-ficha.js", "./casa-mesa.js", "./casa-bebidas.js", "./casa-gemini.js", "./casa-ajustes.js", "./casa-v86.js", "./casa-v88.js", "./casa-v89.js", "./casa-v90.js", "./casa-v91.js", "./casa-v92.js", "./casa-alta.js", "./casa-v103.js", "./app.js", "./wines.js", "./bodegas.js", "./dossiers.js", "./providers/wineProvider.js", "./pairings.js", "./catalog-i18n.js", "./manifest.json", "./icon.svg", "./apple-touch-icon.png", "./icon-192.png", "./icon-512.png", "./cave-principal.jpg", "./capsula.jpg", "./botella-tinto.jpg", "./botella-blanco.jpg", "./botella-espumoso.jpg", "./vinedo-chateau-margaux.jpg", "./bodega-domaine-georges-roumier.jpg", "./bodega-domaine-cecile-tremblay.jpg", "./bodega-perelada.jpg", "./bodega-schloss-johannisberg.jpg", "./bodega-kuhling-gillot.jpg", "./bodega-cartuxa.jpg", "./bodega-fitapreta.jpg", "./bodega-vila-gale.jpg", "./bodega-casa-ferreirinha.jpg", "./bodega-churchills.jpg", "./bodega-niepoort.jpg", "./bodega-pocas.jpg", "./bodega-quinta-do-bomfim.jpg", "./bodega-quinta-do-crasto.jpg", "./bodega-quinta-do-pessegueiro.jpg", "./bodega-quinta-vale-d-maria.jpg", "./bodega-taylors.jpg", "./bodega-wine-and-soul.jpg", "./bodega-casa-santos-lima.jpg", "./bodega-madeira-wine-company.jpg", "./bodega-ermelinda-freitas.jpg", "./bodega-aveleda.jpg", "./bodega-luis-canas.jpg", "./bodega-garcia-figuero.jpg", "./bodega-pago-de-los-capellanes.jpg"];
+const ASSETS = ["./", "./index.html", "./styles.css", "./i18n.js", "./casa-util.js", "./casa-vino.js", "./casa-estado.js", "./casa-inicio.js", "./casa-vinoteca.js", "./casa-bodega.js", "./casa-ficha.js", "./casa-mesa.js", "./casa-bebidas.js", "./casa-gemini.js", "./casa-ajustes.js", "./casa-v86.js", "./casa-v88.js", "./casa-v89.js", "./casa-v90.js", "./casa-v91.js", "./casa-v92.js", "./casa-alta.js", "./casa-v103.js", "./casa-v105.js", "./app.js", "./wines.js", "./bodegas.js", "./dossiers.js", "./providers/wineProvider.js", "./pairings.js", "./catalog-i18n.js", "./manifest.json", "./icon.svg", "./apple-touch-icon.png", "./icon-192.png", "./icon-512.png", "./cave-principal.jpg", "./capsula.jpg", "./botella-tinto.jpg", "./botella-blanco.jpg", "./botella-espumoso.jpg", "./vinedo-chateau-margaux.jpg", "./bodega-domaine-georges-roumier.jpg", "./bodega-domaine-cecile-tremblay.jpg", "./bodega-perelada.jpg", "./bodega-schloss-johannisberg.jpg", "./bodega-kuhling-gillot.jpg", "./bodega-cartuxa.jpg", "./bodega-fitapreta.jpg", "./bodega-vila-gale.jpg", "./bodega-casa-ferreirinha.jpg", "./bodega-churchills.jpg", "./bodega-niepoort.jpg", "./bodega-pocas.jpg", "./bodega-quinta-do-bomfim.jpg", "./bodega-quinta-do-crasto.jpg", "./bodega-quinta-do-pessegueiro.jpg", "./bodega-quinta-vale-d-maria.jpg", "./bodega-taylors.jpg", "./bodega-wine-and-soul.jpg", "./bodega-casa-santos-lima.jpg", "./bodega-madeira-wine-company.jpg", "./bodega-ermelinda-freitas.jpg", "./bodega-aveleda.jpg", "./bodega-luis-canas.jpg", "./bodega-garcia-figuero.jpg", "./bodega-pago-de-los-capellanes.jpg"];
 const OCR = ["./vendor/tesseract/tesseract.min.js", "./vendor/tesseract/worker.min.js", "./vendor/tesseract/tesseract-core-lstm.wasm.js", "./vendor/tesseract/tesseract-core-simd-lstm.wasm.js", "./vendor/tesseract/spa.traineddata.gz", "./vendor/tesseract/eng.traineddata.gz", "./vendor/tesseract/por.traineddata.gz", "./vendor/tesseract/fra.traineddata.gz", "./vendor/tesseract/cat.traineddata.gz"];
 
 function fetchWithTimeout(request, ms) {
@@ -13,7 +14,7 @@ function fetchWithTimeout(request, ms) {
 async function shellIsThisVersion(cache) {
   try {
     const htmlRes = await cache.match("./index.html");
-    const appRes = await cache.match("./app.js");
+    const appRes = await cache.match(CASA_VARIANT === "jesus" ? "./asset/app.js" : "./app.js");
     if (!htmlRes || !appRes) return false;
     const html = await htmlRes.text();
     const app = await appRes.text();
@@ -68,6 +69,7 @@ async function matchShell(cache, request) {
 
 let revalidated = false;
 function revalidateShell() {
+  if (CASA_VARIANT === "jesus") return Promise.resolve();
   if (revalidated) return Promise.resolve();
   revalidated = true;
   return (async () => {
@@ -99,13 +101,38 @@ async function putFresh(cache, path) {
   await cache.put(path, res);
 }
 
+async function installJesus(cache) {
+  await putFresh(cache, "./index.html");
+  await putFresh(cache, "./manifest.json");
+  const shell = await fetch(new Request("../index.html", { cache: "reload" }));
+  if (!shell || !shell.ok) throw new Error("shell");
+  await cache.put("./shell.html", shell);
+  for (const path of ASSETS) {
+    if (path === "./" || path === "./index.html" || path === "./manifest.json") continue;
+    const rel = path.replace(/^\.\//, "");
+    const res = await fetch(new Request("../" + rel, { cache: "reload" }));
+    if (!res || !res.ok) throw new Error(rel);
+    await cache.put("./asset/" + rel, res);
+  }
+  for (const path of OCR) {
+    try {
+      const rel = path.replace(/^\.\//, "");
+      const res = await fetch(new Request("../" + rel, { cache: "reload" }));
+      if (res && res.ok) await cache.put("./asset/" + rel, res);
+    } catch (err) {}
+  }
+}
+
 self.addEventListener("install", e => {
   e.waitUntil((async () => {
     const cache = await caches.open(CACHE);
     try {
-      for (const path of ASSETS) await putFresh(cache, path);
-      for (const path of OCR) {
-        try { await putFresh(cache, path); } catch (err) {}
+      if (CASA_VARIANT === "jesus") await installJesus(cache);
+      else {
+        for (const path of ASSETS) await putFresh(cache, path);
+        for (const path of OCR) {
+          try { await putFresh(cache, path); } catch (err) {}
+        }
       }
       if (!(await shellIsThisVersion(cache))) throw new Error("version");
       await self.skipWaiting();
@@ -123,7 +150,8 @@ self.addEventListener("activate", e => {
   // entra. La recarga la hace la propia página (controllerchange / sw-activated).
   e.waitUntil((async () => {
     const keys = await caches.keys();
-    await Promise.all(keys.filter(k => k !== CACHE && k !== NEXT).map(k => caches.delete(k)));
+    const prefix = CASA_VARIANT === "jesus" ? "casa-llavaneras-jesus-ios-" : "casa-llavaneras-ios-";
+    await Promise.all(keys.filter(k => k.startsWith(prefix) && k !== CACHE && k !== NEXT).map(k => caches.delete(k)));
     await self.clients.claim();
     const list = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
     list.forEach(client => {
@@ -182,6 +210,26 @@ async function serveShell(request) {
   return new Response("Sin conexión", { status: 503, headers: { "Content-Type": "text/plain; charset=utf-8" } });
 }
 
+async function serveJesusAsset(rel) {
+  const cache = await activeCache();
+  const key = "./asset/" + rel;
+  const current = await shellIsThisVersion(cache);
+  if (current) {
+    const hit = await cache.match(key, { ignoreSearch: true });
+    if (hit) return hit;
+  }
+  try {
+    const fresh = await fetchWithTimeout("../" + rel, 4000);
+    if (fresh && fresh.ok) {
+      cache.put(key, fresh.clone()).catch(() => {});
+      return fresh;
+    }
+  } catch (err) {}
+  const again = await cache.match(key, { ignoreSearch: true });
+  if (again) return again;
+  return plainResponse();
+}
+
 self.addEventListener("fetch", e => {
   const url = e.request.url;
   if (e.request.method !== "GET") return;
@@ -191,6 +239,26 @@ self.addEventListener("fetch", e => {
     if (parsed.origin !== self.location.origin) return;
     path = parsed.pathname;
   } catch (err) {
+    return;
+  }
+  if (CASA_VARIANT !== "jesus" && /\/jesus(\/|$)/.test(path)) return;
+  if (CASA_VARIANT === "jesus") {
+    if (/\/sw\.js$/.test(path)) return;
+    const marker = "/jesus/";
+    const at = path.indexOf(marker);
+    const rel = at >= 0 ? path.slice(at + marker.length) : "";
+    if (rel.indexOf("asset/") === 0) {
+      e.respondWith(serveJesusAsset(rel.slice("asset/".length)));
+      return;
+    }
+    if (e.request.mode === "navigate" || rel === "" || rel === "index.html" || rel === "manifest.json") {
+      e.respondWith(settleWithin(
+        () => serveShell(e.request),
+        4500,
+        () => shellFallback(e.request)
+      ));
+      return;
+    }
     return;
   }
   if (/\/sw\.js$/.test(path)) return;
@@ -256,7 +324,7 @@ self.addEventListener("notificationclick", e => {
 });
 
 self.addEventListener("push", e => {
-  let payload = { title: "Casa Llavaneras", body: "Revisa tu vinoteca.", open: "home" };
+  let payload = { title: CASA_VARIANT === "jesus" ? "Vinoteca Jesús Gómez" : "Casa Llavaneras", body: "Revisa tu vinoteca.", open: "home" };
   try {
     if (e.data) payload = Object.assign(payload, e.data.json());
   } catch {
