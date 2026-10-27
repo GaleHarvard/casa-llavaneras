@@ -89,10 +89,40 @@ function jesusArmario(id, country) {
     }
   };
 }
+function jesusExampleBottles() {
+  return [
+    { uid: "j-ex-margaux", wineId: "margaux-2016", qty: 1, cellarId: "j-fr", bin: "A-01", bought: "", note: "" },
+    { uid: "j-ex-unico", wineId: "vs-unico-2009", qty: 1, cellarId: "j-es", bin: "A-01", bought: "", note: "" },
+    { uid: "j-ex-riscal", wineId: "riscal-reserva-2019", qty: 1, cellarId: "j-es", bin: "A-02", bought: "", note: "" }
+  ];
+}
+function jesusExamplesUntouched(parsed) {
+  if (!parsed) return false;
+  if ((parsed.bottles || []).length) return false;
+  if ((parsed.customWines || []).length) return false;
+  if ((parsed.inbox || []).length) return false;
+  if ((parsed.activity || []).length) return false;
+  if ((parsed.consumption || []).length) return false;
+  if ((parsed.wishlist || []).length) return false;
+  if ((parsed.favorites || []).length) return false;
+  const caves = parsed.vinotecas || [];
+  if (caves.length !== 2) return false;
+  if (caves.map(v => v.id).slice().sort().join(",") !== "j-es,j-fr") return false;
+  if (caves.some(v => String(v.name || "").trim())) return false;
+  if (caves.some(v => v.slotNames && Object.keys(v.slotNames).length)) return false;
+  return !caves.some(v => ((v.layout && v.layout.zones) || []).some(z => (z.rows || []).some(r => r.baseName && r.name && r.name !== r.baseName)));
+}
+function seedJesusExamples(parsed) {
+  if (!parsed || parsed.jesusExampleSeed) return false;
+  if (jesusExamplesUntouched(parsed)) parsed.bottles = jesusExampleBottles();
+  parsed.jesusExampleSeed = "v107";
+  return true;
+}
 function jesusDefaultState() {
   return {
     vinotecas: [jesusArmario("j-es", "ES"), jesusArmario("j-fr", "FR")],
-    bottles: [],
+    bottles: jesusExampleBottles(),
+    jesusExampleSeed: "v107",
     favorites: [],
     notify: { on: false, evolve: true, ready: true, temp: true, last: {} },
     tasting: {},
@@ -124,6 +154,10 @@ if (state && state._scoresDirty && !cellarLocked) {
 }
 if (state && state._v86Dirty && !cellarLocked) {
   delete state._v86Dirty;
+  save();
+}
+if (state && state._jesusSeedDirty && !cellarLocked) {
+  delete state._jesusSeedDirty;
   save();
 }
 if (!cellarLocked && typeof repairStoredWineries === "function" && repairStoredWineries(state)) save();
@@ -223,6 +257,9 @@ function load() {
     parsed.vinotecas.forEach(v => { if (!v.houseId) v.houseId = "h1"; });
     if (typeof stripStoredAiScores === "function" && stripStoredAiScores(parsed)) parsed._scoresDirty = true;
     try { if (migrateV86(parsed)) parsed._v86Dirty = true; } catch (e) { console.warn("v86", e); }
+    if (CASA_EDITION === "jesus") {
+      try { if (seedJesusExamples(parsed)) parsed._jesusSeedDirty = true; } catch (e) { console.warn("ejemplos", e); }
+    }
     return parsed;
   } catch (e) {
     return lockCorruptStore(raw);
@@ -609,6 +646,7 @@ function labelThumbHtml(w, cls, bottle) {
   const clsName = (cls || "label-thumb") + (src ? "" : " label-fallback");
   const alt = escHtml(((w && w.producer) || "") + " " + ((w && w.name) || "") + " " + ((w && w.vintage) || "")).trim();
   if (src) return `<img class="${clsName}" alt="${alt}" src="${escHtml(src)}" data-fallback="${tone}" onerror="labelFallback(this)">`;
+  if (CASA_EDITION === "jesus") return "";
   return `<img class="${clsName}" alt="${alt}" data-fallback="${tone}" data-bottle="${tone}">`;
 }
 function mountLabelThumbs(root) {
@@ -619,6 +657,12 @@ function mountLabelThumbs(root) {
 }
 function labelFallback(img) {
   if (!img || img.dataset.fellback === "1") return;
+  if (CASA_EDITION === "jesus") {
+    img.dataset.fellback = "1";
+    img.onerror = null;
+    img.style.display = "none";
+    return;
+  }
   const src = img.getAttribute("src") || "";
   if (isDataImage(src) || isLabelMarker(src)) return;
   img.dataset.fellback = "1";
