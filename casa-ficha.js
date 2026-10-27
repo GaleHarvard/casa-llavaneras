@@ -27,7 +27,7 @@ function pendingForWine(wineId) {
 function pendingPlacementLine(wineId) {
   const rows = pendingForWine(wineId).filter(r => r.bin);
   if (!rows.length) return "";
-  return rows.map(r => `<p class="tiny" style="text-align:center;margin:6px 0 4px">${t("fact.pendingLine", { cave: cellarName(r.cellarId), bin: r.bin })}</p>`).join("");
+  return rows.map(r => `<p class="tiny" style="text-align:center;margin:6px 0 4px">${t("fact.pendingLine", { cave: cellarName(r.cellarId), bin: typeof binPlaceLabel === "function" ? binPlaceLabel(r.cellarId, r.bin) : r.bin })}</p>`).join("");
 }
 function isPlaceholderNote(text) {
   return /ficha a partir de la bodega|alta por etiqueta|completa la ficha|ficha creada/i.test(String(text || ""));
@@ -309,6 +309,7 @@ function openWine(wineId, bottle) {
     <button type="button" class="btn btn-ghost label-change" onclick="changeWineLabel()">${t("label.change")}</button>
     <div class="peak-pill">${pill}</div>
     ${currentBottle ? `<p class="tiny" style="text-align:center;margin:6px 0 4px">${t("wine.inCellar", { n: currentBottle.qty, noun: nounBottles(currentBottle.qty) })}</p>` : ""}
+    ${currentBottle && currentBottle.bin && typeof jesusOn === "function" && jesusOn() ? `<p class="tiny" id="jesus-place" style="text-align:center;margin:0 0 8px">${escHtml(binPlaceLabel(currentBottle.cellarId, currentBottle.bin))}</p>` : ""}
     ${currentBottle ? `<button type="button" class="btn btn-ghost baja-btn" onclick="askServe(1)">${t("wine.retire")}</button>` : ""}
     ${wineNeedsData(w) ? `<div class="card miss-card"><p class="tiny">${t("wine.missing")}</p><p class="muted" style="margin-top:6px">${t("wine.missingLead")}</p><button type="button" class="btn btn-gold" onclick="completeExistingWine('${w.id}')">${t("wine.complete")}</button><button type="button" class="btn btn-ghost" onclick="startScan()">${t("wine.scanFront")}</button></div>` : ""}
     ${currentBottle && currentBottle.cellarId ? `<button class="btn btn-ghost" style="width:100%;margin:8px 0" onclick="showLotInCave()">${t("wine.seeCave")}</button>` : ""}
@@ -861,7 +862,7 @@ function openWineSub(kind) {
   } else if (kind === "origen") {
     const b = currentBottle;
     const pend = pendingForWine(w.id)[0];
-    const pos = b ? (b.bin || t("cellar.noBin")) : (pend && pend.bin ? pend.bin + " · " + t("fact.pending") : "—");
+    const pos = b ? (b.bin ? escHtml(typeof binPlaceLabel === "function" ? binPlaceLabel(b.cellarId, b.bin) : b.bin) : t("cellar.noBin")) : (pend && pend.bin ? escHtml(typeof binPlaceLabel === "function" ? binPlaceLabel(pend.cellarId, pend.bin) : pend.bin) + " · " + t("fact.pending") : "—");
     const caveLabel = b ? cellarName(b.cellarId) : (pend ? cellarName(pend.cellarId) + " · " + t("fact.notYet") : t("fact.notCellar"));
     body = `
       <div class="fact"><span>${t("fact.pos")}</span><b>${pos}</b></div>
@@ -938,7 +939,7 @@ function openWineSub(kind) {
     body = currentBottle ? `
       <p class="tiny">${houseName(cave && cave.houseId)} · ${cellarName(currentBottle.cellarId)}</p>
       ${cave && cave.photo ? `<img class="estate-wide" src="${cave.photo}" alt="Vinoteca">` : `<img class="estate-wide" src="cave-principal.jpg" alt="Cava">`}
-      <div class="fact"><span>${t("fact.bin")}</span><b>${state.prefs.hideBin ? t("fact.hidden") : (currentBottle.bin || t("cellar.noBin"))}</b></div>
+      <div class="fact"><span>${t("fact.bin")}</span><b>${state.prefs.hideBin ? t("fact.hidden") : escHtml(currentBottle.bin ? (typeof binPlaceLabel === "function" ? binPlaceLabel(currentBottle.cellarId, currentBottle.bin) : currentBottle.bin) : t("cellar.noBin"))}</b></div>
       <div class="fact"><span>${t("fact.qty")}</span><b>${currentBottle.qty}</b></div>
       <div class="fact"><span>${t("fact.in")}</span><b>${currentBottle.bought || "—"}</b></div>
       ${!state.prefs.hidePrices && currentBottle.price ? `<div class="fact"><span>${t("fact.price")}</span><b>${formatEuro(currentBottle.price)}</b></div>` : ""}

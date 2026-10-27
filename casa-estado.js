@@ -82,8 +82,8 @@ function jesusArmario(id, country) {
         name: "Armario",
         kind: "grid",
         rows: [
-          { id: "r1", name: "Balda 1", prefix: "A", capacity: 8 },
-          { id: "r2", name: "Balda 2", prefix: "B", capacity: 6 }
+            { id: "r1", name: "Balda 1", baseName: "Balda 1", prefix: "A", capacity: 8 },
+            { id: "r2", name: "Balda 2", baseName: "Balda 2", prefix: "B", capacity: 6 }
         ]
       }]
     }
@@ -1103,7 +1103,7 @@ function exportCsv() {
   const head = ["csv.name","csv.estate","csv.vintage","csv.region","csv.country","csv.type","csv.qty","csv.place","csv.score","csv.state","csv.price"].map(k => t(k));
   const rows = state.bottles.map(b => {
     const w = wineById(b.wineId) || {};
-    const loc = state.prefs.hideBin ? houseName(state.vinotecas.find(v=>v.id===b.cellarId)?.houseId) : (cellarName(b.cellarId) + " " + (b.bin||""));
+    const loc = state.prefs.hideBin ? houseName(state.vinotecas.find(v=>v.id===b.cellarId)?.houseId) : (cellarName(b.cellarId) + " " + (b.bin ? (typeof binPlaceLabel === "function" ? binPlaceLabel(b.cellarId, b.bin) : b.bin) : ""));
     const price = state.prefs.hidePrices ? "" : (b.price || "");
     const manual = typeof userScore === "function" ? userScore(w, "parker") : null;
     return [w.name, w.producer, w.vintage, w.region, w.country, w.type, b.qty, loc, manual ? manual.score : "", phaseOf(w).label, price];

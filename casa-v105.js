@@ -12,7 +12,15 @@
       ["jesus.keySave", "Guardar clave", "Desar la clau", "Save key", "Enregistrer la clé", "Guardar chave"],
       ["jesus.country", "País", "País", "Country", "Pays", "País"],
       ["jesus.spain", "España", "Espanya", "Spain", "Espagne", "Espanha"],
-      ["jesus.france", "Francia", "França", "France", "France", "França"]
+      ["jesus.france", "Francia", "França", "France", "France", "França"],
+      ["jesus.rename", "Renombrar", "Reanomenar", "Rename", "Renommer", "Renomear"],
+      ["jesus.renameLead", "Pon el nombre de cada balda y de cada hueco. Vacío, o «Nombre por defecto», vuelve al de origen.", "Posa el nom de cada lleixa i de cada forat. Buit, o «Nom per defecte», torna al d'origen.", "Name each shelf and slot. Empty, or Default name, restores the original.", "Nommez chaque clayette et chaque emplacement. Vide, ou Nom d'origine, rétablit le nom d'origine.", "Dê o nome de cada prateleira e de cada lugar. Vazio, ou Nome por defeito, volta ao de origem."],
+      ["jesus.shelves", "Baldas", "Lleixes", "Shelves", "Clayettes", "Prateleiras"],
+      ["jesus.shelf", "Balda", "Lleixa", "Shelf", "Clayette", "Prateleira"],
+      ["jesus.renameDefault", "Nombre por defecto", "Nom per defecte", "Default name", "Nom d'origine", "Nome por defeito"],
+      ["jesus.renameSave", "Guardar nombres", "Desar els noms", "Save names", "Enregistrer les noms", "Guardar nomes"],
+      ["jesus.renameSaved", "Nombres guardados", "Noms desats", "Names saved", "Noms enregistrés", "Nomes guardados"],
+      ["jesus.allShelves", "Todas las baldas", "Totes les lleixes", "All shelves", "Toutes les clayettes", "Todas as prateleiras"]
     ]);
   }
   if (!jesus) return;

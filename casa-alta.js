@@ -530,18 +530,23 @@ function renderAltaAnalysis() {
     + "</div>";
 }
 
-function altaBinChoices(cellarId, selected) {
+function altaBinChoices(cellarId, selected, shelfIndex) {
   let codes = [];
   const caves = (typeof state !== "undefined" && state && state.vinotecas) || [];
   const cave = caves.find(item => item && item.id === cellarId);
   if (cave && typeof ensureCaveSlots === "function") ensureCaveSlots(cave);
   if (typeof rackSlots === "function" && cellarId) codes = rackSlots(cellarId) || [];
+  if (shelfIndex != null && shelfIndex !== "" && typeof jesusOn === "function" && jesusOn() && typeof shelfCodesAt === "function") {
+    const allowed = shelfCodesAt(cellarId, shelfIndex);
+    if (allowed.length) codes = codes.filter(code => allowed.indexOf(code) >= 0);
+  }
   if (!codes.length && cellarId && typeof nextBin === "function") codes = [nextBin(cellarId)];
   const used = typeof takenBins === "function" && cellarId ? takenBins(cellarId) : new Set();
   const free = codes.filter(code => !used.has(code));
   const list = free.length ? free : codes;
   const options = ['<option value=""></option>'].concat(list.slice(0, 80).map(code => {
-    return '<option value="' + escHtml(code) + '"' + (code === selected ? " selected" : "") + ">" + escHtml(code) + "</option>";
+    const label = typeof slotDisplay === "function" ? slotDisplay(cellarId, code) : code;
+    return '<option value="' + escHtml(code) + '"' + (code === selected ? " selected" : "") + ">" + escHtml(label) + "</option>";
   }));
   return options.join("");
 }
@@ -562,9 +567,15 @@ function renderAltaPreview() {
   const assets = altaFlow.assets || matchLocalAssets(sheet.region, sheet.winery);
   const place = altaFlow.cellarLocation || { cellarId: "", bin: "" };
   const caves = (typeof state !== "undefined" && state && state.vinotecas) || [];
+  const chosen = caves.find(cave => cave && cave.id === place.cellarId);
+  const jesusShelves = typeof jesusOn === "function" && jesusOn() && chosen && typeof shelfRows === "function" ? shelfRows(chosen) : [];
+  const shelfAt = jesusShelves.length && typeof shelfIndexForCode === "function" ? shelfIndexForCode(place.cellarId, place.bin) : null;
   const caveOptions = ['<option value=""></option>'].concat(caves.map(cave => {
     return '<option value="' + escHtml(cave.id) + '"' + (cave.id === place.cellarId ? " selected" : "") + ">" + escHtml(cave.name) + "</option>";
   })).join("");
+  const shelfField = jesusShelves.length
+    ? '<label class="field"><span>' + escHtml(t("jesus.shelf")) + '</span><select id="alta-shelf" onchange="altaShelfPicked()">' + altaShelfChoices(place.cellarId, shelfAt) + "</select></label>"
+    : "";
   const input = (key, label) => '<label class="field"><span>' + escHtml(label) + '</span><input id="alta-f-' + key + '" value="' + escHtml(sheet[key] || "") + '"></label>';
   const asset = (src, caption, open) => {
     if (!src) return "";
@@ -587,7 +598,8 @@ function renderAltaPreview() {
     + altaShownFact(t("alta.history"), altaFlow.wineryText)
     + ((altaFlow.sources || []).length ? '<p class="tiny">' + escHtml(t("alta.source")) + " · " + escHtml(altaFlow.sources[0]) + "</p>" : "")
     + '<label class="field"><span>' + escHtml(t("alta.cellar")) + '</span><select id="alta-cellar" onchange="altaCellarPicked()">' + caveOptions + "</select></label>"
-    + '<label class="field"><span>' + escHtml(t("alta.slot")) + '</span><select id="alta-bin" onchange="altaLocationChanged()">' + altaBinChoices(place.cellarId, place.bin) + "</select></label>"
+    + shelfField
+    + '<label class="field"><span>' + escHtml(t("alta.slot")) + '</span><select id="alta-bin" onchange="altaLocationChanged()">' + altaBinChoices(place.cellarId, place.bin, shelfAt) + "</select></label>"
     + '<p class="muted" id="alta-need-place">' + escHtml(ready ? "" : t("alta.needPlace")) + "</p>"
     + '<button type="button" class="btn btn-gold" id="alta-confirm" style="width:100%;margin-top:8px" onclick="confirmAlta(false)"' + (ready ? "" : " disabled") + ">" + escHtml(t("alta.confirm")) + "</button>"
     + '<button type="button" class="btn btn-ghost" id="alta-another" style="width:100%;margin-top:8px" onclick="confirmAlta(true)"' + (ready ? "" : " disabled") + ">" + escHtml(t("alta.saveAnother")) + "</button>"
@@ -954,6 +966,16 @@ function captureAltaSheet() {
 function altaCellarPicked() {
   captureAltaSheet();
   if (altaFlow && altaFlow.cellarLocation) altaFlow.cellarLocation.bin = "";
+  renderAltaPreview();
+}
+
+function altaShelfPicked() {
+  captureAltaSheet();
+  const shelf = document.getElementById("alta-shelf");
+  if (altaFlow && altaFlow.cellarLocation && shelf && typeof shelfCodesAt === "function") {
+    const codes = shelfCodesAt(altaFlow.cellarLocation.cellarId, shelf.value);
+    altaFlow.cellarLocation.bin = codes[0] || "";
+  }
   renderAltaPreview();
 }
 
