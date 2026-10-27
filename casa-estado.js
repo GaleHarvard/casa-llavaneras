@@ -56,37 +56,42 @@ const joseDefaultState = () => ({
   counts: [],
   cuvees: {}
 });
+function jesusArmario(id, country) {
+  return {
+    id: id,
+    name: "",
+    namePending: true,
+    country: country,
+    brand: "",
+    house: "",
+    place: "",
+    capacity: 14,
+    used: 0,
+    tHigh: 14,
+    tLow: 12,
+    humidity: 70,
+    role: "keeping",
+    zones: ["Armario"],
+    photo: "",
+    layout: {
+      type: "armario",
+      depth: 1,
+      legacy: false,
+      zones: [{
+        id: "z1",
+        name: "Armario",
+        kind: "grid",
+        rows: [
+          { id: "r1", name: "Balda 1", prefix: "A", capacity: 8 },
+          { id: "r2", name: "Balda 2", prefix: "B", capacity: 6 }
+        ]
+      }]
+    }
+  };
+}
 function jesusDefaultState() {
   return {
-    vinotecas: [{
-      id: "j1",
-      name: "",
-      namePending: true,
-      brand: "",
-      house: "",
-      capacity: 14,
-      used: 0,
-      tHigh: 14,
-      tLow: 12,
-      humidity: 70,
-      role: "keeping",
-      zones: ["Armario"],
-      photo: "",
-      layout: {
-        type: "armario",
-        depth: 1,
-        legacy: false,
-        zones: [{
-          id: "z1",
-          name: "Armario",
-          kind: "grid",
-          rows: [
-            { id: "r1", name: "Balda 1", prefix: "A", capacity: 8 },
-            { id: "r2", name: "Balda 2", prefix: "B", capacity: 6 }
-          ]
-        }]
-      }
-    }],
+    vinotecas: [jesusArmario("j-es", "ES"), jesusArmario("j-fr", "FR")],
     bottles: [],
     favorites: [],
     notify: { on: false, evolve: true, ready: true, temp: true, last: {} },

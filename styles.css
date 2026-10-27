@@ -1532,6 +1532,12 @@ a.btn{text-decoration:none}
 .cave-lux img{width:42%;min-width:124px;max-width:168px;height:148px;object-fit:cover;object-position:left center;border-radius:10px;background:#000}
 .cave-lux-copy{flex:1;min-width:0;padding:4px 4px 2px 2px}
 .cave-lux-copy h3{color:#c9a227;font-size:20px;line-height:1.15;margin:0}
+.cave-title-row{display:flex;align-items:flex-start;gap:8px}
+.cave-title-row h3{flex:1;min-width:0}
+.cave-flag{width:28px;height:18px;margin-top:3px;flex:0 0 auto;display:block;border-radius:2px;box-shadow:0 0 0 1px rgba(232,223,208,.45)}
+#cave-title.cave-title-flag{display:flex;align-items:flex-start;gap:10px}
+#cave-title.cave-title-flag .cave-flag{width:32px;height:21px;margin-top:6px}
+#cave-title.cave-title-flag span{flex:1;min-width:0}
 .cave-lux-brand{color:#d7cfc2;margin:4px 0 0;font-size:14px}
 .cave-lux-role{margin:8px 0 0;color:#c9a227;letter-spacing:.14em;text-transform:uppercase;font-size:10px}
 .cave-lux-rule{display:block;height:1px;margin:10px 0 8px;background:linear-gradient(90deg,#c9a227,transparent);position:relative}

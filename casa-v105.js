@@ -9,7 +9,10 @@
       ["jesus.keyTitle", "Clave Gemini", "Clau Gemini", "Gemini key", "Clé Gemini", "Chave Gemini"],
       ["jesus.keyLead", "Pega tu clave de AI Studio. No hay ninguna precargada.", "Enganxa la teva clau d'AI Studio. No n'hi ha cap de precarregada.", "Paste your AI Studio key. None is preloaded.", "Collez votre clé AI Studio. Aucune n'est préchargée.", "Cole a sua chave do AI Studio. Nenhuma vem pré-carregada."],
       ["jesus.keyPh", "Pega tu clave", "Enganxa la teva clau", "Paste your key", "Collez votre clé", "Cole a sua chave"],
-      ["jesus.keySave", "Guardar clave", "Desar la clau", "Save key", "Enregistrer la clé", "Guardar chave"]
+      ["jesus.keySave", "Guardar clave", "Desar la clau", "Save key", "Enregistrer la clé", "Guardar chave"],
+      ["jesus.country", "País", "País", "Country", "Pays", "País"],
+      ["jesus.spain", "España", "Espanya", "Spain", "Espagne", "Espanha"],
+      ["jesus.france", "Francia", "França", "France", "France", "França"]
     ]);
   }
   if (!jesus) return;

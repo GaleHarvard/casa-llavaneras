@@ -88,6 +88,7 @@ async function boot(page, url) {
     provider: PRICE_CFG_KEY,
     bottles: state.bottles.map(b => b.wineId),
     names: state.vinotecas.map(v => v.name),
+    countries: state.vinotecas.map(v => v.country),
     slots: codesFromLayout(state.vinotecas[0].layout).length
   }));
   assert.strictEqual(jesusMark.edition, "jesus");
@@ -98,7 +99,8 @@ async function boot(page, url) {
   assert.strictEqual(jesusMark.labels, "casa-llavaneras-labels-jesus");
   assert.strictEqual(jesusMark.provider, "vinoteca-jgc-provider-jesus");
   assert.deepStrictEqual(jesusMark.bottles, []);
-  assert.ok(jesusMark.names.every(name => !String(name).trim()));
+  assert.deepStrictEqual(jesusMark.names, ["", ""]);
+  assert.deepStrictEqual(jesusMark.countries, ["ES", "FR"]);
   assert.ok(jesusMark.slots >= 8);
 
   await shot(jesus, "v105-jesus-inicio.png");
@@ -106,8 +108,62 @@ async function boot(page, url) {
   await jesus.waitForFunction(() => document.querySelector("#caves.screen.active"));
   const caves = await jesus.locator("#caves").innerText();
   assert.ok(caves.includes("Añade el nombre de tu vinoteca"), caves.slice(0, 400));
+  assert.ok(caves.includes("España") && caves.includes("Francia"), caves.slice(0, 500));
   assert.ok(!caves.includes("Vinoteca principal"));
+  assert.strictEqual(await jesus.locator("#caves .cave-flag").count(), 2);
   await shot(jesus, "v105-jesus-vinotecas.png");
+  await jesus.evaluate(() => openCave("j-es"));
+  await jesus.waitForFunction(() => document.querySelector("#cave-detail-screen.screen.active #cave-title .cave-flag"));
+  const abierta = await jesus.evaluate(() => ({
+    house: document.getElementById("cave-house").textContent,
+    title: document.getElementById("cave-title").textContent,
+    detail: document.getElementById("cave-detail").innerText
+  }));
+  assert.strictEqual(abierta.house, "España");
+  assert.ok(abierta.title.includes("Añade el nombre de tu vinoteca"), abierta.title);
+  assert.ok(abierta.detail.includes("A-01") || abierta.detail.includes("Balda 1"), abierta.detail.slice(0, 400));
+  await shot(jesus, "v105-jesus-vinoteca-abierta.png");
+  const composer = await jesus.evaluate(() => {
+    openCaveComposer("j-fr");
+    const sel = document.getElementById("new-cave-country");
+    const before = sel ? sel.value : "";
+    const cap = document.getElementById("rcap-0-0");
+    if (cap) cap.value = "9";
+    if (sel) sel.value = "ES";
+    commitCaveForm();
+    const v = state.vinotecas.find(x => x.id === "j-fr");
+    const saved = {
+      name: v.name,
+      pending: v.namePending === true,
+      country: v.country,
+      cap: v.layout.zones[0].rows[0].capacity
+    };
+    v.country = "FR";
+    v.layout.zones[0].rows[0].capacity = 8;
+    v.layout.zones[0].rows[0].slots = null;
+    v.capacity = 14;
+    save();
+    return { before: before, field: !!sel, saved: saved };
+  });
+  assert.strictEqual(composer.field, true);
+  assert.strictEqual(composer.before, "FR");
+  assert.strictEqual(composer.saved.name, "");
+  assert.strictEqual(composer.saved.pending, true);
+  assert.strictEqual(composer.saved.country, "ES");
+  assert.strictEqual(composer.saved.cap, 9);
+  const joseCaves = await jose.evaluate(() => {
+    show("caves");
+    renderCaves();
+    openCaveComposer();
+    return {
+      flags: document.querySelectorAll("#caves .cave-flag").length,
+      country: !!document.getElementById("new-cave-country"),
+      names: state.vinotecas.map(v => v.name)
+    };
+  });
+  assert.strictEqual(joseCaves.flags, 0);
+  assert.strictEqual(joseCaves.country, false);
+  assert.deepStrictEqual(joseCaves.names, ["Vinoteca principal", "Cava de guarda"]);
 
   await realClick(jesus, ".tab[data-go='home']");
   await jesus.waitForFunction(() => document.querySelector("#home.screen.active"));
@@ -141,7 +197,7 @@ async function boot(page, url) {
       grapes: ["Tempranillo"],
       ratings: emptyRatings()
     });
-    state.bottles.push({ uid: "bj-prueba", wineId: "prueba-jesus-2024", qty: 1, cellarId: "j1", bin: "A-01", bought: "2026-10-27", price: 12, note: "" });
+    state.bottles.push({ uid: "bj-prueba", wineId: "prueba-jesus-2024", qty: 1, cellarId: "j-es", bin: "A-01", bought: "2026-10-27", price: 12, note: "" });
     const keyEl = document.getElementById("jesus-gemini-key") || document.getElementById("p-gemini-key");
     if (document.getElementById("p-gemini-key")) document.getElementById("p-gemini-key").value = "clave-jesus-v105";
     if (document.getElementById("p-gemini")) document.getElementById("p-gemini").checked = true;
@@ -215,6 +271,17 @@ async function boot(page, url) {
   assert.ok(after.jesusKey.includes("clave-jesus-v105"));
   assert.ok(!after.jesusKey.includes("clave-jose-v105"));
   await shot(jose, "v105-jose-inicio.png");
+
+  const kept = await context.newPage();
+  await kept.addInitScript(() => {
+    localStorage.setItem("jesus.vinoteca.pro.max.v3", JSON.stringify({
+      vinotecas: [{ id: "keep", name: "La de siempre", country: "ES" }],
+      bottles: []
+    }));
+  });
+  await boot(kept, "http://127.0.0.1:8807/jesus/");
+  const keptCaves = await kept.evaluate(() => state.vinotecas.map(v => v.id + ":" + v.name));
+  assert.deepStrictEqual(keptCaves, ["keep:La de siempre"]);
 
   assert.deepStrictEqual(joseErrors, []);
   assert.deepStrictEqual(jesusErrors, []);
