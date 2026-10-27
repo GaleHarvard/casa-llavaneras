@@ -107,7 +107,14 @@ const api = new Function("ZONES", "WINERY_CARDS", "foldWinery", [
   extractFunction(alta, "wineReadingSchema"),
   extractFunction(alta, "sheetFromParsed"),
   extractFunction(alta, "missingIdentity"),
+  extractFunction(alta, "tastingConflicts"),
+  extractFunction(alta, "sheetWordType"),
+  extractFunction(alta, "polishSheetIdentity"),
   extractFunction(alta, "citedUri"),
+  extractFunction(alta, "blurbConflicts"),
+  extractFunction(alta, "groundedClaim"),
+  extractFunction(alta, "peraMancaFiction"),
+  extractFunction(alta, "rescuePeraMancaSheet"),
   extractFunction(alta, "fillEmptySheet"),
   extractFunction(alta, "readingFailureKind"),
   extractFunction(alta, "postWineReading"),
@@ -216,12 +223,17 @@ global.geminiGrounded = async () => {
   const enriched = await mod.analyzeAndEnrichWine(jpeg, "");
   assert.strictEqual(enriched.ok, true);
   assert.strictEqual(enriched.sheet.name, "");
-  assert.strictEqual(enriched.sheet.grapes, "Listán");
-  assert.strictEqual(enriched.zoneText, "Atlántico Volcánico");
-  assert.ok(enriched.wineryText.includes("1901"));
-  assert.ok(enriched.sources.includes("https://example.com/vino"));
+  assert.strictEqual(enriched.sheet.grapes, "");
+  assert.strictEqual(enriched.sheet.winery, "");
+  assert.strictEqual(enriched.sheet.region, "");
+  assert.strictEqual(enriched.sheet.vintage, "");
+  assert.strictEqual(enriched.zoneText, "");
+  assert.strictEqual(enriched.wineryText, "");
+  assert.ok(!enriched.sources.includes("https://example.com/vino"));
   assert.ok(groundedCalls.every(call => call.model === "gemini-2.5-flash" || call.model === "gemini-2.5-flash-lite"));
-  assert.ok(groundedCalls.length >= 2);
+  assert.strictEqual(groundedCalls.length, 1);
+  assert.ok(groundedCalls[0].prompt.includes("Contrasta el productor"));
+  assert.ok(!groundedCalls[0].prompt.includes("Describe la bodega"));
 
   global.geminiGrounded = async () => ({ parsed: { climate: "Inventado", soil: "Sin dato", source: "nota interna" } });
   global.geminiGenerate = async () => ({ parsed: { name: "Nube", vintage: "2015", region: "Atlantis", winery: "Bodega Inventada Larga" } });

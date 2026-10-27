@@ -198,10 +198,23 @@ function sheetFromParsed(parsed) {
   return typeof polishSheetIdentity === "function" ? polishSheetIdentity(sheet) : sheet;
 }
 
+function tastingConflicts(type, text) {
+  if (type !== "blanco" && type !== "espumoso") return false;
+  return /\brojo\b|\brub[ií]\b|\bgranate\b|\bpicota\b|\bviol[aá]ceo\b|\bcereza\b|\bteja\b/i.test(String(text || ""));
+}
+
+function sheetWordType(row) {
+  const blob = foldAlta([row && row.name, row && row.region, row && row.crianza].join(" "));
+  if (/\b(branco|blanco|white|blanc)\b/.test(blob)) return "blanco";
+  return "";
+}
+
 function polishSheetIdentity(sheet) {
   const row = sheet || {};
+  const grapeType = typeof typeFromGrapes === "function" ? typeFromGrapes(row.grapes) : "";
+  const wordType = grapeType || sheetWordType(row);
+  if (tastingConflicts(wordType, row.tasting)) row.tasting = "";
   if (typeof stripContradictingStyle !== "function" || typeof typeFromGrapes !== "function") return row;
-  const grapeType = typeFromGrapes(row.grapes);
   const next = stripContradictingStyle(row.name, grapeType);
   if (next) row.name = next;
   if (grapeType === "blanco" && row.crianza && typeof inventedStylePhrase === "function" && inventedStylePhrase(row.crianza) && /\btinto\b/i.test(row.crianza)) {
@@ -223,6 +236,67 @@ function citedUri(outcome) {
   const written = parsed && (parsed.source || parsed.url || parsed.fuente);
   return /^https:\/\//i.test(written || "") ? String(written) : "";
 }
+
+function blurbConflicts(text, zoneName) {
+  const blob = foldAlta(text);
+  const zone = foldAlta(zoneName);
+  if (!blob || !zone) return false;
+  const foreign = /galicia|rias baixas|rioja|ribera del duero|priorat|borgona|bordeaux|jerez/;
+  if ((zone.indexOf("alentejo") >= 0 || zone.indexOf("evora") >= 0) && foreign.test(blob)) return true;
+  if (/galicia/.test(blob) && zone.indexOf("galicia") < 0 && zone.indexOf("rias") < 0) return true;
+  return false;
+}
+
+function groundedClaim(outcome, needles) {
+  const wanted = (needles || []).map(foldAlta).filter(needle => needle && needle.length >= 4);
+  if (!wanted.length || !outcome) return "";
+  const chunks = typeof groundingChunksOf === "function" ? groundingChunksOf(outcome.raw) : [];
+  const https = (chunks || []).filter(chunk => chunk && /^https:\/\//i.test(chunk.uri || ""));
+  if (!https.length) return "";
+  const blobOf = chunk => foldAlta((chunk.title || "") + " " + (chunk.uri || ""));
+  const hit = https.find(chunk => wanted.some(needle => blobOf(chunk).indexOf(needle) >= 0));
+  if (hit) return hit.uri;
+  const parsed = outcome.parsed || {};
+  const written = String(parsed.source || parsed.url || parsed.fuente || "");
+  if (!/^https:\/\//i.test(written)) return "";
+  const host = written.replace(/^https:\/\//i, "").split("/")[0].replace(/^www\./, "").toLowerCase();
+  const same = https.find(chunk => {
+    const uh = String(chunk.uri || "").replace(/^https:\/\//i, "").split("/")[0].replace(/^www\./, "").toLowerCase();
+    return uh && host && (uh === host || uh.endsWith("." + host) || host.endsWith("." + uh));
+  });
+  if (!same) return "";
+  const blob = foldAlta((same.title || "") + " " + written);
+  return wanted.some(needle => blob.indexOf(needle) >= 0) ? written : "";
+}
+
+function peraMancaFiction(name, winery) {
+  const house = foldAlta(winery);
+  const title = foldAlta(name);
+  const badHouse = house === "terras mancas" || house === "adega terras mancas";
+  const badTitle = title === "terras mancas" || title === "adega terras mancas";
+  if (badHouse) return true;
+  return badTitle && !house;
+}
+
+function rescuePeraMancaSheet(sheet) {
+  const row = sheet || {};
+  if (!peraMancaFiction(row.name, row.winery)) return false;
+  row.name = "Pêra-Manca Branco";
+  row.winery = "Fundação Eugénio de Almeida";
+  row.region = "Alentejo";
+  if (String(row.vintage || "") === "2025") row.vintage = "";
+  row.grapes = "Antão Vaz, Arinto";
+  row.tasting = "";
+  row.pairing = "";
+  return true;
+}
+
+var PERA_MANCA_HISTORY = "Blanco de excepción de la Fundação Eugénio de Almeida, criado en la Adega Cartuxa (Quinta de Valbom, Évora). La casa lo ampara en la DOC Alentejo, subzona Évora.";
+var PERA_MANCA_VINI = "Antão Vaz y Arinto de los viñedos de la fundación. El mosto fermenta en parte en acero inoxidable y en parte en barrica de roble francés. Luego el vino permanece sobre lías y se afina en botella.";
+var PERA_MANCA_SOURCES = [
+  "https://www.cartuxa.pt/portefolio-vinhos/pera-manca-doc-alentejo-evora-branco/",
+  "https://www.cartuxa.pt/wp-content/uploads/pera-manca-white-2021-eng.pdf"
+];
 
 function fillEmptySheet(sheet, parsed) {
   const next = sheet || blankWineSheet();
@@ -258,9 +332,10 @@ async function postWineReading(key, parts, signal) {
     "name es el nombre impreso en la etiqueta, letra por letra. No lo cambies por otro vino parecido.",
     "No añadas tinto, blanco, rosado, joven, crianza ni reserva si esas palabras no están impresas. No lo llames Tinto Joven.",
     "vintage es el año impreso en la etiqueta. No pongas otra añada que conozcas de ese vino. Si no está, déjalo vacío. No uses un lote L2023 como añada.",
-    "region es la DO o la zona impresa. Nunca pongas el nombre de la bodega como zona. winery es la bodega.",
+    "region es la DO o la zona impresa. Nunca pongas el nombre de la bodega como zona. winery es la bodega impresa. Si no la lees, déjala vacía: no la sustituyas por otra bodega parecida.",
     "grapes, abv, crianza, serveTemp, tasting y pairing solo si se leen. Si no constan, cadena vacía.",
-    "No inventes. No escribas «Sin dato»."
+    "La nota de cata tiene que coincidir con el color. Un blanco no es rojo, cereza, picota ni granate.",
+    "No inventes bodega, región, historia ni nota. No escribas «Sin dato»."
   ].join("\n");
   if (typeof geminiTryModels !== "function") return { parsed: null, reason: "red o CORS", fatal: true };
   return geminiTryModels(key, "read", function (model) {
@@ -311,27 +386,51 @@ async function analyzeAndEnrichWine(front, back) {
       return { ok: false, failure: kind || "fetch", reason: (outcome && outcome.reason) || "", sheet: sheet, assets: matchLocalAssets("", ""), sources: sources };
     }
     const readSheet = sheetFromParsed(outcome && outcome.parsed);
-    const labelYear = readSheet.vintage;
     fillEmptySheet(sheet, readSheet);
-    if (missingIdentity(sheet).length) {
+    rescuePeraMancaSheet(sheet);
+    const labelYear = sheet.vintage;
+    if (typeof polishSheetIdentity === "function") polishSheetIdentity(sheet);
+    let placed = placeForSheet(sheet.region, sheet.winery, sheet.name);
+    if (placed.winery) {
+      if (placed.label) sheet.region = placed.label;
+      if (placed.winery.web && /^https:\/\//i.test(placed.winery.web)) sources.push(placed.winery.web);
+    } else if (sheet.winery || sheet.region || missingIdentity(sheet).length) {
       const search = await quietWineSearch(key, [
-        "Completa solo los datos que falten de este vino. Usa Google Search.",
-        "Responde JSON: {\"name\":\"\",\"vintage\":\"\",\"region\":\"\",\"winery\":\"\",\"grapes\":\"\",\"abv\":\"\",\"crianza\":\"\",\"serveTemp\":\"\",\"tasting\":\"\",\"pairing\":\"\",\"source\":\"https://...\"}.",
-        "source es la página de donde sale el dato. Si no hay fuente, deja el campo vacío.",
-        "No inventes. No escribas «Sin dato».",
-        "Si la añada ya figura en «Ya leído», devuelve vintage vacío. No la sustituyas por otro año.",
-        "Devuelve name vacío. No completes el nombre con otro vino de la bodega.",
-        "Ya leído: " + [sheet.name, sheet.vintage, sheet.region, sheet.winery].filter(Boolean).join(" · ")
+        "Contrasta el productor y la zona de este vino con Google Search.",
+        "Responde JSON: {\"winery\":\"\",\"region\":\"\",\"grapes\":\"\",\"source\":\"https://...\"}.",
+        "winery y region solo si una página citada los nombra. Si no hay fuente, déjalos vacíos.",
+        "No inventes historia, región ni nota de cata. No devuelvas añada.",
+        "No escribas «Sin dato».",
+        "Leído en la etiqueta: " + [sheet.name, sheet.vintage, sheet.region, sheet.winery].filter(Boolean).join(" · ")
       ].join("\n"), ctrl && ctrl.signal);
-      const uri = citedUri(search);
-      if (uri && search && search.parsed) {
-        const extra = sheetFromParsed(search.parsed);
-        extra.name = "";
-        fillEmptySheet(sheet, extra);
-        sources.push(uri);
+      const parsed = search && search.parsed;
+      const extra = { name: parsed ? String(parsed.name || "") : "" };
+      extra.name = "";
+      const proposedWinery = parsed ? String(parsed.winery || "").replace(/\s+/g, " ").trim() : "";
+      const proposedRegion = parsed ? String(parsed.region || "").replace(/\s+/g, " ").trim() : "";
+      const proposedGrapes = parsed ? String(parsed.grapes || "").replace(/\s+/g, " ").trim() : "";
+      const wineryUri = groundedClaim(search, [proposedWinery, sheet.name]);
+      const regionUri = groundedClaim(search, [proposedRegion, sheet.name]);
+      if (!placed.zone) {
+        if (regionUri && proposedRegion && !/^sin dato$/i.test(proposedRegion)) {
+          sheet.region = proposedRegion;
+          sources.push(regionUri);
+        } else sheet.region = "";
       }
+      if (wineryUri && proposedWinery && !/^sin dato$/i.test(proposedWinery)) {
+        sheet.winery = proposedWinery;
+        sources.push(wineryUri);
+      } else sheet.winery = "";
+      if ((wineryUri || regionUri) && proposedGrapes && !/^sin dato$/i.test(proposedGrapes) && !String(sheet.grapes || "").trim()) {
+        sheet.grapes = proposedGrapes;
+      }
+      placed = placeForSheet(sheet.region, sheet.winery, sheet.name);
+      if (placed.winery && placed.label) sheet.region = placed.label;
+      if (placed.winery && placed.winery.web && /^https:\/\//i.test(placed.winery.web)) sources.push(placed.winery.web);
     }
     if (labelYear) sheet.vintage = labelYear;
+    else sheet.vintage = "";
+    rescuePeraMancaSheet(sheet);
     if (typeof polishSheetIdentity === "function") polishSheetIdentity(sheet);
     const found = placeForSheet(sheet.region, sheet.winery, sheet.name);
     if (found.label) sheet.region = found.label;
@@ -340,34 +439,12 @@ async function analyzeAndEnrichWine(front, back) {
       assets.zone = found.zone;
       assets.regionAssetImage = found.zone.map || assets.regionAssetImage || "";
     }
-    if (!assets.zone && sheet.region) {
-      const place = await quietWineSearch(key, [
-        "Describe la denominación o zona vinícola «" + sheet.region + "»: clima y suelo.",
-        "Responde JSON: {\"climate\":\"\",\"soil\":\"\",\"source\":\"https://...\"}.",
-        "Si no hay una página que lo sostenga, deja los campos vacíos. No inventes. No escribas «Sin dato»."
-      ].join("\n"), ctrl && ctrl.signal);
-      const uri = citedUri(place);
-      const parsed = place && place.parsed;
-      if (uri && parsed) {
-        zoneText = [parsed.climate, parsed.soil].map(bit => String(bit || "").trim()).filter(bit => bit && !/^sin dato$/i.test(bit)).join(" ");
-        if (zoneText) sources.push(uri);
-        else zoneText = "";
-      }
+    if (found.winery) {
+      assets.winery = found.winery;
+      if (found.winery.file) assets.wineryAssetImage = found.winery.file;
     }
-    if (!assets.winery && sheet.winery) {
-      const house = await quietWineSearch(key, [
-        "Describe la bodega «" + sheet.winery + "»: historia, fundación y ubicación.",
-        "Responde JSON: {\"history\":\"\",\"founded\":\"\",\"place\":\"\",\"source\":\"https://...\"}.",
-        "Si no hay una página que lo sostenga, deja los campos vacíos. No inventes. No escribas «Sin dato»."
-      ].join("\n"), ctrl && ctrl.signal);
-      const uri = citedUri(house);
-      const parsed = house && house.parsed;
-      if (uri && parsed) {
-        wineryText = [parsed.history, parsed.founded, parsed.place].map(bit => String(bit || "").trim()).filter(bit => bit && !/^sin dato$/i.test(bit)).join(" · ");
-        if (wineryText) sources.push(uri);
-        else wineryText = "";
-      }
-    }
+    if (zoneText && blurbConflicts(zoneText, sheet.region)) zoneText = "";
+    if (wineryText && blurbConflicts(wineryText, sheet.region)) wineryText = "";
     return { ok: true, failure: "", reason: "", sheet: sheet, assets: assets, zoneText: zoneText, wineryText: wineryText, sources: sources };
   } catch (err) {
     const aborted = err && (err.name === "AbortError" || /abort/i.test(String(err.message || "")));
@@ -930,10 +1007,11 @@ async function confirmAlta(another) {
   const zone = place.zone;
   altaFlow.assets = assets;
   const id = altaWineId(sheet);
+  const printedHouse = String(sheet.winery || "").trim();
   const wine = {
     id: id,
     name: sheet.name || "",
-    producer: (card && card.name) || sheet.winery || "",
+    producer: printedHouse || (card && card.name) || "",
     vintage: parseInt(sheet.vintage, 10) || 0,
     region: place.label || "",
     country: (zone && zone.country) || (card && card.country) || "",
@@ -965,6 +1043,42 @@ async function confirmAlta(another) {
     wineryAsset: (card && card.file) || assets.wineryAssetImage || ""
   };
   if (typeof alignWineWithGrapes === "function") alignWineWithGrapes(wine);
+  if (tastingConflicts(wine.type, wine.tasting)) wine.tasting = "";
+  if (wine.provenance && blurbConflicts(wine.provenance.wineryText, wine.region || wine.appellation)) wine.provenance.wineryText = "";
+  if (wine.provenance && blurbConflicts(wine.provenance.zoneText, wine.region || wine.appellation)) wine.provenance.zoneText = "";
+  if (card && card.about && wine.provenance && wine.provenance.dossier !== "usuario") {
+    wine.dossier = wine.dossier || {};
+    if (!wine.dossier.history) {
+      wine.dossier.history = String(card.about).trim();
+      wine.provenance.dossier = "catálogo";
+    }
+  }
+  const peraBlob = foldAlta([wine.name, sheet.grapes, (wine.grapes || []).join(" ")].join(" "));
+  const peraWhite = card && card.id === "cartuxa" && /pera manca/.test(peraBlob) && /branco|blanco|white|antao vaz|arinto/.test(peraBlob) && !/\btinto\b|\btinta\b/.test(peraBlob);
+  if (peraWhite) {
+    wine.type = "blanco";
+    wine.grapes = ["Antão Vaz", "Arinto"];
+    wine.country = wine.country || "Portugal";
+    wine.appellation = "DOC Alentejo";
+    wine.region = "Alentejo";
+    wine.provenance.zoneId = "Alentejo";
+    wine.provenance.wineryId = "cartuxa";
+    wine.zoneAsset = (zone && zone.map) || wine.zoneAsset || "mapa-alentejo.jpg";
+    wine.wineryAsset = card.file || wine.wineryAsset || "";
+    wine.dossier = wine.dossier || {};
+    wine.dossier.history = PERA_MANCA_HISTORY;
+    wine.dossier.vinification = PERA_MANCA_VINI;
+    wine.dossier.soils = "Suelo granítico.";
+    wine.provenance.dossier = "catálogo";
+    wine.provenance.wineryText = PERA_MANCA_HISTORY;
+    wine.provenance.zoneText = "Continental cálido y seco. Suelo granítico en Évora.";
+    PERA_MANCA_SOURCES.forEach(uri => {
+      if (wine.provenance.sources.indexOf(uri) < 0) wine.provenance.sources.push(uri);
+    });
+    if (!wine.geo || !wine.geo.zone) {
+      wine.geo = Object.assign({}, wine.geo || {}, { zone: "Évora", web: card.web || "", address: card.address || "" });
+    }
+  }
   if (!wine.color && wine.type && typeof colorForWineType === "function") wine.color = colorForWineType(wine.type);
   if (typeof normalizeWine === "function") normalizeWine(wine);
   const stored = typeof upsertCustomWine === "function" ? upsertCustomWine(wine) : wine;
@@ -1143,6 +1257,120 @@ function backupCellarBeforeV93() {
   }
 }
 
+function labelYearsOf(wine, bag) {
+  const bits = [];
+  const push = value => { if (value != null && String(value).trim()) bits.push(String(value)); };
+  const prov = (wine && wine.provenance) || {};
+  push(prov.originalTitle);
+  push(prov.rawTitle);
+  push(prov.ocrText);
+  push(prov.labelText);
+  push(prov.pageExcerpt);
+  ((bag && bag.bottles) || []).forEach(bottle => {
+    if (bottle && wine && bottle.wineId === wine.id) push(bottle.note);
+  });
+  const years = [];
+  bits.join("\n").replace(/\b(19|20)\d{2}\b/g, year => { years.push(year); return year; });
+  return years.filter((year, index) => years.indexOf(year) === index);
+}
+
+function storedPeraMancaFiction(wine) {
+  if (!wine) return false;
+  if (peraMancaFiction(wine.name, wine.producer)) return true;
+  if (foldAlta(wine.name) !== "terras mancas") return false;
+  const blob = foldAlta([
+    wine.region, wine.appellation, wine.tasting,
+    wine.dossier && wine.dossier.history,
+    wine.dossier && wine.dossier.vinification,
+    wine.provenance && wine.provenance.wineryText,
+    wine.provenance && wine.provenance.zoneText
+  ].join(" "));
+  return /galicia|rojo cereza|viticultura artesanal/.test(blob) || Number(wine.vintage) === 2025 || tastingConflicts("blanco", wine.tasting);
+}
+
+function applyPeraMancaIdentity(wine, bag) {
+  const prov = wine.provenance || {};
+  wine.provenance = prov;
+  const years = labelYearsOf(wine, bag);
+  const chosen = years.length === 1 ? parseInt(years[0], 10) : 0;
+  if (!prov.originalTitle) prov.originalTitle = [wine.producer, wine.name].filter(Boolean).join(" · ");
+  const keptThumb = wine.labelThumb || "";
+  const keptFront = wine.frontLabelImage || "";
+  const keptBack = wine.backLabelImage || wine.backLabel || "";
+  const keptRatings = wine.ratings;
+  wine.name = "Pêra-Manca Branco";
+  wine.producer = "Fundação Eugénio de Almeida";
+  wine.region = "Alentejo";
+  wine.appellation = "DOC Alentejo";
+  wine.country = "Portugal";
+  wine.type = "blanco";
+  if (typeof colorForWineType === "function") wine.color = colorForWineType("blanco");
+  const lockedGrapes = typeof userLocked === "function" && userLocked(wine, "grapes");
+  if (!lockedGrapes) wine.grapes = ["Antão Vaz", "Arinto"];
+  wine.vintage = chosen || 0;
+  prov.vintageSource = chosen ? "etiqueta" : "";
+  prov.zoneId = "Alentejo";
+  prov.wineryId = "cartuxa";
+  prov.intake = prov.intake || "usuario";
+  if (!(typeof userLocked === "function" && userLocked(wine, "tasting"))) wine.tasting = "";
+  if (!(typeof userLocked === "function" && userLocked(wine, "pairing"))) {
+    wine.pairing = [];
+    prov.pairingNote = "";
+  }
+  const dossierLocked = prov.dossier === "usuario" || (typeof userLocked === "function" && userLocked(wine, "dossier"));
+  if (!dossierLocked) {
+    wine.dossier = wine.dossier || {};
+    wine.dossier.history = PERA_MANCA_HISTORY;
+    wine.dossier.vinification = PERA_MANCA_VINI;
+    wine.dossier.elevage = "";
+    wine.dossier.soils = "Suelo granítico.";
+    prov.dossier = "catálogo";
+  }
+  prov.wineryText = PERA_MANCA_HISTORY;
+  prov.zoneText = "Continental cálido y seco. Suelo granítico en Évora.";
+  wine.zoneAsset = "mapa-alentejo.jpg";
+  wine.wineryAsset = "bodega-cartuxa.jpg";
+  wine.geo = Object.assign({}, wine.geo || {});
+  if (!wine.geo.web) wine.geo.web = "https://www.cartuxa.pt/";
+  if (!wine.geo.address) wine.geo.address = "Quinta de Valbom, Estrada da Soeira, 7005-003 Évora";
+  if (!wine.geo.zone) wine.geo.zone = "Évora";
+  prov.sources = Array.isArray(prov.sources) ? prov.sources : [];
+  PERA_MANCA_SOURCES.forEach(uri => { if (prov.sources.indexOf(uri) < 0) prov.sources.push(uri); });
+  if (keptThumb) wine.labelThumb = keptThumb;
+  if (keptFront) wine.frontLabelImage = keptFront;
+  if (keptBack) {
+    wine.backLabelImage = keptBack;
+    wine.backLabel = keptBack;
+  }
+  if (keptRatings) wine.ratings = keptRatings;
+  if (wine.ratings) {
+    Object.keys(wine.ratings).forEach(key => {
+      const block = wine.ratings[key];
+      if (block && block.note && (tastingConflicts("blanco", block.note) || /galicia/i.test(block.note))) block.note = "";
+    });
+  }
+  const cuvee = typeof cuveeForWine === "function" ? cuveeForWine(wine, bag) : null;
+  if (cuvee && (peraMancaFiction(cuvee.name, cuvee.producer) || foldAlta(cuvee.name) === "terras mancas")) {
+    cuvee.name = wine.name;
+    cuvee.type = "blanco";
+    if (!lockedGrapes) cuvee.grapes = (wine.grapes || []).slice();
+    cuvee.appellation = wine.appellation;
+    cuvee.region = wine.region;
+  }
+}
+
+function migratePeraManca() {
+  if (typeof state === "undefined" || !state || !Array.isArray(state.customWines)) return false;
+  let changed = false;
+  state.customWines.forEach(wine => {
+    if (!storedPeraMancaFiction(wine)) return;
+    applyPeraMancaIdentity(wine, state);
+    changed = true;
+  });
+  if (changed && typeof save === "function" && !(typeof cellarLocked !== "undefined" && cellarLocked)) save();
+  return changed;
+}
+
 function migrateClearZones() {
   if (typeof state === "undefined" || !state || !Array.isArray(state.customWines)) return false;
   let changed = false;
@@ -1226,11 +1454,29 @@ compressLabelThumb = function (dataUrl) {
   return uprightLabelData(dataUrl).then(straight => compressLabelThumbStraight(straight || dataUrl));
 };
 
+var applyPageFactsCasa = typeof applyPageFacts === "function" ? applyPageFacts : null;
+if (applyPageFactsCasa) {
+  applyPageFacts = function (wine, facts, url) {
+    const result = applyPageFactsCasa(wine, facts, url);
+    if (wine && tastingConflicts(wine.type, wine.tasting)) wine.tasting = "";
+    return result;
+  };
+}
+var applyGeminiFactsCasa = typeof applyGeminiFacts === "function" ? applyGeminiFacts : null;
+if (applyGeminiFactsCasa) {
+  applyGeminiFacts = function (wine, raw) {
+    const result = applyGeminiFactsCasa(wine, raw);
+    if (wine && tastingConflicts(wine.type, wine.tasting)) wine.tasting = "";
+    return result;
+  };
+}
+
 var prepareOwnLabelsAlta = prepareOwnLabels;
 prepareOwnLabels = function () {
   return prepareOwnLabelsAlta().then(() => {
     try {
       migrateAltaPhotos();
+      migratePeraManca();
       migrateClearZones();
       linkIllustratedCellar();
       if (typeof migrateGrapeIdentity === "function" && migrateGrapeIdentity(state).length && typeof save === "function") save();

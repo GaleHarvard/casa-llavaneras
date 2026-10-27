@@ -214,7 +214,9 @@ function applyGeminiIdentity(wine, raw) {
   const fromLabel = wine.provenance.vintageSource === "etiqueta" && currentYear;
   if (!fromLabel && year >= 1950 && year <= yearNow() + 1 && (mentioned || !currentYear || currentYear === yearNow())) wine.vintage = year;
   const zone = detectZone([raw.region, raw.country, raw.name].filter(Boolean).join(" "));
-  if (wine.provenance.region !== "página") {
+  const intakeUser = wine.provenance.intake === "usuario";
+  const skipRegion = intakeUser && (!catalogZoneName(wine) || !regionAgreesCard(wine, raw.region));
+  if (wine.provenance.region !== "página" && !skipRegion) {
     if (zone) {
       wine.region = zone.name;
       wine.appellation = zone.name;
@@ -1368,9 +1370,36 @@ function pageMayReplace(wine, field, shop) {
   if (field === "region" || field === "country") return !String(wine[field] || "").trim();
   return true;
 }
+function noteConflictsType(type, text) {
+  if (typeof tastingConflicts === "function") return tastingConflicts(type, text);
+  if (type !== "blanco" && type !== "espumoso") return false;
+  return /\brojo\b|\brub[ií]\b|\bgranate\b|\bpicota\b|\bviol[aá]ceo\b|\bcereza\b|\bteja\b/i.test(String(text || ""));
+}
+function catalogZoneName(wine) {
+  const id = wine && wine.provenance && wine.provenance.wineryId;
+  if (id && typeof wineryCardById === "function") {
+    const card = wineryCardById(id);
+    if (card && card.zone) return String(card.zone);
+  }
+  if (typeof wineryCardFor === "function") {
+    const card = wineryCardFor(wine);
+    if (card && card.zone) return String(card.zone);
+  }
+  return "";
+}
+function regionAgreesCard(wine, region) {
+  const zone = catalogZoneName(wine);
+  if (!zone) return true;
+  const fold = value => String(value || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const z = fold(zone);
+  const r = fold(region);
+  if (!r) return false;
+  return r.indexOf(z) >= 0 || z.indexOf(r) >= 0;
+}
 function applyPageFacts(wine, facts, url) {
   if (!facts) return;
   const shop = isShopUrl(url);
+  if (facts.tasting && noteConflictsType(wine.type || facts.type, facts.tasting)) facts = Object.assign({}, facts, { tasting: "" });
   if (facts.type && pageMayReplace(wine, "type", shop)) {
     wine.type = facts.type;
     wine.color = colorForWineType(facts.type);
@@ -1381,7 +1410,7 @@ function applyPageFacts(wine, facts, url) {
     if (facts.grapePct && Object.keys(facts.grapePct).length) wine.grapePct = facts.grapePct;
     markWineSource(wine, "grapes", "página");
   }
-  if (facts.region && pageMayReplace(wine, "region", shop)) {
+  if (facts.region && pageMayReplace(wine, "region", shop) && regionAgreesCard(wine, facts.region)) {
     const z = detectZone(facts.region + " " + (facts.country || ""));
     wine.region = z ? z.name : facts.region;
     wine.appellation = z ? z.name : (facts.appellation || facts.region);
@@ -1517,9 +1546,14 @@ function applyGeminiFacts(wine, raw) {
     }
   }
   if (gaps.has("region") && raw.region) {
-    wine.region = String(raw.region).replace(/\s+/g, " ").trim().slice(0, 80);
-    wine.appellation = String(raw.appellation || raw.region).replace(/\s+/g, " ").trim().slice(0, 80);
-    markWineSource(wine, "region", "estimación Gemini");
+    const proposed = String(raw.region).replace(/\s+/g, " ").trim().slice(0, 80);
+    const intake = wine.provenance && wine.provenance.intake === "usuario";
+    const zoned = catalogZoneName(wine);
+    if (!(intake && !zoned) && regionAgreesCard(wine, proposed)) {
+      wine.region = proposed;
+      wine.appellation = String(raw.appellation || raw.region).replace(/\s+/g, " ").trim().slice(0, 80);
+      markWineSource(wine, "region", "estimación Gemini");
+    }
   }
   if (gaps.has("country") && raw.country) {
     wine.country = countryNameFrom(raw.country);
@@ -1532,9 +1566,9 @@ function applyGeminiFacts(wine, raw) {
       markWineSource(wine, "abv", "estimación Gemini");
     }
   }
-  if (gaps.has("tasting") && raw.tasting && !noteLooksLikeLinkOrPrice(raw.tasting)) {
+  if (gaps.has("tasting") && raw.tasting && !noteLooksLikeLinkOrPrice(raw.tasting) && !(wine.provenance && wine.provenance.intake === "usuario")) {
     const tasting = String(raw.tasting).replace(/\s+/g, " ").trim();
-    if (tasting.length > 12) {
+    if (tasting.length > 12 && !noteConflictsType(wine.type, tasting)) {
       wine.tasting = tasting.slice(0, 420);
       markWineSource(wine, "tasting", "estimación Gemini");
     }
@@ -1621,7 +1655,7 @@ function applyGeminiRecord(wine, raw) {
       markWineSource(wine, "pairing", "estimación Gemini");
     }
   }
-  if (gaps.has("dossier") && raw.dossier && typeof raw.dossier === "object") {
+  if (gaps.has("dossier") && raw.dossier && typeof raw.dossier === "object" && !(wine.provenance && wine.provenance.intake === "usuario")) {
     const d = raw.dossier;
     wine.dossier = wine.dossier || {};
     ["soils", "elevation", "vineyard", "vinification", "elevage", "glass", "decant", "oxygen"].forEach(k => {
@@ -1979,7 +2013,7 @@ function geminiBlockSpecs() {
           humidity: str, position: str, light: str, drinkFrom: num, peakStart: num, peakEnd: num, holdTo: num, structure: num
         }
       },
-      ask: "Bloque datos y fechas. type: tinto, blanco, rosado, espumoso o generoso, o vacío. No pongas tinto por defecto: si las uvas son solo blancas, type es blanco. style: reserva, crianza, roble, joven o gran reserva, solo si consta. No inventes joven ni Tinto Joven en el nombre. grapeMix: cada uva con name y pct (0 si no sabes el porcentaje). elevageMonths son los meses de crianza. elevageVessel: barrica, fudre, deposito, anfora, botella o mixto. elevageOak: frances, americano, hungaro, mixto o ninguno. elevageNewOak: porcentaje de roble nuevo, 0 si no se sabe. crianza es el texto libre, sin URL. tasting es la nota de cata, sin URL y sin precio. serveMin/serveMax y cellarMin/cellarMax en grados. drinkFrom, peakStart, peakEnd y holdTo son años, en ese orden; peakEnd es el último año para beber. Si no estás seguro, cadena vacía o 0."
+      ask: "Bloque datos y fechas. type: tinto, blanco, rosado, espumoso o generoso, o vacío. No pongas tinto por defecto: si las uvas son solo blancas, type es blanco. style: reserva, crianza, roble, joven o gran reserva, solo si consta. No inventes joven ni Tinto Joven en el nombre. grapeMix: cada uva con name y pct (0 si no sabes el porcentaje). elevageMonths son los meses de crianza. elevageVessel: barrica, fudre, deposito, anfora, botella o mixto. elevageOak: frances, americano, hungaro, mixto o ninguno. elevageNewOak: porcentaje de roble nuevo, 0 si no se sabe. crianza es el texto libre, sin URL. tasting es la nota de cata, sin URL y sin precio. Si no hay una nota en la etiqueta o en una fuente, déjala vacía. Un blanco no puede ser rojo, cereza, picota ni granate. No inventes la región ni la bodega. serveMin/serveMax y cellarMin/cellarMax en grados. drinkFrom, peakStart, peakEnd y holdTo son años, en ese orden; peakEnd es el último año para beber. Si no estás seguro, cadena vacía o 0."
     },
     pairings: {
       name: "pairings",
