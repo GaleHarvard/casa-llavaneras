@@ -114,7 +114,7 @@ function pngSize(file) {
       step: document.querySelector("#alta-preview h1").textContent
     };
   });
-  assert.strictEqual(sheet.version, "v105");
+  assert.strictEqual(sheet.version, "v106");
   assert.strictEqual(sheet.step, "Ficha preliminar");
   assert.strictEqual(sheet.name, "Finca Garbet");
   assert.strictEqual(sheet.winery, "Perelada");

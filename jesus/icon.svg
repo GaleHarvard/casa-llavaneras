@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <rect width="1024" height="1024" fill="#000"/>
+  <defs>
+    <radialGradient id="grape" cx="32%" cy="28%" r="72%">
+      <stop offset="0" stop-color="#f6e8bc"/>
+      <stop offset="0.28" stop-color="#e8c97a"/>
+      <stop offset="0.62" stop-color="#c6a35a"/>
+      <stop offset="1" stop-color="#6e5424"/>
+    </radialGradient>
+  </defs>
+  <path d="M512 136 C506 178 514 226 508 268" fill="none" stroke="#c6a35a" stroke-width="8" stroke-linecap="round"/>
+  <path d="M518 164 C560 118 690 118 690 196 C690 238 600 242 528 182 Z" fill="#b08c44" stroke="#7a5a28" stroke-width="3"/>
+  <path d="M528 176 C600 164 668 178" fill="none" stroke="#e8c97a" stroke-width="3"/>
+  <g fill="url(#grape)">
+    <circle cx="512" cy="236" r="58"/>
+    <circle cx="448" cy="296" r="66"/>
+    <circle cx="578" cy="290" r="64"/>
+    <circle cx="392" cy="370" r="68"/>
+    <circle cx="632" cy="372" r="66"/>
+    <circle cx="512" cy="356" r="76"/>
+    <circle cx="444" cy="446" r="72"/>
+    <circle cx="572" cy="442" r="74"/>
+    <circle cx="600" cy="530" r="62"/>
+    <circle cx="496" cy="524" r="70"/>
+    <circle cx="524" cy="600" r="56"/>
+  </g>
+  <text x="512" y="733" text-anchor="middle" font-family="Liberation Serif, Times New Roman, Times, serif" font-size="128" font-weight="700" fill="#e8c97a">Jesús</text>
+  <text x="512" y="830" text-anchor="middle" font-family="Liberation Serif, Times New Roman, Times, serif" font-size="128" font-weight="700" fill="#e8c97a">Gómez</text>
+</svg>

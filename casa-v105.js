@@ -32,10 +32,21 @@
     ]);
   }
 
+  function jesusIconFile(src) {
+    const bare = String(src || "").split("?")[0].split("/").pop();
+    return /^(apple-touch-icon|icon-192-maskable|icon-512-maskable|icon-192|icon-512|icon-120|icon-152|icon-167|icon-180|icon-1024|icon)\.(png|svg)$/.test(bare) ? bare : "";
+  }
   function retarget(img) {
     if (!img || img.dataset.casaAsset === "1") return;
     const src = img.getAttribute("src") || "";
-    if (!src || /^(https?:|data:|blob:|#|\/|\.\.\/|asset\/)/.test(src)) return;
+    if (!src || /^(https?:|data:|blob:|#)/.test(src)) return;
+    const icon = jesusIconFile(src);
+    if (icon) {
+      if (src !== icon) img.setAttribute("src", icon);
+      img.dataset.casaAsset = "1";
+      return;
+    }
+    if (/^(\/|\.\.\/|asset\/)/.test(src)) return;
     img.dataset.casaAsset = "1";
     img.setAttribute("src", "../" + src);
   }
@@ -54,11 +65,34 @@
     });
     window.__casaAssetObserver.observe(document.documentElement, { subtree: true, childList: true, attributes: true, attributeFilter: ["src"] });
   }
+  function ensureEmblem() {
+    document.querySelectorAll(".mark").forEach(el => {
+      el.classList.add("jesus-mark");
+      if (el.querySelector(".jesus-emblem")) return;
+      el.textContent = "";
+      const img = document.createElement("img");
+      img.className = "jesus-emblem";
+      img.alt = "Jesús Gómez";
+      img.src = "apple-touch-icon.png";
+      el.appendChild(img);
+    });
+    document.querySelectorAll("#home .home-hero").forEach(hero => {
+      if (hero.querySelector(".jesus-emblem")) return;
+      const img = document.createElement("img");
+      img.className = "jesus-emblem";
+      img.alt = "Jesús Gómez";
+      img.src = "apple-touch-icon.png";
+      const eyebrow = hero.querySelector(".eyebrow");
+      if (eyebrow) hero.insertBefore(img, eyebrow);
+      else hero.prepend(img);
+    });
+  }
   function paintBrand() {
     document.title = "Vinoteca Jesús Gómez";
     document.querySelectorAll(".brand-sub").forEach(el => { el.textContent = "Vinoteca Jesús Gómez"; });
     document.querySelectorAll("#home .home-hero h1").forEach(el => { el.textContent = "Vinoteca Jesús Gómez"; });
     document.querySelectorAll(".home-hero-photo").forEach(el => el.remove());
+    ensureEmblem();
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", () => { paintBrand(); armAssets(); });
   else { paintBrand(); armAssets(); }
