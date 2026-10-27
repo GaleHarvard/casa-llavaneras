@@ -42,7 +42,7 @@
           if (/^(apple-touch-icon|icon-192-maskable|icon-512-maskable|icon-192|icon-512|icon-120|icon-152|icon-167|icon-180|icon-1024|icon)\.(png|svg)$/.test(icon)) return a + icon + c;
           return a + pre + url + c;
         });
-        html = html.replace(/<div class="mark">J\.G\.C\.<\/div>/g, '<div class="mark jesus-mark"><img class="jesus-emblem" src="apple-touch-icon.png" alt="J.G. d B."></div>');
+        html = html.replace(/<div class="mark">J\.G\.C\.<\/div>/g, '<div class="mark jesus-mark"><img class="jesus-emblem" src="apple-touch-icon.png" alt="Jesús Gómez"></div>');
         if (html.indexOf('sizes="120x120"') < 0) {
           html = html.replace("</head>", '<link rel="apple-touch-icon" sizes="120x120" href="icon-120.png"><link rel="apple-touch-icon" sizes="152x152" href="icon-152.png"><link rel="apple-touch-icon" sizes="167x167" href="icon-167.png"></head>');
         }

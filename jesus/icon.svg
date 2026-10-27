@@ -8,21 +8,22 @@
       <stop offset="1" stop-color="#6e5424"/>
     </radialGradient>
   </defs>
-  <path d="M512 168 C506 210 514 258 508 300" fill="none" stroke="#c6a35a" stroke-width="8" stroke-linecap="round"/>
-  <path d="M518 196 C560 150 690 150 690 228 C690 270 600 274 528 214 Z" fill="#b08c44" stroke="#7a5a28" stroke-width="3"/>
-  <path d="M528 208 C600 196 668 210" fill="none" stroke="#e8c97a" stroke-width="3"/>
+  <path d="M512 136 C506 178 514 226 508 268" fill="none" stroke="#c6a35a" stroke-width="8" stroke-linecap="round"/>
+  <path d="M518 164 C560 118 690 118 690 196 C690 238 600 242 528 182 Z" fill="#b08c44" stroke="#7a5a28" stroke-width="3"/>
+  <path d="M528 176 C600 164 668 178" fill="none" stroke="#e8c97a" stroke-width="3"/>
   <g fill="url(#grape)">
-    <circle cx="512" cy="268" r="58"/>
-    <circle cx="448" cy="328" r="66"/>
-    <circle cx="578" cy="322" r="64"/>
-    <circle cx="392" cy="402" r="68"/>
-    <circle cx="632" cy="404" r="66"/>
-    <circle cx="512" cy="388" r="76"/>
-    <circle cx="444" cy="478" r="72"/>
-    <circle cx="572" cy="474" r="74"/>
-    <circle cx="600" cy="562" r="62"/>
-    <circle cx="496" cy="556" r="70"/>
-    <circle cx="524" cy="632" r="56"/>
+    <circle cx="512" cy="236" r="58"/>
+    <circle cx="448" cy="296" r="66"/>
+    <circle cx="578" cy="290" r="64"/>
+    <circle cx="392" cy="370" r="68"/>
+    <circle cx="632" cy="372" r="66"/>
+    <circle cx="512" cy="356" r="76"/>
+    <circle cx="444" cy="446" r="72"/>
+    <circle cx="572" cy="442" r="74"/>
+    <circle cx="600" cy="530" r="62"/>
+    <circle cx="496" cy="524" r="70"/>
+    <circle cx="524" cy="600" r="56"/>
   </g>
-  <text x="512" y="812" text-anchor="middle" font-family="Liberation Serif, Times New Roman, Times, serif" font-size="124" font-weight="700" fill="#e8c97a">J.G. d B.</text>
+  <text x="512" y="733" text-anchor="middle" font-family="Liberation Serif, Times New Roman, Times, serif" font-size="128" font-weight="700" fill="#e8c97a">Jesús</text>
+  <text x="512" y="830" text-anchor="middle" font-family="Liberation Serif, Times New Roman, Times, serif" font-size="128" font-weight="700" fill="#e8c97a">Gómez</text>
 </svg>

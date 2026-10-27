@@ -72,7 +72,7 @@
       el.textContent = "";
       const img = document.createElement("img");
       img.className = "jesus-emblem";
-      img.alt = "J.G. d B.";
+      img.alt = "Jesús Gómez";
       img.src = "apple-touch-icon.png";
       el.appendChild(img);
     });
@@ -80,7 +80,7 @@
       if (hero.querySelector(".jesus-emblem")) return;
       const img = document.createElement("img");
       img.className = "jesus-emblem";
-      img.alt = "J.G. d B.";
+      img.alt = "Jesús Gómez";
       img.src = "apple-touch-icon.png";
       const eyebrow = hero.querySelector(".eyebrow");
       if (eyebrow) hero.insertBefore(img, eyebrow);

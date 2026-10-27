@@ -22,8 +22,11 @@ const v105 = read("casa-v105.js");
 const css = read("styles.css");
 
 assert.ok(joseSvg.includes("J.G.C."));
-assert.ok(!joseSvg.includes("J.G. d B."));
-assert.ok(jesusSvg.includes("J.G. d B."));
+assert.ok(!joseSvg.includes("Jesús"));
+assert.ok(!joseSvg.includes("Gómez"));
+assert.ok(jesusSvg.includes("Jesús"));
+assert.ok(jesusSvg.includes("Gómez"));
+assert.ok(!jesusSvg.includes("J.G. d B."));
 assert.ok(!jesusSvg.includes("J.G.C."));
 assert.ok(jesusSvg.includes('fill="#000"') || jesusSvg.includes("fill:#000"));
 assert.ok(jesusSvg.includes("#e8c97a"));
@@ -31,7 +34,7 @@ assert.ok(jesusSvg.includes("#c6a35a"));
 
 assert.ok(joseHtml.includes('<div class="mark">J.G.C.</div>'));
 assert.ok(!joseHtml.includes("jesus-emblem"));
-assert.ok(!joseHtml.includes("J.G. d B."));
+assert.ok(!joseHtml.includes("Jesús Gómez"));
 assert.ok(joseHtml.includes('href="apple-touch-icon.png"'));
 assert.ok(joseManifest.icons.every(icon => !String(icon.src).includes("jesus") && !String(icon.src).includes("maskable")));
 assert.ok(joseManifest.icons.some(icon => icon.src === "apple-touch-icon.png"));
@@ -43,7 +46,8 @@ assert.ok(jesusHtml.includes('href="icon-192.png"'));
 assert.ok(jesusHtml.includes('href="icon-120.png"'));
 assert.ok(jesusHtml.includes('href="icon-152.png"'));
 assert.ok(jesusHtml.includes('href="icon-167.png"'));
-assert.ok(jesusHtml.includes("J.G. d B."));
+assert.ok(jesusHtml.includes("Jesús Gómez"));
+assert.ok(!jesusHtml.includes("J.G. d B."));
 assert.ok(jesusHtml.includes("jesus-emblem"));
 assert.ok(jesusHtml.includes("icon-192-maskable"));
 
@@ -93,7 +97,8 @@ assert.ok(sw.includes('"casa-llavaneras-jesus-ios-v106"'));
 assert.ok(sw.includes('"casa-llavaneras-ios-v106"'));
 
 assert.ok(v105.includes("jesusIconFile"));
-assert.ok(v105.includes('img.alt = "J.G. d B."'));
+assert.ok(v105.includes('img.alt = "Jesús Gómez"'));
+assert.ok(!v105.includes("J.G. d B."));
 assert.ok(v105.includes('img.src = "apple-touch-icon.png"'));
 assert.ok(css.includes(".jesus-emblem"));
 assert.ok(css.includes(".splash .jesus-mark"));

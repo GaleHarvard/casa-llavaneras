@@ -78,7 +78,7 @@ async function shot(page, name) {
     <div class="status"><b>9:41</b><div class="sigs"><span>●●●</span><span>5G</span><span class="battery"><i></i></span></div></div>
     <div class="grid">
       <div class="slot">
-        <img src="http://127.0.0.1:8807/jesus/apple-touch-icon.png" alt="J.G. d B.">
+        <img src="http://127.0.0.1:8807/jesus/apple-touch-icon.png" alt="Jesús Gómez">
         <div class="label">Vinoteca Jesús Gómez</div>
       </div>
       <div class="slot"><div class="glyph"></div><div class="ghost"></div></div>
@@ -150,11 +150,11 @@ async function shot(page, name) {
   });
   assert.deepStrictEqual(errors, []);
   assert.strictEqual(jesusLogo.title, "Vinoteca Jesús Gómez");
-  assert.strictEqual(jesusLogo.alt, "J.G. d B.");
+  assert.strictEqual(jesusLogo.alt, "Jesús Gómez");
   assert.strictEqual(jesusLogo.src, "apple-touch-icon.png");
   assert.strictEqual(jesusLogo.width, 180);
   assert.strictEqual(jesusLogo.splash, "apple-touch-icon.png");
-  assert.strictEqual(jesusLogo.splashAlt, "J.G. d B.");
+  assert.strictEqual(jesusLogo.splashAlt, "Jesús Gómez");
   assert.ok(!jesusLogo.markText.includes("J.G.C."));
   assert.strictEqual(jesusLogo.perfil, "apple-touch-icon.png");
   assert.strictEqual(jesusLogo.perfilWidth, 180);
