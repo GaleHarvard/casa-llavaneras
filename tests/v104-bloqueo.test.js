@@ -11,12 +11,12 @@ const css = fs.readFileSync(path.join(root, "styles.css"), "utf8");
 const gemini = fs.readFileSync(path.join(root, "casa-gemini.js"), "utf8");
 const estado = fs.readFileSync(path.join(root, "casa-estado.js"), "utf8");
 
-assert.ok(sw.includes('"casa-llavaneras-ios-v108"'));
-assert.ok(sw.includes('"casa-llavaneras-jesus-ios-v108"'));
-assert.ok(sw.includes('const VERSION = "v108"'));
-assert.ok(app.includes('APP_VERSION = "v108"'));
-assert.ok(html.includes('content="v108"'));
-assert.ok(html.includes('register("sw.js?v=108")'));
+assert.ok(sw.includes('"casa-llavaneras-ios-v109"'));
+assert.ok(sw.includes('"casa-llavaneras-jesus-ios-v109"'));
+assert.ok(sw.includes('const VERSION = "v109"'));
+assert.ok(app.includes('APP_VERSION = "v109"'));
+assert.ok(html.includes('content="v109"'));
+assert.ok(html.includes('register("sw.js?v=109")'));
 assert.ok(!sw.includes("client.navigate"));
 assert.ok(sw.includes("clients.claim"));
 assert.ok(sw.includes('type: "sw-activated"'));

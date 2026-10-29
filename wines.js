@@ -361,6 +361,35 @@ window.WINE_CATALOG = [
     ]
   },
   {
+    id: "margaux-du-chateau-margaux",
+    name: "Margaux du Château Margaux",
+    producer: "Château Margaux",
+    vintage: "",
+    region: "Margaux",
+    country: "Francia",
+    appellation: "AOC Margaux",
+    type: "tinto",
+    style: "",
+    grapes: [],
+    abv: 0,
+    color: "#4e1020",
+    aliases: ["Margaux du Chateau Margaux", "Du Château Margaux"],
+    ratings: {
+      vivino: { score: 0, scale: 5, note: "" },
+      penin: { score: 0, scale: 100, note: "" },
+      parker: { score: 0, scale: 100, note: "" },
+      spectator: { score: 0, scale: 100, note: "" },
+      decanter: { score: 0, scale: 100, note: "" }
+    },
+    priceHint: "",
+    tasting: "",
+    pairing: [],
+    conservation: { cellarMin: 12, cellarMax: 14, serveMin: 16, serveMax: 18, humidity: "65–75%", position: "horizontal", light: "oscura" },
+    aging: { drinkFrom: 0, peakStart: 0, peakEnd: 0, holdTo: 0 },
+    evolutionNotes: [],
+    provenance: { aging: "valor por defecto", price: "valor por defecto" }
+  },
+  {
     id: "sassicaia-2019",
     name: "Sassicaia",
     producer: "Tenuta San Guido",
