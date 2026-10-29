@@ -79,7 +79,7 @@ async function run(browserType, label) {
       hit: hit ? (hit.id || hit.className || hit.tagName) : ""
     };
   });
-  assert.strictEqual(probe.version, "v108");
+  assert.strictEqual(probe.version, "v109");
   assert.strictEqual(probe.display, "none");
   assert.strictEqual(probe.pointer, "none");
   assert.strictEqual(probe.boot, false);

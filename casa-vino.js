@@ -243,9 +243,16 @@ function shownDrinkRange(w) {
   if (datesAreReal(w) && w && w.aging && w.aging.drinkFrom && (w.aging.peakEnd || w.aging.holdTo)) {
     return w.aging.drinkFrom + "–" + (w.aging.peakEnd || w.aging.holdTo);
   }
-  const hint = indicativeFacts(w);
-  if (!hint.drinkFrom || !hint.holdTo) return "";
-  return hint.drinkFrom + "–" + hint.holdTo;
+  return "";
+}
+function priceIsCited(w) {
+  if (!w || isNodataText(w.priceHint)) return false;
+  if (typeof isCatalogWineId === "function" && isCatalogWineId(w.id)) {
+    const src = w.provenance && w.provenance.price;
+    return !src || (src !== "valor por defecto" && src !== "estimación Gemini");
+  }
+  const src = w.provenance && w.provenance.price;
+  return src === "página" || src === "usuario" || src === "catálogo";
 }
 function clearAiScoreBlock(block) {
   let changed = false;

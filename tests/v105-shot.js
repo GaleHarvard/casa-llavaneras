@@ -71,7 +71,7 @@ async function boot(page, url) {
       bottles: state.bottles.map(b => b.wineId)
     };
   });
-  assert.strictEqual(joseMark.version, "v108");
+  assert.strictEqual(joseMark.version, "v109");
   assert.strictEqual(joseMark.edition, "");
   assert.strictEqual(joseMark.hero, true);
   assert.strictEqual(joseMark.title, "Casa Llavaneras");

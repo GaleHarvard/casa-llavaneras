@@ -38,7 +38,7 @@ function pngSize(file) {
       hits: rows.filter(wine => /capellan/i.test((wine.producer || "") + " " + (wine.name || ""))).map(wine => wine.id)
     };
   });
-  assert.strictEqual(catalog.version, "v108");
+  assert.strictEqual(catalog.version, "v109");
   assert.deepStrictEqual(catalog.hits, []);
 
   const future = await page.evaluate(() => {

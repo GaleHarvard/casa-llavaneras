@@ -77,7 +77,7 @@ function vintageBlockHtml(w) {
   const windowTxt = realWindow
     ? (w.aging.drinkFrom + "–" + (w.aging.holdTo || ""))
     : (typeof shownDrinkRange === "function" && shownDrinkRange(w) ? shownDrinkRange(w) + " · " + t("fact.orientative") : "");
-  const price = w.priceHint && !isNodataText(w.priceHint) ? (w.priceHint + " · " + t("fact.orientative")) : "";
+  const price = typeof priceIsCited === "function" && priceIsCited(w) ? w.priceHint : "";
   const lot = (state.bottles || []).find(b => b.wineId === w.id && bottleHeld(b)) || (state.bottles || []).find(b => b.wineId === w.id);
   const mark = lot && bottleHeld(lot) ? `<p style="margin-top:8px">${heldMark(lot)}</p>` : "";
   const reserve = lot ? `<button type="button" class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="openDeseos('${lot.uid}')">${t("wish.reserve")}</button>` : "";

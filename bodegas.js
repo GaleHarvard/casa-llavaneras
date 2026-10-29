@@ -34,7 +34,7 @@ var WINERY_LIBRARY = [
   { name: "La Rioja Alta", file: "bodega-la-rioja-alta.jpg", aliases: ["Rioja Alta"] },
   { name: "Juvé & Camps", file: "bodega-juve-y-camps.jpg", aliases: ["Juvé y Camps", "Juve y Camps", "Juve & Camps"] },
   { name: "Vega Sicilia", file: "bodega-vega-sicilia.jpg", aliases: ["Valbuena", "Único"] },
-  { name: "Château Margaux", file: "vinedo-chateau-margaux.jpg", aliases: ["Margaux", "Ch. Margaux"] },
+  { name: "Château Margaux", file: "vinedo-chateau-margaux.jpg", aliases: ["Ch. Margaux", "Du Château Margaux"] },
   { name: "Dominio de Pingus", file: "vinedo-ribera.jpg", aliases: ["Pingus"] },
   { name: "R. López de Heredia", file: "vinedo-rioja.jpg", aliases: ["Lopez de Heredia", "López de Heredia", "Tondonia"] },
   { name: "Bodegas Muga", file: "vinedo-rioja.jpg", aliases: ["Muga"] },
@@ -970,8 +970,9 @@ var WINERY_CARDS = [
     "id": "margaux",
     "name": "Château Margaux",
     "aliases": [
-      "Margaux",
-      "Ch. Margaux"
+      "Ch. Margaux",
+      "Du Château Margaux",
+      "Margaux du Château Margaux"
     ],
     "country": "Francia",
     "zone": "Médoc",
@@ -986,6 +987,7 @@ var WINERY_CARDS = [
     "about": "Primer gran cru clasificado de 1855, con 262 hectáreas en la AOC Margaux. Es propiedad de la familia Mentzelopoulos.",
     "wines": [
       "Château Margaux",
+      "Margaux du Château Margaux",
       "Pavillon Rouge du Château Margaux",
       "Pavillon Blanc du Château Margaux"
     ],

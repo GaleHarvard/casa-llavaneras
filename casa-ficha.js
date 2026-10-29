@@ -849,7 +849,7 @@ function openWineSub(kind) {
     if ((w.grapes || []).length) bits.push(t("fact.grapes") + ": " + w.grapes.join(", "));
     if (w.abv) bits.push(w.abv + "% vol.");
     if (styleLabel(w)) bits.push(styleLabel(w));
-    if (w.priceHint && !isNodataText(w.priceHint)) bits.push(w.priceHint + " · " + t("fact.orientative"));
+    if (typeof priceIsCited === "function" && priceIsCited(w)) bits.push(w.priceHint);
     const place = [w.appellation, w.country].filter(x => x && !isNodataText(x)).join(" · ");
     body = `
       ${place ? `<p class="muted">${escHtml(place)}</p>` : ""}
@@ -986,7 +986,8 @@ function provenanceCard(w) {
   const srcKey = { "página": "src.page", "título": "src.title", "estimación Gemini": "src.gemini", "valor por defecto": "src.default" };
   const buckets = {};
   Object.keys(labels).forEach(k => {
-    const src = w.provenance[k] || "valor por defecto";
+    const src = w.provenance[k];
+    if (!src || src === "valor por defecto") return;
     buckets[src] = buckets[src] || [];
     buckets[src].push(t(labels[k]));
   });

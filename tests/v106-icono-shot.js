@@ -158,7 +158,7 @@ async function shot(page, name) {
   assert.ok(!jesusLogo.markText.includes("J.G.C."));
   assert.strictEqual(jesusLogo.perfil, "apple-touch-icon.png");
   assert.strictEqual(jesusLogo.perfilWidth, 180);
-  assert.strictEqual(jesusLogo.version, "v108");
+  assert.strictEqual(jesusLogo.version, "v109");
   await shot(jesus, "v106-jesus-inicio.png");
   await browser.close();
 })().catch(err => {

@@ -197,7 +197,7 @@ function acceptableIdentityText(value) {
 function applyGeminiIdentity(wine, raw) {
   if (!wine || !raw || typeof raw !== "object") return;
   wine.provenance = wine.provenance || {};
-  const blob = normTxt([wine.provenance.rawTitle, wine.provenance.pageExcerpt, wine.provenance.pageUrl, wine.name, wine.producer].filter(Boolean).join(" "));
+  const blob = normTxt([wine.provenance.ocrText, wine.provenance.labelText, wine.provenance.rawLabel, wine.labelText, wine.ocrText, wine.provenance.rawTitle, wine.name, wine.producer].filter(Boolean).join(" "));
   const producer = acceptableIdentityText(raw.producer);
   if (producer && wine.provenance.producer !== "página" && identityAgrees(blob, producer, wine.producer)) {
     wine.producer = producer;
@@ -542,6 +542,47 @@ function cleanOcrQuery(raw) {
   while (words.length && OCR_CONNECTORS.has(normTxt(words[0]))) words.shift();
   while (words.length && OCR_CONNECTORS.has(normTxt(words[words.length - 1]))) words.pop();
   return words.join(" ").replace(/\s+/g, " ").trim();
+}
+function foldIdentity(value) {
+  return String(value || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
+}
+function distinctiveIdentityTokens(value) {
+  return foldIdentity(value).split(" ").filter(token => token.length >= 4 && !/^(19|20)\d{2}$/.test(token) && !/^(chateau|bodegas|bodega|domaine|dominio|casa|pago|vins|vinos|wine|vino)$/.test(token));
+}
+function geminiAgreesLabel(query, label) {
+  const hay = foldIdentity(label);
+  const tokens = distinctiveIdentityTokens(query);
+  if (!hay || !tokens.length) return false;
+  return tokens.every(token => hay.indexOf(token) >= 0);
+}
+function labelAllowsIdentity(wine, value) {
+  const prov = (wine && wine.provenance) || {};
+  const hay = foldIdentity([prov.ocrText, prov.labelText, prov.rawLabel, wine && wine.labelText, wine && wine.ocrText].filter(Boolean).join(" "));
+  if (!hay) return true;
+  const folded = foldIdentity(value);
+  if (!folded) return false;
+  if (hay.indexOf(folded) >= 0) return true;
+  const tokens = distinctiveIdentityTokens(folded);
+  if (!tokens.length) return false;
+  return tokens.every(token => hay.indexOf(token) >= 0);
+}
+function secondMargauxText(value) {
+  const hay = foldIdentity(value);
+  return /du chateau margaux/.test(hay);
+}
+function catalogWineForLabel(raw) {
+  const hay = foldIdentity(raw);
+  if (!hay) return null;
+  const list = (typeof WINE_CATALOG !== "undefined" ? WINE_CATALOG : []);
+  if (secondMargauxText(hay)) return list.find(wine => wine && wine.id === "margaux-du-chateau-margaux") || null;
+  if (/chateau margaux/.test(hay)) return list.find(wine => wine && wine.id === "margaux-2016") || null;
+  return list.find(wine => {
+    const name = foldIdentity(wine && wine.name);
+    const producer = foldIdentity(wine && wine.producer);
+    if (name.length >= 8 && hay.indexOf(name) >= 0) return true;
+    const tokens = producer.split(" ").filter(token => token.length >= 5 && !/^(chateau|bodegas|bodega|domaine|dominio)$/.test(token));
+    return tokens.length > 0 && tokens.every(token => hay.indexOf(token) >= 0) && name && hay.indexOf(name) >= 0;
+  }) || null;
 }
 function labelQueryUseful(query) {
   const words = String(query || "").split(/\s+/).filter(Boolean);
@@ -1410,10 +1451,14 @@ function applyPageFacts(wine, facts, url) {
     if (facts.grapePct && Object.keys(facts.grapePct).length) wine.grapePct = facts.grapePct;
     markWineSource(wine, "grapes", "página");
   }
-  if (facts.region && pageMayReplace(wine, "region", shop) && regionAgreesCard(wine, facts.region)) {
-    const z = detectZone(facts.region + " " + (facts.country || ""));
-    wine.region = z ? z.name : facts.region;
-    wine.appellation = z ? z.name : (facts.appellation || facts.region);
+  if (facts.region && pageMayReplace(wine, "region", shop) && regionAgreesCard(wine, facts.region) && labelAllowsIdentity(wine, facts.region)) {
+    const named = String(facts.region).replace(/\s+/g, " ").trim();
+    const z = detectZone(named + " " + (facts.country || ""));
+    const namedFold = foldIdentity(named);
+    const zoneFold = z ? foldIdentity(z.name) : "";
+    const keepNamed = z && namedFold && namedFold !== zoneFold && namedFold.length >= zoneFold.length;
+    wine.region = keepNamed ? named : (z ? z.name : named);
+    wine.appellation = keepNamed ? (facts.appellation || named) : (z ? z.name : (facts.appellation || named));
     markWineSource(wine, "region", "página");
     if (z && !facts.country) {
       facts.country = z.country;
@@ -1427,7 +1472,7 @@ function applyPageFacts(wine, facts, url) {
     wine.abv = facts.abv;
     markWineSource(wine, "abv", "página");
   }
-  if (facts.producer && !titleLooksDirty(facts.producer) && !textShop(facts.producer) && pageMayReplace(wine, "producer", shop)) {
+  if (facts.producer && !titleLooksDirty(facts.producer) && !textShop(facts.producer) && pageMayReplace(wine, "producer", shop) && labelAllowsIdentity(wine, facts.producer)) {
     wine.producer = facts.producer;
     markWineSource(wine, "producer", "página");
   }
@@ -1749,7 +1794,7 @@ function applyGeminiRecord(wine, raw) {
 function sealWineProvenance(wine) {
   const keys = ["type", "grapes", "region", "country", "abv", "tasting", "crianza", "service", "cellar", "pairing", "aging", "producer", "style", "dossier", "web", "price", "evolution", "vintages", "shops"];
   wine.provenance = wine.provenance || {};
-  keys.forEach(k => { if (!wine.provenance[k]) wine.provenance[k] = "valor por defecto"; });
+  keys.forEach(k => { if (wine.provenance[k] === "valor por defecto") delete wine.provenance[k]; });
   wine.provenance.done = true;
 }
 function isShopHost(url) {
@@ -2874,7 +2919,8 @@ function wineFromInternetHit(hit) {
     aging: year ? { drinkFrom: year + 1, peakStart: year + 3, peakEnd: year + 10, holdTo: year + 15 } : { drinkFrom: 0, peakStart: 0, peakEnd: 0, holdTo: 0 },
     evolutionNotes: [],
     provenance: {
-      rawTitle: (hit && hit.title) || "",
+      rawTitle: (typeof lastOcrRaw !== "undefined" && lastOcrRaw) || (hit && hit.title) || "",
+      ocrText: (typeof lastOcrRaw !== "undefined" && lastOcrRaw) || "",
       pageUrl: (hit && hit.url) || "",
       incomplete: !year
     }
@@ -3002,10 +3048,10 @@ async function identifyFromPhoto(dataUrl) {
     if (storedGeminiKey()) {
       setScanStatus(fromRoll ? t("scan.rollGemini") : t("scan.geminiReading"));
       const gem = await readLabelWithGemini(dataUrl);
-      const gemHasBrand = gem.query && idn.brand && normTxt(gem.query).includes(normTxt(idn.brand).split(" ")[0]);
-      if (gem.region) scanRegion = gem.region;
-      if (gem.query && (!idn.brand || gemHasBrand)) query = gem.query;
-      else if (gem.note) lastOcrNote = gem.note;
+      const gemAgrees = gem.query && geminiAgreesLabel(gem.query, raw || query || "");
+      if (gem.region && gemAgrees) scanRegion = gem.region;
+      if (gem.query && gemAgrees) query = gem.query;
+      else if (gem.note || (gem.query && !gemAgrees)) lastOcrNote = gem.note || "";
     }
   } finally {
     ocrBusy = false;
@@ -3037,7 +3083,12 @@ function rankFromText(raw) {
     if (hay.includes("tondonia") && /tondonia/.test(nam)) score += 30;
     if (hay.includes("valbuena") && /valbuena/.test(nam)) score += 26;
     if (hay.includes("pazo") && /pazo/.test(prod)) score += 24;
-    if (hay.includes("margaux") && /margaux/.test(prod + " " + nam)) score += 40;
+    const secondMargaux = /du chateau margaux/.test(hay);
+    const grandMargaux = /chateau margaux/.test(hay) && !secondMargaux;
+    if (secondMargaux && w.id === "margaux-du-chateau-margaux") score += 80;
+    if (secondMargaux && w.id === "margaux-2016") score -= 60;
+    if (grandMargaux && w.id === "margaux-2016") score += 40;
+    if (!secondMargaux && !grandMargaux && hay.includes("margaux") && /margaux/.test(prod + " " + nam)) score += 12;
     const aliases = (w.aliases || []).map(normTxt);
     aliases.forEach(t => { if (t.length >= 5 && hay.includes(t)) score += 46; });
     if (hay.includes("pesquera") && /pesquera/.test(prod + " " + nam + " " + aliases.join(" "))) score += 50;
@@ -3199,18 +3250,15 @@ function inferWineFromText(raw) {
   const hay = normTxt(raw);
   if (!hay || hay.length < 6) return null;
   const year = backLabelText(raw) ? 0 : (yearFromText(raw) || 0);
-  const catalog = WINE_CATALOG.find(w => {
-    const tokens = normTxt(w.producer).split(" ").filter(t => t.length >= 5 && !/chateau|bodegas|celler|dominio/.test(t));
-    return tokens.some(t => hay.includes(t)) || (normTxt(w.name).length >= 5 && hay.includes(normTxt(w.name)));
-  });
+  const catalog = catalogWineForLabel(raw);
   if (catalog) return ensureScannedWine(catalog, raw);
   const words = hay.split(" ").filter(x => x.length > 2 && x !== String(year)).slice(0, 4);
   const label = words.map(x => x.charAt(0).toUpperCase() + x.slice(1)).join(" ") || "Vino escaneado";
   const id = "scan-" + Date.now();
   const w = {
-    id, name: label, producer: label, vintage: year,
+    id, name: label, producer: "", vintage: year,
     region: "", country: "", appellation: "", type: wineTypeFromText(raw) || "", style: "escaneo",
-    grapes: [], abv: 13.5, color: wineTypeFromText(raw) ? colorForWineType(wineTypeFromText(raw)) : "",
+    grapes: [], abv: 0, color: wineTypeFromText(raw) ? colorForWineType(wineTypeFromText(raw)) : "",
     ratings: {
       vivino: { score: 0, count: 0, scale: 5, note: "" },
       penin: { score: 0, scale: 100, note: "" },
@@ -3218,12 +3266,12 @@ function inferWineFromText(raw) {
       spectator: { score: 0, scale: 100, note: "" },
       decanter: { score: 0, scale: 100, note: "" }
     },
-    priceHint: "—",
-    tasting: "Ficha creada al escanear la etiqueta.",
+    priceHint: "",
+    tasting: "",
     conservation: { cellarMin: 12, cellarMax: 14, serveMin: 16, serveMax: 18, humidity: "65–75%", position: "horizontal", light: "oscura" },
     aging: year ? { drinkFrom: year + 1, peakStart: year + 3, peakEnd: year + 10, holdTo: year + 15, drinkTo: year + 14 } : { drinkFrom: 0, peakStart: 0, peakEnd: 0, holdTo: 0 },
     evolutionNotes: [],
-    provenance: { incomplete: !year, rawTitle: String(raw || "").slice(0, 180) }
+    provenance: { incomplete: !year, rawTitle: String(raw || "").slice(0, 180), ocrText: String((typeof lastOcrRaw !== "undefined" && lastOcrRaw) || raw || "").slice(0, 500) }
   };
   state.customWines = state.customWines || [];
   state.customWines.push(w);
