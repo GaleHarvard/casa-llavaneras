@@ -61,7 +61,7 @@ function pngSize(file) {
       full: img ? img.className : ""
     };
   });
-  assert.strictEqual(ready.version, "v109");
+  assert.strictEqual(ready.version, "v110");
   assert.strictEqual(ready.image, "bodega-muriel.jpg");
   assert.strictEqual(ready.card, "bodegas-muriel");
   assert.ok(ready.hero.includes("bodega-muriel.jpg"));

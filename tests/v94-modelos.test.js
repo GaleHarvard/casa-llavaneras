@@ -30,12 +30,12 @@ const sw = fs.readFileSync(path.join(root, "sw.js"), "utf8");
 const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
 const i18n = fs.readFileSync(path.join(root, "i18n.js"), "utf8");
 
-assert.ok(app.includes('APP_VERSION = "v109"'));
-assert.ok(html.includes('content="v109"'));
-assert.ok(html.includes("casa-alta.js?v=109"));
-assert.ok(sw.includes('"casa-llavaneras-ios-v109"'));
-assert.ok(sw.includes('"casa-llavaneras-jesus-ios-v109"'));
-assert.ok(sw.includes('const VERSION = "v109"'));
+assert.ok(app.includes('APP_VERSION = "v110"'));
+assert.ok(html.includes('content="v110"'));
+assert.ok(html.includes("casa-alta.js?v=110"));
+assert.ok(sw.includes('"casa-llavaneras-ios-v110"'));
+assert.ok(sw.includes('"casa-llavaneras-jesus-ios-v110"'));
+assert.ok(sw.includes('const VERSION = "v110"'));
 assert.ok(gemini.indexOf('id: "gemini-3.5-flash-lite", read: true') >= 0);
 assert.ok(gemini.indexOf('id: "gemini-3.5-flash-lite"') < gemini.indexOf('id: "gemini-2.5-flash", read: true'));
 assert.ok(gemini.includes("ground: false"));

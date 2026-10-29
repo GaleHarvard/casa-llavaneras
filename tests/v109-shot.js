@@ -89,7 +89,7 @@ function pngSize(file) {
       image: wineryImageFor(wine)
     };
   });
-  assert.strictEqual(fixed.version, "v109");
+  assert.strictEqual(fixed.version, "v110");
   assert.strictEqual(fixed.name, "Margaux du Château Margaux");
   assert.strictEqual(fixed.producer, "Château Margaux");
   assert.strictEqual(fixed.appellation, "AOC Margaux");

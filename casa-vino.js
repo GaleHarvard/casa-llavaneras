@@ -254,6 +254,19 @@ function priceIsCited(w) {
   const src = w.provenance && w.provenance.price;
   return src === "página" || src === "usuario" || src === "catálogo";
 }
+function regionIsCited(w) {
+  if (!w || isNodataText(w.appellation) && isNodataText(w.region)) return false;
+  if (!w.provenance) return true;
+  if (typeof isCatalogWineId === "function" && isCatalogWineId(w.id)) return true;
+  const src = w.provenance.region || "";
+  return src === "página" || src === "usuario" || src === "catálogo";
+}
+function shownAppellation(w) {
+  if (!regionIsCited(w)) return "";
+  const text = String((w && (w.appellation || w.region)) || "").trim();
+  if (!text || /valor por defecto/i.test(text)) return "";
+  return text;
+}
 function clearAiScoreBlock(block) {
   let changed = false;
   if (Number(block.score)) { block.score = 0; changed = true; }

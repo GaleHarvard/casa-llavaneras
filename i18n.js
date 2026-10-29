@@ -817,6 +817,7 @@ const I18N_ROWS = [
   ["src.title", "título", "títol", "title", "titre", "título"],
   ["src.gemini", "estimación Gemini", "estimació Gemini", "Gemini estimate", "estimation Gemini", "estimativa Gemini"],
   ["src.default", "valor por defecto", "valor per defecte", "default value", "valeur par défaut", "valor por defeito"],
+  ["src.catalog", "catálogo", "catàleg", "catalogue", "catalogue", "catálogo"],
   ["prov.type", "tipo", "tipus", "type", "type", "tipo"],
   ["prov.grapes", "uvas", "raïms", "grapes", "cépages", "castas"],
   ["prov.region", "zona", "zona", "region", "région", "região"],

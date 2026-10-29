@@ -783,7 +783,7 @@ function zoneStrip(w) {
     <div>
       <p class="tiny">${t("map.zone")}</p>
       <strong>${g.zone}</strong>
-      <p class="muted">${w.appellation}</p>
+      <p class="muted">${escHtml(typeof shownAppellation === "function" ? shownAppellation(w) : (w.appellation || ""))}</p>
     </div>
     <span class="tiny">${t("map.web")}</span>
   </div>`;
@@ -829,8 +829,8 @@ function mapaBlock(w) {
   const zoneCard = zd ? `<div class="card" style="margin-top:14px"><p class="tiny">${t("map.zone")}</p><h3 style="margin:4px 0 0;font-size:17px">${escHtml(zd.name)}</h3>${factRow(t("map.surface"), zd.facts.surface)}${factRow(t("map.climate"), zd.facts.climate)}${factRow(t("map.soils"), zd.facts.soils)}${factRow(t("map.grapes"), zd.facts.grapes)}</div>` : "";
   return `
     ${mapImg}
-    <p class="tiny" style="margin:0 0 10px;text-align:center">${g.zone || w.region}</p>
-    <p class="eyebrow" style="font-size:10px;letter-spacing:.14em;margin:2px 0 0">${w.appellation || ""}</p>
+    <p class="tiny" style="margin:0 0 10px;text-align:center">${g.zone || (typeof shownAppellation === "function" ? shownAppellation(w) : (w.region || ""))}</p>
+    <p class="eyebrow" style="font-size:10px;letter-spacing:.14em;margin:2px 0 0">${escHtml(typeof shownAppellation === "function" ? shownAppellation(w) : (w.appellation || ""))}</p>
     <h3 style="font-size:17px;margin:2px 0 2px;line-height:1.2">${w.producer}</h3>
     <p class="muted" style="margin:0 0 12px;font-size:13px">${placeLine(w, g)}</p>
     ${mapLinks}
