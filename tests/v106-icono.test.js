@@ -93,8 +93,8 @@ assert.ok(jesusIcons.includes("./apple-touch-icon.png"));
 assert.ok(jesusIcons.includes("./icon-120.png"));
 assert.ok(sw.includes("for (const path of JESUS_ICONS) await putFresh(cache, path);"));
 assert.ok(sw.includes('JESUS_ICONS.indexOf("./" + rel) >= 0'));
-assert.ok(sw.includes('"casa-llavaneras-jesus-ios-v107"'));
-assert.ok(sw.includes('"casa-llavaneras-ios-v107"'));
+assert.ok(sw.includes('"casa-llavaneras-jesus-ios-v108"'));
+assert.ok(sw.includes('"casa-llavaneras-ios-v108"'));
 
 assert.ok(v105.includes("jesusIconFile"));
 assert.ok(v105.includes('img.alt = "Jesús Gómez"'));
@@ -102,4 +102,4 @@ assert.ok(!v105.includes("J.G. d B."));
 assert.ok(v105.includes('img.src = "apple-touch-icon.png"'));
 assert.ok(css.includes(".jesus-emblem"));
 assert.ok(css.includes(".splash .jesus-mark"));
-assert.ok(read("app.js").includes('APP_VERSION = "v107"'));
+assert.ok(read("app.js").includes('APP_VERSION = "v108"'));

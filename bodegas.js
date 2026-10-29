@@ -69,7 +69,8 @@ var WINERY_LIBRARY = [
   { name: "Aveleda", file: "bodega-aveleda.jpg", aliases: ["Quinta da Aveleda"] },
   { name: "Bodegas Luis Cañas", file: "bodega-luis-canas.jpg", aliases: ["Luis Cañas", "Luis Canas"] },
   { name: "Bodegas y Viñedos García Figuero", file: "bodega-garcia-figuero.jpg", aliases: ["García Figuero", "Garcia Figuero", "Tinto Figuero", "Figuero", "Figuero Viñas Viejas"] },
-  { name: "Pago de los Capellanes", file: "bodega-pago-de-los-capellanes.jpg", aliases: ["Pago de Capellanes", "Pago de los Capellanes", "Bodegas Pago de los Capellanes"] }
+  { name: "Pago de los Capellanes", file: "bodega-pago-de-los-capellanes.jpg", aliases: ["Pago de Capellanes", "Pago de los Capellanes", "Bodegas Pago de los Capellanes"] },
+  { name: "Bodegas Muriel", file: "bodega-muriel.jpg", aliases: ["Muriel"] }
 ];
 
 /* Santiuste de San Juan Bautista: web https://avelinovegas.com/ y pin 41.161401, -4.574553. */
@@ -1916,6 +1917,27 @@ var WINERY_CARDS = [
       "https://pagodeloscapellanes.com/familia-y-paisaje/",
       "https://pagodeloscapellanes.com/nuestros-vinos/"
     ]
+  },
+  {
+    "id": "bodegas-muriel",
+    "name": "Bodegas Muriel",
+    "aliases": [
+      "Muriel"
+    ],
+    "country": "España",
+    "zone": "Rioja",
+    "zoneText": "Rioja Alavesa",
+    "town": "Elciego",
+    "web": "",
+    "address": "",
+    "lat": null,
+    "lng": null,
+    "precision": "",
+    "founded": "",
+    "about": "",
+    "wines": [],
+    "file": "bodega-muriel.jpg",
+    "sources": []
   }
 ];
 

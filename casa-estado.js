@@ -115,14 +115,14 @@ function jesusExamplesUntouched(parsed) {
 function seedJesusExamples(parsed) {
   if (!parsed || parsed.jesusExampleSeed) return false;
   if (jesusExamplesUntouched(parsed)) parsed.bottles = jesusExampleBottles();
-  parsed.jesusExampleSeed = "v107";
+  parsed.jesusExampleSeed = "v108";
   return true;
 }
 function jesusDefaultState() {
   return {
     vinotecas: [jesusArmario("j-es", "ES"), jesusArmario("j-fr", "FR")],
     bottles: jesusExampleBottles(),
-    jesusExampleSeed: "v107",
+    jesusExampleSeed: "v108",
     favorites: [],
     notify: { on: false, evolve: true, ready: true, temp: true, last: {} },
     tasting: {},
