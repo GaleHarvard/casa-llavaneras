@@ -89,7 +89,7 @@ const label = "data:image/jpeg;base64," + fs.readFileSync("/tmp/v100-etiqueta.jp
     };
   }, label);
 
-  assert.strictEqual(fixed.version, "v107");
+  assert.strictEqual(fixed.version, "v108");
   assert.strictEqual(fixed.name, "Luis Cañas 2024");
   assert.strictEqual(fixed.type, "blanco");
   assert.strictEqual(fixed.thumb, true);

@@ -191,6 +191,6 @@ assert.strictEqual(mod.migratePeraManca(), false);
 assert.ok(alta.includes("No inventes bodega, región, historia ni nota"));
 assert.ok(!alta.includes("Describe la bodega"));
 assert.ok(fs.readFileSync(path.join(root, "casa-gemini.js"), "utf8").includes("intake === \"usuario\""));
-assert.strictEqual(WINERY_CARDS.length, 59);
+assert.strictEqual(WINERY_CARDS.length, 60);
 
 console.log("v105 pera-manca ok");

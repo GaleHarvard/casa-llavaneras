@@ -58,7 +58,7 @@ function pngSize(file) {
       step: document.querySelector("#alta-capture h2").textContent
     };
   });
-  assert.strictEqual(capture.version, "v107");
+  assert.strictEqual(capture.version, "v108");
   assert.strictEqual(capture.cam.text, "Cámara");
   assert.strictEqual(capture.lib.text, "Fototeca");
   assert.strictEqual(capture.capture, "environment");

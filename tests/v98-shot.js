@@ -164,7 +164,7 @@ const figueroB64 = fs.readFileSync("/tmp/v100-figuero-label.jpg").toString("base
       linked: (wineById("luis-canas-2024").provenance || {}).wineryId
     };
   });
-  assert.strictEqual(luis.version, "v107");
+  assert.strictEqual(luis.version, "v108");
   assert.strictEqual(luis.art, "bodega-luis-canas.jpg");
   assert.strictEqual(luis.linked, "luis-canas");
   assert.ok(luis.title.indexOf("Luis Cañas") >= 0, luis.title);
