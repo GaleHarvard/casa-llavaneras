@@ -850,7 +850,8 @@ function openWineSub(kind) {
     if (w.abv) bits.push(w.abv + "% vol.");
     if (styleLabel(w)) bits.push(styleLabel(w));
     if (typeof priceIsCited === "function" && priceIsCited(w)) bits.push(w.priceHint);
-    const place = [w.appellation, w.country].filter(x => x && !isNodataText(x)).join(" · ");
+    const placeName = typeof shownAppellation === "function" ? shownAppellation(w) : (w.appellation || "");
+    const place = [placeName, w.country].filter(x => x && !isNodataText(x)).join(" · ");
     body = `
       ${place ? `<p class="muted">${escHtml(place)}</p>` : ""}
       <h3 style="margin:8px 0 6px">${escHtml(typeof sheetTitle === "function" ? sheetTitle(w.producer) : (w.producer || ""))}</h3>
@@ -869,8 +870,7 @@ function openWineSub(kind) {
       <div class="fact"><span>${t("fact.cellarShort")}</span><b>${caveLabel}</b></div>
       <div class="fact"><span>${t("fact.estate")}</span><b>${escHtml(typeof sheetTitle === "function" ? sheetTitle(w.producer) : (w.producer || ""))}</b></div>
       <div class="fact"><span>${t("fact.vintage")}</span><b>${w.vintage}</b></div>
-      <div class="fact"><span>${t("fact.app")}</span><b>${w.appellation}</b></div>
-      <div class="fact"><span>${t("fact.region")}</span><b>${w.region}</b></div>
+      ${regionIsCited(w) ? `<div class="fact"><span>${t("fact.app")}</span><b>${escHtml(shownAppellation(w) || w.appellation || "")}</b></div><div class="fact"><span>${t("fact.region")}</span><b>${escHtml(w.region || "")}</b></div>` : ""}
       <div class="fact"><span>${t("fact.country")}</span><b>${countryLabel(w.country)}</b></div>
       ${b && b.price ? `<div class="fact"><span>${t("fact.price")}</span><b>${formatEuro(b.price)}</b></div>` : ""}
       <button class="btn btn-ghost" style="width:100%;margin-top:14px" onclick="openWineSub('mapa')">${t("fact.zoneMap")}</button>`;
@@ -983,7 +983,7 @@ function provenanceCard(w) {
     style: "prov.style", ratings: "prov.ratings", dossier: "prov.dossier",
     web: "prov.web", price: "prov.price", evolution: "prov.evolution", vintages: "prov.vintages", shops: "prov.shops"
   };
-  const srcKey = { "página": "src.page", "título": "src.title", "estimación Gemini": "src.gemini", "valor por defecto": "src.default" };
+  const srcKey = { "página": "src.page", "título": "src.title", "estimación Gemini": "src.gemini", "catálogo": "src.catalog" };
   const buckets = {};
   Object.keys(labels).forEach(k => {
     const src = w.provenance[k];

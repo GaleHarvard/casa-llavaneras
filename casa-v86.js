@@ -69,7 +69,7 @@ function vintageBlockHtml(w) {
   if (!w) return "";
   const cuvee = cuveeOf(w);
   const grapes = (cuvee.grapes && cuvee.grapes.length ? cuvee.grapes : (w.grapes || [])).join(", ");
-  const place = cuvee.appellation || w.appellation || w.region || "";
+  const place = typeof shownAppellation === "function" ? shownAppellation(w) : (cuvee.appellation || w.appellation || w.region || "");
   const chips = vintageSiblings(w).map(s => `<button type="button" class="chip ${s.id === w.id ? "on" : ""}" onclick="openWine('${s.id}')">${escHtml(String(s.vintage || "—"))}</button>`).join("");
   const taste = String(w.tasting || "").trim();
   const shown = taste.length > 280 ? taste.slice(0, 277) + "…" : taste;

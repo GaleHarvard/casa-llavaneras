@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-title" content="Vinoteca Jesús Gómez" />
   <meta name="application-name" content="Vinoteca Jesús Gómez" />
   <meta name="theme-color" content="#000000" />
-  <meta name="app-version" content="v109" />
+  <meta name="app-version" content="v110" />
   <title>Vinoteca Jesús Gómez</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="apple-touch-icon" href="apple-touch-icon.png" />
@@ -27,7 +27,7 @@
     window.CASA_EDITION = "jesus";
     window.__splashAt = Date.now();
     (function () {
-      var CACHE = "casa-llavaneras-jesus-ios-v109";
+      var CACHE = "casa-llavaneras-jesus-ios-v110";
       function prefix(html) {
         var viaSw = !!(navigator.serviceWorker && navigator.serviceWorker.controller);
         var pre = viaSw ? "asset/" : "../";
@@ -73,7 +73,7 @@
         show(prefix(html));
       });
       if ("serviceWorker" in navigator) {
-        navigator.serviceWorker.register("sw.js?v=109", { scope: "./" }).catch(function () {});
+        navigator.serviceWorker.register("sw.js?v=110", { scope: "./" }).catch(function () {});
       }
     })();
   </script>
