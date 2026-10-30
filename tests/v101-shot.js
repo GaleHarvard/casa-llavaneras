@@ -178,7 +178,7 @@ assert.ok(!confirmV99.includes("alignWineWithGrapes"));
       cuveeTaste: cuveeOnly && cuveeOnly.tasting
     };
   }, saved.id);
-  assert.strictEqual(upgraded.version, "v110");
+  assert.strictEqual(upgraded.version, "v111");
   assert.strictEqual(upgraded.name, "Luis Cañas 2024");
   assert.strictEqual(upgraded.type, "blanco");
   assert.strictEqual(upgraded.tasting, tasting);

@@ -48,14 +48,14 @@ assert.strictEqual(wineryImageFor({ producer: "Pago de los Capellanes", name: "C
 
 assert.ok(sw.includes("./bodega-muriel.jpg"));
 assert.ok(sw.includes("./bodega-pago-de-los-capellanes.jpg"));
-assert.ok(sw.includes('"casa-llavaneras-ios-v110"'));
-assert.ok(sw.includes('"casa-llavaneras-jesus-ios-v110"'));
-assert.ok(sw.includes('const VERSION = "v110"'));
+assert.ok(sw.includes('"casa-llavaneras-ios-v111"'));
+assert.ok(sw.includes('"casa-llavaneras-jesus-ios-v111"'));
+assert.ok(sw.includes('const VERSION = "v111"'));
 assert.ok(!sw.includes("client.navigate"));
-assert.ok(app.includes('APP_VERSION = "v110"'));
-assert.ok(html.includes('content="v110"'));
-assert.ok(jesus.includes('content="v110"'));
-assert.ok(read("jesus/sw.js").includes('importScripts("../sw.js?v=110")'));
+assert.ok(app.includes('APP_VERSION = "v111"'));
+assert.ok(html.includes('content="v111"'));
+assert.ok(jesus.includes('content="v111"'));
+assert.ok(read("jesus/sw.js").includes('importScripts("../sw.js?v=111")'));
 assert.ok(!bodegas.includes("bodegas-muriel.jpg"));
 assert.ok(bodegas.includes("bodega-muriel.jpg"));
 

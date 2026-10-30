@@ -2,6 +2,7 @@ var GENERIC_ESTATE = "vinedo.jpg";
 
 var WINERY_LIBRARY = [
   { name: "Château Pontet-Canet", file: "bodega-chateau-pontet-canet.jpg", aliases: ["Pontet-Canet", "Pontet Canet"] },
+  { name: "Château Beychevelle", file: "bodega-chateau-beychevelle.jpg", aliases: ["Beychevelle", "Ch. Beychevelle"] },
   { name: "Château Ausone", file: "bodega-chateau-ausone.jpg", aliases: ["Ausone"] },
   { name: "Château Cheval Blanc", file: "bodega-chateau-cheval-blanc.jpg", aliases: ["Cheval Blanc"] },
   { name: "Château Massamier la Mignarde", file: "bodega-chateau-massamier-la-mignarde.jpg", aliases: ["Massamier"] },

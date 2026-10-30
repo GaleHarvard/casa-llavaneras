@@ -103,7 +103,7 @@ async function openSheet(browser, hold, file) {
 (async () => {
   const browser = await playwright.webkit.launch();
   const before = await openSheet(browser, true, path.join(outDir, "v110-antes.png"));
-  assert.strictEqual(before.info.version, "v110");
+  assert.strictEqual(before.info.version, "v111");
   assert.ok(before.info.name.indexOf("Beychevelle") >= 0);
   assert.ok(before.info.producer.indexOf("Beychevelle") >= 0);
   assert.strictEqual(before.info.shown, "");

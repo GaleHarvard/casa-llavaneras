@@ -42,13 +42,13 @@ assert.deepStrictEqual(catalog, []);
 assert.ok(!/capellan/i.test(wines));
 
 assert.ok(sw.includes("./bodega-pago-de-los-capellanes.jpg"));
-assert.ok(sw.includes('"casa-llavaneras-ios-v110"'));
-assert.ok(sw.includes('"casa-llavaneras-jesus-ios-v110"'));
+assert.ok(sw.includes('"casa-llavaneras-ios-v111"'));
+assert.ok(sw.includes('"casa-llavaneras-jesus-ios-v111"'));
 assert.ok(!sw.includes("client.navigate"));
 assert.ok(sw.includes("clients.claim"));
 assert.ok(sw.includes('data.type === "skip-waiting"'));
-assert.ok(app.includes('APP_VERSION = "v110"'));
-assert.ok(html.includes('content="v110"'));
+assert.ok(app.includes('APP_VERSION = "v111"'));
+assert.ok(html.includes('content="v111"'));
 assert.ok(html.includes("reg.update()"));
 assert.ok(html.includes("casa-sw-version"));
 assert.ok(alta.includes('"pago-de-los-capellanes": 1'));
