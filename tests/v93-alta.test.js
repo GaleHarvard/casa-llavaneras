@@ -31,15 +31,15 @@ const css = fs.readFileSync(path.join(root, "styles.css"), "utf8");
 const i18n = fs.readFileSync(path.join(root, "i18n.js"), "utf8");
 const v92 = fs.readFileSync(path.join(root, "casa-v92.js"), "utf8");
 
-assert.ok(app.includes('APP_VERSION = "v110"'));
-assert.ok(html.includes('content="v110"'));
-assert.ok(html.includes("casa-alta.js?v=110"));
-assert.ok(html.indexOf("casa-v92.js?v=110") < html.indexOf("casa-alta.js?v=110"));
-assert.ok(html.indexOf("casa-alta.js?v=110") < html.indexOf("app.js?v=110"));
+assert.ok(app.includes('APP_VERSION = "v111"'));
+assert.ok(html.includes('content="v111"'));
+assert.ok(html.includes("casa-alta.js?v=111"));
+assert.ok(html.indexOf("casa-v92.js?v=111") < html.indexOf("casa-alta.js?v=111"));
+assert.ok(html.indexOf("casa-alta.js?v=111") < html.indexOf("app.js?v=111"));
 assert.ok(sw.includes("./casa-alta.js"));
-assert.ok(sw.includes('"casa-llavaneras-ios-v110"'));
-assert.ok(sw.includes('"casa-llavaneras-jesus-ios-v110"'));
-assert.ok(sw.includes('const VERSION = "v110"'));
+assert.ok(sw.includes('"casa-llavaneras-ios-v111"'));
+assert.ok(sw.includes('"casa-llavaneras-jesus-ios-v111"'));
+assert.ok(sw.includes('const VERSION = "v111"'));
 assert.ok(fs.existsSync(path.join(root, "docs/alta-v93.md")));
 assert.ok(fs.existsSync(path.join(root, "archivo/app hoy.js")));
 

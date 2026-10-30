@@ -25,7 +25,7 @@ assert.ok(estado.includes('cellarId: "j-fr"'));
 assert.ok(estado.includes('cellarId: "j-es"'));
 assert.ok(estado.includes("function seedJesusExamples"));
 assert.ok(estado.includes("jesusExamplesUntouched"));
-assert.ok(estado.includes('parsed.jesusExampleSeed = "v110"'));
+assert.ok(estado.includes('parsed.jesusExampleSeed = "v111"'));
 assert.ok(estado.includes("if (CASA_EDITION === \"jesus\")"));
 assert.ok(estado.includes('if (CASA_EDITION === "jesus") return ""'));
 assert.ok(estado.includes('if (CASA_EDITION === "jesus" && w && JESUS_EXAMPLE_LABELS[w.id]) return JESUS_EXAMPLE_LABELS[w.id];'));
@@ -61,13 +61,13 @@ assert.ok(vino.includes('"riscal-reserva-2019": "https://cdn.vinissimus.com/img/
 assert.ok(!vino.includes("vs-unico-2009"));
 assert.ok(!vino.includes("etiquetas/"));
 
-assert.ok(sw.includes('"casa-llavaneras-ios-v110"'));
-assert.ok(sw.includes('"casa-llavaneras-jesus-ios-v110"'));
-assert.ok(sw.includes('const VERSION = "v110"'));
-assert.ok(app.includes('APP_VERSION = "v110"'));
-assert.ok(html.includes('content="v110"'));
-assert.ok(jesusHtml.includes('content="v110"'));
-assert.ok(read("jesus/sw.js").includes('importScripts("../sw.js?v=110")'));
+assert.ok(sw.includes('"casa-llavaneras-ios-v111"'));
+assert.ok(sw.includes('"casa-llavaneras-jesus-ios-v111"'));
+assert.ok(sw.includes('const VERSION = "v111"'));
+assert.ok(app.includes('APP_VERSION = "v111"'));
+assert.ok(html.includes('content="v111"'));
+assert.ok(jesusHtml.includes('content="v111"'));
+assert.ok(read("jesus/sw.js").includes('importScripts("../sw.js?v=111")'));
 assert.ok(!html.includes("Jesús Gómez"));
 assert.ok(html.includes('<div class="mark">J.G.C.</div>'));
 
