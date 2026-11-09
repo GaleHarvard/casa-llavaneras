@@ -47,12 +47,12 @@ assert.strictEqual(wineryImageFor({ producer: "Château Beychevelle", name: "201
 
 const sw = read("sw.js");
 assert.ok(sw.includes("./bodega-dominio-del-challao.jpg"));
-assert.ok(sw.includes('"casa-llavaneras-ios-v112"'));
-assert.ok(sw.includes('"casa-llavaneras-jesus-ios-v112"'));
-assert.ok(sw.includes('const VERSION = "v112"'));
-assert.ok(read("app.js").includes('APP_VERSION = "v112"'));
-assert.ok(read("index.html").includes('content="v112"'));
-assert.ok(read("jesus/sw.js").includes('importScripts("../sw.js?v=112")'));
+assert.ok(sw.includes('"casa-llavaneras-ios-v113"'));
+assert.ok(sw.includes('"casa-llavaneras-jesus-ios-v113"'));
+assert.ok(sw.includes('const VERSION = "v113"'));
+assert.ok(read("app.js").includes('APP_VERSION = "v113"'));
+assert.ok(read("index.html").includes('content="v113"'));
+assert.ok(read("jesus/sw.js").includes('importScripts("../sw.js?v=113")'));
 assert.ok(read("casa-estado.js").includes('"vinoteca.pro.max.v3"'));
 assert.ok(read("casa-estado.js").includes('jesusExampleSeed = "v111"'));
 assert.ok(fs.existsSync(path.join(root, "hero-render.jpg")));

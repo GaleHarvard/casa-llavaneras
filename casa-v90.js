@@ -63,11 +63,16 @@ function interpretScoreFailure(status, body, message) {
 
 function freeGroundingRank(id) {
   const name = String(id || "").replace(/^models\//, "").toLowerCase();
-  if (!name || /preview|experimental|(^|[-_.])exp(\d|[-_.]|$)|image|embed|tts|live|native-audio/.test(name)) return 99;
+  if (!name || /experimental|(^|[-_.])exp(\d|[-_.]|$)|image|embed|tts|live|native-audio|aqa/.test(name)) return 99;
+  if (/pro|ultra|nano/.test(name)) return 99;
   if (name === "gemini-2.5-flash") return 0;
   if (name.indexOf("gemini-2.5-flash-lite") === 0) return 1;
   if (name.indexOf("gemini-2.0-flash") === 0) return 2;
-  if (/^gemini-2\.5-flash(-\d|$)/.test(name)) return 3;
+  if (/^gemini-2\.5-flash(-|$)/.test(name)) return 3;
+  if (/^gemini-3(\.\d+)?-flash(-preview)?$/.test(name)) return 4;
+  if (/^gemini-3(\.\d+)?-flash-lite/.test(name)) return 5;
+  if (/^gemini-3(\.\d+)?-flash/.test(name)) return 6;
+  if (/^gemini-1\.5-flash/.test(name)) return 7;
   return 99;
 }
 
@@ -81,8 +86,8 @@ function freeGroundingModels(ids) {
 }
 
 function groundingToolFor(model) {
-  const name = String(model || "").toLowerCase();
-  if (/gemini-1\./.test(name)) return { google_search_retrieval: {} };
+  const name = String(model || "").replace(/^models\//, "").toLowerCase();
+  if (/^gemini-1\./.test(name)) return { google_search_retrieval: {} };
   return { google_search: {} };
 }
 
@@ -167,9 +172,10 @@ async function listScoreModels(key) {
   try {
     const models = await provider.listGeminiModels(key);
     const ids = (models || []).map(model => String((model && (model.name || model)) || "").replace(/^models\//, ""));
+    const ranked = freeGroundingModels(ids);
+    if (ranked.length) return ranked;
     const catalog = typeof geminiModelsFor === "function" ? geminiModelsFor("ground").filter(id => ids.indexOf(id) >= 0) : [];
-    const ranked = catalog.length ? catalog : freeGroundingModels(ids);
-    return ranked.length ? ranked : scoreModelFallback();
+    return catalog.length ? catalog : scoreModelFallback();
   } catch (err) {
     const status = err && err.status;
     if (status === 401 || status === 403 || status === 400) throw err;
@@ -201,9 +207,10 @@ async function readScoreResponse(res) {
 }
 
 async function fetchScoreReading(key, prompt) {
-  const models = (await listScoreModels(key)).slice(0, 2);
+  const models = await listScoreModels(key);
   let last = { parsed: null, raw: null, reason: t("score.quota"), kind: "other", model: "", grounded: false };
-  for (let i = 0; i < models.length; i++) {
+  const missed = [];
+  modelLoop: for (let i = 0; i < models.length; i++) {
     const model = models[i];
     let retried = false;
     for (let hop = 0; hop < 2; hop++) {
@@ -213,7 +220,11 @@ async function fetchScoreReading(key, prompt) {
       } catch (err) {
         return { parsed: null, raw: null, reason: typeof geminiReasonFrom === "function" ? geminiReasonFrom(0, "", null, err) : t("score.quota"), kind: "network", model: model, grounded: false, stop: true };
       }
-      if (res.status === 404) { last = { parsed: null, raw: null, reason: t("score.model"), kind: "model", model: model, grounded: false }; break; }
+      if (res.status === 404) {
+        missed.push(model);
+        last = { parsed: null, raw: null, reason: t("score.model"), kind: "model", model: model, grounded: false };
+        continue modelLoop;
+      }
       if (res.ok) {
         const json = await res.json();
         const parsed = typeof extractJsonObject === "function" ? extractJsonObject(typeof geminiPartsText === "function" ? geminiPartsText(json) : "") : null;
@@ -232,7 +243,11 @@ async function fetchScoreReading(key, prompt) {
     }
   }
   if (last.kind === "day" || last.kind === "minute") return last;
-  const plain = models[0] || "gemini-2.5-flash";
+  if (models.length && missed.length === models.length) {
+    return { parsed: null, raw: null, reason: t("score.noSearchModel"), kind: "model", model: "", grounded: false };
+  }
+  const plain = models.filter(id => missed.indexOf(id) < 0)[0] || "";
+  if (!plain) return last;
   try {
     const res = await postScore(key, plain, prompt, null, null);
     if (!res.ok) {

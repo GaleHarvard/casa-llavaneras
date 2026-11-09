@@ -1548,6 +1548,7 @@ addI18n([
   ["score.quota", "Gemini ha rechazado la búsqueda y no ha dicho cuántos segundos hay que esperar.", "Gemini ha rebutjat la cerca i no ha dit quants segons cal esperar.", "Gemini refused the search and did not say how many seconds to wait.", "Gemini a refusé la recherche et n'a pas dit combien de secondes attendre.", "O Gemini recusou a pesquisa e não disse quantos segundos é preciso esperar."],
   ["score.wait", "Espera {n} s", "Espera {n} s", "Wait {n} s", "Attendez {n} s", "Espere {n} s"],
   ["score.model", "Este modelo no admite la búsqueda.", "Aquest model no admet la cerca.", "This model does not support search.", "Ce modèle n'accepte pas la recherche.", "Este modelo não aceita a pesquisa."],
+  ["score.noSearchModel", "Ningún modelo gratuito de esta clave admite la búsqueda.", "Cap model gratuït d'aquesta clau no admet la cerca.", "No free model on this key supports search.", "Aucun modèle gratuit de cette clé n'accepte la recherche.", "Nenhum modelo gratuito desta chave aceita a pesquisa."],
   ["gemini.quotaSoon", "Límite por minuto. Vuelve a intentarlo enseguida.", "Límit per minut. Torna-ho a provar de seguida.", "Per-minute limit. Try again in a moment.", "Limite à la minute. Réessayez tout de suite.", "Limite por minuto. Tente de novo já."],
   ["wineries.h1", "Bodegas", "Cellers", "Wineries", "Domaines", "Produtores"],
   ["wineries.link", "Bodegas", "Cellers", "Wineries", "Domaines", "Produtores"],

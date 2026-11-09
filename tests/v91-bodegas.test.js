@@ -103,9 +103,9 @@ assert.ok(v91.includes("wineries.sources"));
 assert.ok(v91.includes('precision === "municipio"'));
 
 assert.ok(html.includes('id="bodegas"'));
-assert.ok(html.includes("casa-v91.js?v=112"));
-assert.ok(app.includes('APP_VERSION = "v112"'));
-assert.ok(sw.includes("casa-llavaneras-ios-v112"));
+assert.ok(html.includes("casa-v91.js?v=113"));
+assert.ok(app.includes('APP_VERSION = "v113"'));
+assert.ok(sw.includes("casa-llavaneras-ios-v113"));
 assert.ok(sw.includes("./bodega-domaine-georges-roumier.jpg"));
 assert.ok(sw.includes("./casa-v91.js"));
 ["wineries.h1", "wineries.open", "wineries.artPending", "wineries.noZone", "wineries.sources"].forEach(key => {

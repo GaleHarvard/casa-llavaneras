@@ -598,6 +598,47 @@ function pinOk(lat, lng) {
   if (Math.abs(lat - 40.4) < 0.02 && Math.abs(lng + 3.7) < 0.02) return false;
   return true;
 }
+function webWrittenByHand(w) {
+  const src = String((w && w.provenance && w.provenance.web) || "");
+  return src === "página" || src === "manual" || src === "usuario";
+}
+function officialCatalogWeb(w) {
+  if (!w || typeof wineryCardFor !== "function") return "";
+  const card = wineryCardFor(w);
+  const web = String((card && card.web) || "").trim();
+  if (!/^https?:\/\//i.test(web)) return "";
+  if (typeof isShopUrl === "function" && isShopUrl(web)) return "";
+  return web;
+}
+function sameWeb(a, b) {
+  const norm = value => String(value || "").trim().replace(/\/+$/, "").toLowerCase();
+  return norm(a) !== "" && norm(a) === norm(b);
+}
+function applyOfficialCatalogWeb(wine) {
+  if (!wine || webWrittenByHand(wine)) return false;
+  const official = officialCatalogWeb(wine);
+  if (!official) return false;
+  wine.geo = wine.geo || {};
+  wine.provenance = wine.provenance || {};
+  let changed = false;
+  if (!sameWeb(wine.geo.web, official)) {
+    wine.geo.web = official;
+    changed = true;
+  }
+  if (wine.provenance.web !== "catálogo") {
+    wine.provenance.web = "catálogo";
+    changed = true;
+  }
+  return changed;
+}
+function migrateOfficialWebs(st) {
+  if (!st || st._corrupt || !Array.isArray(st.customWines)) return false;
+  let changed = false;
+  st.customWines.forEach(wine => {
+    if (applyOfficialCatalogWeb(wine)) changed = true;
+  });
+  return changed;
+}
 function bodegaGeo(w) {
   const lib = estateHit(w) || {};
   const g = (w && w.geo) || {};
@@ -606,6 +647,7 @@ function bodegaGeo(w) {
   const storedPin = pinOk(lat, lng);
   const storedAddress = !textShop(g.address) && String(g.address || "").trim().length > 8 ? String(g.address).trim() : "";
   const storedWeb = g.web && !isShopUrl(g.web) ? g.web : "";
+  const official = w && !webWrittenByHand(w) ? officialCatalogWeb(w) : "";
   const region = String((w && (w.appellation || w.region)) || "").trim();
   const storedZone = g.zone && !textShop(g.zone) && foldEstate(g.zone) !== foldEstate(region) ? g.zone : "";
   return {
@@ -613,7 +655,7 @@ function bodegaGeo(w) {
     lng: storedPin ? lng : (lib.lng != null ? lib.lng : null),
     zone: storedZone || lib.zone || region || (w && w.country) || "",
     address: storedAddress || lib.address || "",
-    web: storedWeb || lib.web || ""
+    web: official || storedWeb || lib.web || ""
   };
 }
 function repairShopWinery(w) {
