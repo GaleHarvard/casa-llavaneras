@@ -15,16 +15,22 @@ assert.strictEqual(card.name, "Dominio del Challao");
 assert.deepStrictEqual(card.aliases, ["Challao", "Dominio Challao"]);
 assert.strictEqual(card.country, "España");
 assert.strictEqual(card.zone, "Rioja");
-assert.strictEqual(card.zoneText, "Rioja Alavesa");
-assert.strictEqual(card.town, "");
+assert.strictEqual(card.zoneText, "DOCa Rioja · Rioja Alavesa");
+assert.strictEqual(card.town, "Labastida");
 assert.strictEqual(card.address, "");
-assert.strictEqual(card.about, "");
-assert.strictEqual(card.founded, "");
-assert.deepStrictEqual(card.wines, []);
+assert.strictEqual(card.founded, 2019);
+assert.ok(card.about.includes("Manu Michelini"));
+assert.ok(card.about.includes("Carlos Fernández"));
+assert.ok(card.about.includes("olla de agua"));
+assert.ok(!/cata|nariz|boca|tanino sedoso/i.test(card.about));
+assert.deepStrictEqual(card.wines, ["Challao", "Angelita del Challao", "Virna", "Challao Blanco"]);
 assert.strictEqual(card.lat, null);
 assert.strictEqual(card.lng, null);
 assert.strictEqual(card.web, "https://www.dominiodelchallao.com/");
-assert.deepStrictEqual(card.sources, ["https://www.dominiodelchallao.com/"]);
+assert.deepStrictEqual(card.sources, [
+  "https://www.dominiodelchallao.com/",
+  "https://www.ideavinos.com/blog/post/bodega-destacada-25-dominio-del-challao"
+]);
 assert.strictEqual(card.file, "bodega-dominio-del-challao.jpg");
 const file = path.join(root, card.file);
 const buf = fs.readFileSync(file);

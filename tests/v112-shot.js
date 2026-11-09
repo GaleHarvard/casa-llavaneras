@@ -34,27 +34,29 @@ function pngSize(file) {
   }, null, { timeout: 8000 });
   await page.evaluate(() => { if (typeof setAppLang === "function") setAppLang("es"); });
   const info = await page.evaluate(() => {
-    const wine = {
-      id: "prueba-challao",
-      name: "Dominio del Challao",
-      producer: "Dominio del Challao",
-      vintage: 0,
-      type: "tinto",
-      grapes: []
-    };
-    state.customWines = state.customWines || [];
-    state.customWines.push(wine);
-    openWine(wine.id);
-    return { version: APP_VERSION, image: wineryImageFor(wine) };
+    openBodega("dominio-del-challao", true);
+    const card = wineryCardById("dominio-del-challao");
+    return { version: APP_VERSION, file: card && card.file, town: card && card.town };
   });
   assert.strictEqual(info.version, "v112");
-  assert.strictEqual(info.image, "bodega-dominio-del-challao.jpg");
+  assert.strictEqual(info.file, "bodega-dominio-del-challao.jpg");
+  assert.strictEqual(info.town, "Labastida");
   await page.waitForFunction(() => {
-    const img = document.querySelector("#wine-body img");
-    return img && img.getAttribute("src") === "bodega-dominio-del-challao.jpg" && img.complete && img.naturalWidth > 400;
+    const img = document.querySelector("#bodegas-body img");
+    const text = document.getElementById("bodegas-body").innerText;
+    return img && img.getAttribute("src") === "bodega-dominio-del-challao.jpg" && img.complete && img.naturalWidth > 400
+      && text.includes("Labastida") && text.includes("2019") && text.includes("ideavinos.com");
   });
-  const text = await page.locator("#wine-body").innerText();
+  await page.evaluate(() => {
+    const body = document.getElementById("bodegas-body");
+    if (body) body.scrollTop = body.scrollHeight;
+  });
+  const text = await page.locator("#bodegas-body").innerText();
   assert.ok(text.includes("Dominio del Challao"));
+  assert.ok(text.includes("Challao Blanco"));
+  assert.ok(/rioja alavesa/i.test(text), text);
+  assert.ok(!text.includes("Laguardia"));
+  assert.ok(!text.includes("El Olmo"));
   await page.screenshot({ path: out, type: "png" });
   assert.deepStrictEqual(pngSize(out), { width: 1170, height: 2532 });
   assert.deepStrictEqual(errors, []);
