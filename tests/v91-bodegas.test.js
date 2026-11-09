@@ -40,7 +40,7 @@ eval(extractFunction(v91, "fuzzyWineryHit"));
 const zoneSrc = vinoteca.slice(0, vinoteca.indexOf("const ZONE_DO"));
 const zoneNames = new Set(Array.from(zoneSrc.matchAll(/name: "([^"]+)"/g)).map(hit => hit[1]));
 
-assert.strictEqual(WINERY_CARDS.length, 60);
+assert.strictEqual(WINERY_CARDS.length, 61);
 const files = {};
 const missing = [];
 WINERY_CARDS.forEach(card => {
@@ -103,9 +103,9 @@ assert.ok(v91.includes("wineries.sources"));
 assert.ok(v91.includes('precision === "municipio"'));
 
 assert.ok(html.includes('id="bodegas"'));
-assert.ok(html.includes("casa-v91.js?v=111"));
-assert.ok(app.includes('APP_VERSION = "v111"'));
-assert.ok(sw.includes("casa-llavaneras-ios-v111"));
+assert.ok(html.includes("casa-v91.js?v=112"));
+assert.ok(app.includes('APP_VERSION = "v112"'));
+assert.ok(sw.includes("casa-llavaneras-ios-v112"));
 assert.ok(sw.includes("./bodega-domaine-georges-roumier.jpg"));
 assert.ok(sw.includes("./casa-v91.js"));
 ["wineries.h1", "wineries.open", "wineries.artPending", "wineries.noZone", "wineries.sources"].forEach(key => {

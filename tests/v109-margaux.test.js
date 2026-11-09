@@ -117,11 +117,11 @@ assert.strictEqual(unnamed.producer, "Château Beychevelle");
 
 assert.ok(!v109.includes("localStorage.clear"));
 assert.ok(sw.includes("./casa-v109.js"));
-assert.ok(sw.includes('"casa-llavaneras-ios-v111"'));
-assert.ok(sw.includes('"casa-llavaneras-jesus-ios-v111"'));
-assert.ok(app.includes('APP_VERSION = "v111"'));
-assert.ok(html.includes('content="v111"'));
-assert.ok(html.includes("casa-v109.js?v=111"));
+assert.ok(sw.includes('"casa-llavaneras-ios-v112"'));
+assert.ok(sw.includes('"casa-llavaneras-jesus-ios-v112"'));
+assert.ok(app.includes('APP_VERSION = "v112"'));
+assert.ok(html.includes('content="v112"'));
+assert.ok(html.includes("casa-v109.js?v=112"));
 assert.ok(!gemini.includes('wine.provenance[k] = "valor por defecto"'));
 assert.ok(read("bodegas.js").includes("Margaux du Château Margaux"));
 assert.ok(!read("bodegas.js").includes('"Margaux",'));

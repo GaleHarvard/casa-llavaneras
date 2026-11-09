@@ -71,7 +71,8 @@ var WINERY_LIBRARY = [
   { name: "Bodegas Luis Cañas", file: "bodega-luis-canas.jpg", aliases: ["Luis Cañas", "Luis Canas"] },
   { name: "Bodegas y Viñedos García Figuero", file: "bodega-garcia-figuero.jpg", aliases: ["García Figuero", "Garcia Figuero", "Tinto Figuero", "Figuero", "Figuero Viñas Viejas"] },
   { name: "Pago de los Capellanes", file: "bodega-pago-de-los-capellanes.jpg", aliases: ["Pago de Capellanes", "Pago de los Capellanes", "Bodegas Pago de los Capellanes"] },
-  { name: "Bodegas Muriel", file: "bodega-muriel.jpg", aliases: ["Muriel"] }
+  { name: "Bodegas Muriel", file: "bodega-muriel.jpg", aliases: ["Muriel"] },
+  { name: "Dominio del Challao", file: "bodega-dominio-del-challao.jpg", aliases: ["Challao", "Dominio Challao"] }
 ];
 
 /* Santiuste de San Juan Bautista: web https://avelinovegas.com/ y pin 41.161401, -4.574553. */
@@ -1941,6 +1942,36 @@ var WINERY_CARDS = [
     "wines": [],
     "file": "bodega-muriel.jpg",
     "sources": []
+  },
+  {
+    "id": "dominio-del-challao",
+    "name": "Dominio del Challao",
+    "aliases": [
+      "Challao",
+      "Dominio Challao"
+    ],
+    "country": "España",
+    "zone": "Rioja",
+    "zoneText": "DOCa Rioja · Rioja Alavesa",
+    "town": "Labastida",
+    "web": "https://www.dominiodelchallao.com/",
+    "address": "",
+    "lat": null,
+    "lng": null,
+    "precision": "",
+    "founded": 2019,
+    "about": "Fundada en 2019 por Manu Michelini (Mendoza, Argentina; familia Michelini Mufatto) y Carlos Fernández (viticultor de Labastida, Bodegas Tierra). El nombre homenajea la zona de El Challao, en Mendoza, y significa «olla de agua». Unas 6 ha en cinco parcelas de distintos valles de Labastida, en biodinámica y con tracción animal; suelos arcillo-calcáreos con yeso y marga, y un microclima fresco marcado por la Sierra de Cantabria. Elabora en cuevas del siglo XII en la parte alta del pueblo; la crianza es en fudres de los Vosgos, y parte de la uva se pisa y fermenta en hormigón. Challao es el tinto principal, sobre todo Tempranillo con algo de Garnacha y Viura, de viñas viejas; la primera añada, 2020, tiene 96 Parker y 95 Tim Atkin. Angelita del Challao es el tinto de pueblo, con 20 meses en barrica usada. También elabora Virna y Challao Blanco.",
+    "wines": [
+      "Challao",
+      "Angelita del Challao",
+      "Virna",
+      "Challao Blanco"
+    ],
+    "file": "bodega-dominio-del-challao.jpg",
+    "sources": [
+      "https://www.dominiodelchallao.com/",
+      "https://www.ideavinos.com/blog/post/bodega-destacada-25-dominio-del-challao"
+    ]
   }
 ];
 
