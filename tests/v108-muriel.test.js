@@ -14,7 +14,7 @@ const jesus = read("jesus/index.html");
 global.window = global.window || {};
 eval(bodegas);
 
-assert.strictEqual(WINERY_CARDS.length, 60);
+assert.strictEqual(WINERY_CARDS.length, 61);
 const card = WINERY_CARDS.find(item => item.id === "bodegas-muriel");
 assert.ok(card);
 assert.strictEqual(card.name, "Bodegas Muriel");
@@ -48,14 +48,14 @@ assert.strictEqual(wineryImageFor({ producer: "Pago de los Capellanes", name: "C
 
 assert.ok(sw.includes("./bodega-muriel.jpg"));
 assert.ok(sw.includes("./bodega-pago-de-los-capellanes.jpg"));
-assert.ok(sw.includes('"casa-llavaneras-ios-v111"'));
-assert.ok(sw.includes('"casa-llavaneras-jesus-ios-v111"'));
-assert.ok(sw.includes('const VERSION = "v111"'));
+assert.ok(sw.includes('"casa-llavaneras-ios-v112"'));
+assert.ok(sw.includes('"casa-llavaneras-jesus-ios-v112"'));
+assert.ok(sw.includes('const VERSION = "v112"'));
 assert.ok(!sw.includes("client.navigate"));
-assert.ok(app.includes('APP_VERSION = "v111"'));
-assert.ok(html.includes('content="v111"'));
-assert.ok(jesus.includes('content="v111"'));
-assert.ok(read("jesus/sw.js").includes('importScripts("../sw.js?v=111")'));
+assert.ok(app.includes('APP_VERSION = "v112"'));
+assert.ok(html.includes('content="v112"'));
+assert.ok(jesus.includes('content="v112"'));
+assert.ok(read("jesus/sw.js").includes('importScripts("../sw.js?v=112")'));
 assert.ok(!bodegas.includes("bodegas-muriel.jpg"));
 assert.ok(bodegas.includes("bodega-muriel.jpg"));
 

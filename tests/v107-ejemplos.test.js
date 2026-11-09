@@ -61,13 +61,13 @@ assert.ok(vino.includes('"riscal-reserva-2019": "https://cdn.vinissimus.com/img/
 assert.ok(!vino.includes("vs-unico-2009"));
 assert.ok(!vino.includes("etiquetas/"));
 
-assert.ok(sw.includes('"casa-llavaneras-ios-v111"'));
-assert.ok(sw.includes('"casa-llavaneras-jesus-ios-v111"'));
-assert.ok(sw.includes('const VERSION = "v111"'));
-assert.ok(app.includes('APP_VERSION = "v111"'));
-assert.ok(html.includes('content="v111"'));
-assert.ok(jesusHtml.includes('content="v111"'));
-assert.ok(read("jesus/sw.js").includes('importScripts("../sw.js?v=111")'));
+assert.ok(sw.includes('"casa-llavaneras-ios-v112"'));
+assert.ok(sw.includes('"casa-llavaneras-jesus-ios-v112"'));
+assert.ok(sw.includes('const VERSION = "v112"'));
+assert.ok(app.includes('APP_VERSION = "v112"'));
+assert.ok(html.includes('content="v112"'));
+assert.ok(jesusHtml.includes('content="v112"'));
+assert.ok(read("jesus/sw.js").includes('importScripts("../sw.js?v=112")'));
 assert.ok(!html.includes("Jesús Gómez"));
 assert.ok(html.includes('<div class="mark">J.G.C.</div>'));
 

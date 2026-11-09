@@ -71,7 +71,8 @@ var WINERY_LIBRARY = [
   { name: "Bodegas Luis Cañas", file: "bodega-luis-canas.jpg", aliases: ["Luis Cañas", "Luis Canas"] },
   { name: "Bodegas y Viñedos García Figuero", file: "bodega-garcia-figuero.jpg", aliases: ["García Figuero", "Garcia Figuero", "Tinto Figuero", "Figuero", "Figuero Viñas Viejas"] },
   { name: "Pago de los Capellanes", file: "bodega-pago-de-los-capellanes.jpg", aliases: ["Pago de Capellanes", "Pago de los Capellanes", "Bodegas Pago de los Capellanes"] },
-  { name: "Bodegas Muriel", file: "bodega-muriel.jpg", aliases: ["Muriel"] }
+  { name: "Bodegas Muriel", file: "bodega-muriel.jpg", aliases: ["Muriel"] },
+  { name: "Dominio del Challao", file: "bodega-dominio-del-challao.jpg", aliases: ["Challao", "Dominio Challao"] }
 ];
 
 /* Santiuste de San Juan Bautista: web https://avelinovegas.com/ y pin 41.161401, -4.574553. */
@@ -1941,6 +1942,30 @@ var WINERY_CARDS = [
     "wines": [],
     "file": "bodega-muriel.jpg",
     "sources": []
+  },
+  {
+    "id": "dominio-del-challao",
+    "name": "Dominio del Challao",
+    "aliases": [
+      "Challao",
+      "Dominio Challao"
+    ],
+    "country": "España",
+    "zone": "Rioja",
+    "zoneText": "Rioja Alavesa",
+    "town": "",
+    "web": "https://www.dominiodelchallao.com/",
+    "address": "",
+    "lat": null,
+    "lng": null,
+    "precision": "",
+    "founded": "",
+    "about": "",
+    "wines": [],
+    "file": "bodega-dominio-del-challao.jpg",
+    "sources": [
+      "https://www.dominiodelchallao.com/"
+    ]
   }
 ];
 

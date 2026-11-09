@@ -27,12 +27,12 @@ const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
 const i18n = fs.readFileSync(path.join(root, "i18n.js"), "utf8");
 const css = fs.readFileSync(path.join(root, "styles.css"), "utf8");
 
-assert.ok(app.includes('APP_VERSION = "v111"'));
-assert.ok(html.includes('content="v111"'));
-assert.ok(html.includes("casa-alta.js?v=111"));
-assert.ok(sw.includes('"casa-llavaneras-ios-v111"'));
-assert.ok(sw.includes('"casa-llavaneras-jesus-ios-v111"'));
-assert.ok(sw.includes('const VERSION = "v111"'));
+assert.ok(app.includes('APP_VERSION = "v112"'));
+assert.ok(html.includes('content="v112"'));
+assert.ok(html.includes("casa-alta.js?v=112"));
+assert.ok(sw.includes('"casa-llavaneras-ios-v112"'));
+assert.ok(sw.includes('"casa-llavaneras-jesus-ios-v112"'));
+assert.ok(sw.includes('const VERSION = "v112"'));
 assert.ok(alta.includes('imageOrientation: "from-image"'));
 assert.ok(alta.includes('imageOrientation: "none"'));
 assert.ok(alta.includes("function uprightLabelData"));
