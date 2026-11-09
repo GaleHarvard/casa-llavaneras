@@ -31,11 +31,11 @@ assert.ok(!heroFn.includes("bottleMarkup"));
 assert.ok(heroFn.includes("hero-art-full"));
 assert.ok(!estateFn.includes("bottleMarkup"));
 assert.ok(estateFn.includes("estate-photo-full"));
-assert.ok(app.includes('APP_VERSION = "v112"'));
-assert.ok(html.includes('content="v112"'));
-assert.ok(sw.includes('"casa-llavaneras-ios-v112"'));
-assert.ok(sw.includes('"casa-llavaneras-jesus-ios-v112"'));
-assert.ok(sw.includes('const VERSION = "v112"'));
+assert.ok(app.includes('APP_VERSION = "v113"'));
+assert.ok(html.includes('content="v113"'));
+assert.ok(sw.includes('"casa-llavaneras-ios-v113"'));
+assert.ok(sw.includes('"casa-llavaneras-jesus-ios-v113"'));
+assert.ok(sw.includes('const VERSION = "v113"'));
 
 const vinoteca = fs.readFileSync(path.join(root, "casa-vinoteca.js"), "utf8");
 const zoneSrc = vinoteca.slice(0, vinoteca.indexOf("const ZONE_DO"));

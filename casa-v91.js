@@ -239,3 +239,13 @@ wineForIntake = function (fields, catalogHit) {
   }
   return wineForIntakeV91(fields, catalogHit);
 };
+
+(function () {
+  if (typeof state === "undefined" || !state || state._corrupt) return;
+  if (typeof cellarLocked !== "undefined" && cellarLocked) return;
+  try {
+    if (typeof migrateOfficialWebs === "function" && migrateOfficialWebs(state) && typeof save === "function") save();
+  } catch (err) {
+    console.warn("web catalogo", err);
+  }
+})();

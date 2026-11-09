@@ -31,15 +31,17 @@ const sw = fs.readFileSync(path.join(root, "sw.js"), "utf8");
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
 
 assert.ok(!v90.includes("|| 30000"));
-assert.ok(extractFunction(v90, "fetchScoreReading").includes("slice(0, 2)"));
+assert.ok(!extractFunction(v90, "fetchScoreReading").includes("slice(0, 2)"));
+assert.ok(extractFunction(v90, "fetchScoreReading").includes("continue modelLoop"));
+assert.ok(extractFunction(v90, "fetchScoreReading").includes('t("score.noSearchModel")'));
 assert.ok(extractFunction(v90, "fetchScoreReading").includes("postScore(key, plain, prompt, null, null)"));
-assert.ok(html.includes("casa-v90.js?v=112"));
-assert.ok(html.indexOf("casa-v90.js?v=112") < html.indexOf("app.js?v=112"));
-assert.ok(html.indexOf("casa-v89.js?v=112") < html.indexOf("casa-v90.js?v=112"));
-assert.ok(app.includes('APP_VERSION = "v112"'));
-assert.ok(sw.includes('"casa-llavaneras-ios-v112"'));
-assert.ok(sw.includes('"casa-llavaneras-jesus-ios-v112"'));
-assert.ok(sw.includes('const VERSION = "v112"'));
+assert.ok(html.includes("casa-v90.js?v=113"));
+assert.ok(html.indexOf("casa-v90.js?v=113") < html.indexOf("app.js?v=113"));
+assert.ok(html.indexOf("casa-v89.js?v=113") < html.indexOf("casa-v90.js?v=113"));
+assert.ok(app.includes('APP_VERSION = "v113"'));
+assert.ok(sw.includes('"casa-llavaneras-ios-v113"'));
+assert.ok(sw.includes('"casa-llavaneras-jesus-ios-v113"'));
+assert.ok(sw.includes('const VERSION = "v113"'));
 assert.ok(sw.includes("./casa-v90.js"));
 assert.ok(!html.includes("?v=90"));
 assert.ok(!html.includes("?v=89"));
@@ -73,6 +75,7 @@ const COPY = {
   "score.wait": "Espera {n} s",
   "score.search": "Buscar puntuaciones",
   "score.model": "Este modelo no admite la búsqueda.",
+  "score.noSearchModel": "Ningún modelo gratuito de esta clave admite la búsqueda.",
   "score.searching": "Buscando puntuaciones…",
   "score.savedWeb": "Puntuaciones guardadas desde la web.",
   "score.noneFound": "No he encontrado puntuaciones publicadas.",
@@ -190,12 +193,16 @@ assert.strictEqual(unsupported.action, "next");
 assert.strictEqual(unsupported.kind, "model");
 
 assert.deepStrictEqual(
-  freeGroundingModels(["gemini-3.5-flash-lite", "gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.5-flash-lite", "gemini-2.5-pro", "gemini-2.5-flash-preview"]),
-  ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.0-flash"]
+  freeGroundingModels(["gemini-3.5-flash-lite", "gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.5-flash-lite", "gemini-2.5-pro", "gemini-2.5-flash-preview", "gemini-3-flash-preview", "gemini-3-pro"]),
+  ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.0-flash", "gemini-2.5-flash-preview", "gemini-3-flash-preview", "gemini-3.5-flash-lite"]
 );
 assert.ok(groundingToolFor("gemini-2.5-flash").google_search);
+assert.ok(groundingToolFor("gemini-3.5-flash").google_search);
+assert.ok(groundingToolFor("gemini-3-flash-preview").google_search);
 assert.ok(!groundingToolFor("gemini-2.5-flash").google_search_retrieval);
+assert.ok(!groundingToolFor("gemini-3.5-flash").google_search_retrieval);
 assert.ok(groundingToolFor("gemini-1.5-flash").google_search_retrieval);
+assert.ok(!groundingToolFor("gemini-1.5-flash").google_search);
 
 const titled = fichaTitles({ producer: "Bodegas Faustino", name: "Crianza", vintage: 2020 });
 assert.strictEqual(titled.head, "Bodegas Faustino");
@@ -297,6 +304,7 @@ global.fetch = async function (url, opts) {
   global.fetch.queue = [
     jsonResponse(429, bareBody),
     jsonResponse(429, bareBody),
+    jsonResponse(429, bareBody),
     jsonResponse(200, {
       candidates: [{
         content: { parts: [{ text: JSON.stringify({ scores: [
@@ -315,8 +323,9 @@ global.fetch = async function (url, opts) {
   const setNote = setScoreNote;
   setScoreNote = function (text) { notes.push(text); setNote(text); };
   await searchPublishedScores(wine.id, false);
-  assert.strictEqual(calls.length, 3);
-  assert.strictEqual(calls[2].tools, null);
+  assert.strictEqual(calls.length, 4);
+  assert.strictEqual(calls[3].tools, null);
+  assert.ok(calls[2].url.indexOf("gemini-3.5-flash-lite") >= 0);
   assert.strictEqual(wine.ratings.parker.score, 95);
   assert.strictEqual(wine.ratings.parker.origin, "web");
   assert.strictEqual(wine.ratings.parker.url, "https://revista.example/faustino");
@@ -324,6 +333,45 @@ global.fetch = async function (url, opts) {
   assert.ok(!wine.ratings.decanter);
   assert.ok(toasts.indexOf(COPY["score.noGrounding"]) >= 0);
   assert.ok(notes.indexOf(COPY["score.noGrounding"]) >= 0);
+
+  global.window.WineDataProvider.listGeminiModels = async () => [
+    { name: "models/gemini-2.5-flash" },
+    { name: "models/gemini-3-flash" },
+    { name: "models/gemini-3.5-flash" }
+  ];
+  calls.length = 0;
+  global.fetch.queue = [
+    jsonResponse(404, { error: { code: 404, message: "models/gemini-2.5-flash is not found" } }),
+    jsonResponse(404, { error: { code: 404, message: "models/gemini-3-flash is not found" } }),
+    jsonResponse(200, okScore("https://revista.example/faustino", true))
+  ];
+  const recovered = await fetchScoreReading("clave-de-prueba-v90", "prompt");
+  assert.strictEqual(recovered.grounded, true);
+  assert.strictEqual(recovered.model, "gemini-3.5-flash");
+  assert.strictEqual(calls.length, 3);
+  assert.ok(calls[0].url.indexOf("/gemini-2.5-flash:") >= 0);
+  assert.ok(calls[1].url.indexOf("/gemini-3-flash:") >= 0);
+  assert.ok(calls[2].url.indexOf("/gemini-3.5-flash:") >= 0);
+  assert.deepStrictEqual(calls[1].tools, [{ google_search: {} }]);
+  assert.deepStrictEqual(calls[2].tools, [{ google_search: {} }]);
+
+  calls.length = 0;
+  toasts.length = 0;
+  notes.length = 0;
+  global.fetch.queue = [jsonResponse(404, {}), jsonResponse(404, {}), jsonResponse(404, {})];
+  wine = { id: "crianza-2020", name: "Crianza", producer: "Bodegas Faustino", vintage: 2020, ratings: { parker: { score: 91, scale: 100, origin: "usuario", manual: true, source: "José" } } };
+  state = { wineEdits: {}, customWines: [wine], bottles: [{ wineId: wine.id, qty: 1 }] };
+  scoreSearchBusy = false;
+  await searchPublishedScores(wine.id, false);
+  assert.strictEqual(calls.length, 3);
+  assert.ok(calls.every(call => call.tools && call.tools[0].google_search));
+  assert.strictEqual(wine.ratings.parker.score, 91);
+  assert.strictEqual(wine.ratings.parker.source, "José");
+  assert.ok(!wine.ratings.penin);
+  assert.ok(!wine.ratings.spectator);
+  assert.ok(toasts.indexOf(COPY["score.noSearchModel"]) >= 0);
+  assert.ok(toasts.indexOf(COPY["score.model"]) < 0);
+  assert.strictEqual(state.bottles[0].qty, 1);
 
   const seen = [];
   const btn = { disabled: false };

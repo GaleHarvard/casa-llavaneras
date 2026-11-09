@@ -38,7 +38,7 @@ function pngSize(file) {
     const card = wineryCardById("dominio-del-challao");
     return { version: APP_VERSION, file: card && card.file, town: card && card.town };
   });
-  assert.strictEqual(info.version, "v112");
+  assert.strictEqual(info.version, "v113");
   assert.strictEqual(info.file, "bodega-dominio-del-challao.jpg");
   assert.strictEqual(info.town, "Labastida");
   await page.waitForFunction(() => {

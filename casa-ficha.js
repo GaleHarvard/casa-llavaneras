@@ -283,6 +283,13 @@ function setFichaProgress(msg) {
 function wineTranslateCard() {
   return "";
 }
+function wineWebLine(w) {
+  const g = typeof bodegaGeo === "function" ? bodegaGeo(w) : {};
+  const web = typeof bodegaWeb === "function" ? bodegaWeb(g.web) : (g.web || "");
+  const host = String(web || "").replace(/^https?:\/\//i, "").replace(/\/$/, "");
+  if (!host) return "";
+  return `<p class="tiny" id="wine-web" style="text-align:center;margin:0 0 8px;word-break:break-all">${escHtml(host)}</p>`;
+}
 function openWine(wineId, bottle) {
   const w = wineById(wineId);
   if (!w) {
@@ -305,6 +312,7 @@ function openWine(wineId, bottle) {
     <div class="wine-hero">${estateSVG(w)}</div>
     <h1 class="wine-producer">${escHtml(typeof fichaTitles === "function" ? fichaTitles(w).head : (typeof sheetTitle === "function" ? sheetTitle(w.producer) : (w.producer || "")))}</h1>
     <p class="wine-cuvee">${escHtml(typeof fichaTitles === "function" ? fichaTitles(w).sub : ((typeof sheetTitle === "function" ? sheetTitle(w.name) : (w.name || "")) + (shownYear(w) ? " " + shownYear(w) : "")))}</p>
+    ${wineWebLine(w)}
     ${typeof vintageBlockHtml === "function" ? vintageBlockHtml(w) : ""}
     <button type="button" class="btn btn-ghost label-change" onclick="changeWineLabel()">${t("label.change")}</button>
     <div class="peak-pill">${pill}</div>
@@ -997,7 +1005,9 @@ function provenanceCard(w) {
   const host = w.provenance.pageHost ? `<p class="tiny" style="margin-top:6px">${t("fact.pageRead", { host: w.provenance.pageHost })}</p>` : "";
   const note = w.provenance.geminiNote;
   const why = note ? `<p style="margin-top:8px">${escHtml(note === NO_GEMINI_NOTE ? t("gemini.noKeyNote") : note)}</p>` : "";
-  return `<div class="card"><p class="tiny">${t("fact.from")}</p>${host}${why}${lines}</div>`;
+  const web = typeof bodegaGeo === "function" ? (bodegaGeo(w).web || "") : "";
+  const webLine = web ? `<p id="fuente-web" style="margin-top:8px;word-break:break-all">${escHtml(web)}</p>` : "";
+  return `<div class="card"><p class="tiny">${t("fact.from")}</p>${host}${why}${webLine}${lines}</div>`;
 }
 function priceHistoryBlock(w) {
   if (!w || (!w.provenance && !(w.priceHistory && w.priceHistory.length))) return "";
