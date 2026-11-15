@@ -8,7 +8,7 @@ const read = name => fs.readFileSync(path.join(root, name), "utf8");
 global.window = global.window || {};
 eval(read("bodegas.js"));
 
-assert.strictEqual(WINERY_CARDS.length, 61);
+assert.strictEqual(WINERY_CARDS.length, 62);
 const card = WINERY_CARDS.find(item => item.id === "dominio-del-challao");
 assert.ok(card);
 assert.strictEqual(card.name, "Dominio del Challao");

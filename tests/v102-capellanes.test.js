@@ -15,7 +15,7 @@ global.window = global.window || {};
 eval(bodegas);
 eval(wines);
 
-assert.strictEqual(WINERY_CARDS.length, 61);
+assert.strictEqual(WINERY_CARDS.length, 62);
 const card = WINERY_CARDS.find(item => item.id === "pago-de-los-capellanes");
 assert.ok(card);
 assert.strictEqual(card.name, "Pago de los Capellanes");

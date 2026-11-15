@@ -40,7 +40,7 @@ eval(extractFunction(v91, "wineryCardFor"));
 eval(vino);
 eval(extractFunction(v88, "applyKnownWinery"));
 
-assert.strictEqual(WINERY_CARDS.length, 61);
+assert.strictEqual(WINERY_CARDS.length, 62);
 assert.ok(sw.includes('"casa-llavaneras-ios-v113"'));
 assert.ok(sw.includes('"casa-llavaneras-jesus-ios-v113"'));
 assert.ok(sw.includes('const VERSION = "v113"'));

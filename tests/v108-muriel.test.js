@@ -14,7 +14,7 @@ const jesus = read("jesus/index.html");
 global.window = global.window || {};
 eval(bodegas);
 
-assert.strictEqual(WINERY_CARDS.length, 61);
+assert.strictEqual(WINERY_CARDS.length, 62);
 const card = WINERY_CARDS.find(item => item.id === "bodegas-muriel");
 assert.ok(card);
 assert.strictEqual(card.name, "Bodegas Muriel");

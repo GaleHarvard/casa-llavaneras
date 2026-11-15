@@ -72,7 +72,8 @@ var WINERY_LIBRARY = [
   { name: "Bodegas y Viñedos García Figuero", file: "bodega-garcia-figuero.jpg", aliases: ["García Figuero", "Garcia Figuero", "Tinto Figuero", "Figuero", "Figuero Viñas Viejas"] },
   { name: "Pago de los Capellanes", file: "bodega-pago-de-los-capellanes.jpg", aliases: ["Pago de Capellanes", "Pago de los Capellanes", "Bodegas Pago de los Capellanes"] },
   { name: "Bodegas Muriel", file: "bodega-muriel.jpg", aliases: ["Muriel"] },
-  { name: "Dominio del Challao", file: "bodega-dominio-del-challao.jpg", aliases: ["Challao", "Dominio Challao"] }
+  { name: "Dominio del Challao", file: "bodega-dominio-del-challao.jpg", aliases: ["Challao", "Dominio Challao"] },
+  { name: "Descendientes de J. Palacios", file: "bodega-descendientes-de-j-palacios.jpg", aliases: ["J. Palacios", "Descendientes de José Palacios"] }
 ];
 
 /* Santiuste de San Juan Bautista: web https://avelinovegas.com/ y pin 41.161401, -4.574553. */
@@ -134,15 +135,25 @@ function wineryNeedleHits(needle, hay, compactHay) {
   return re.test(hay) || re.test(compactHay);
 }
 
+function palaciosHouse(hay, compactHay) {
+  var blob = " " + String(hay || "") + " " + String(compactHay || "") + " ";
+  var has = function (word) { return blob.indexOf(" " + word + " ") >= 0; };
+  var corullon = has("corullon");
+  var signal = has("descendientes") || has("j palacios") || has("jose palacios") || has("petalos") || has("faraona") || has("moncerbal") || has("lamas") || has("villa de corullon") || (corullon && has("palacios"));
+  return { signal: signal, blocksAlvaro: signal || corullon };
+}
+
 function wineryImageFor(w) {
   var generic = GENERIC_ESTATE || "vinedo.jpg";
   w = w || {};
   var hay = foldWinery((w.producer || "") + " " + (w.name || ""));
   var compactHay = compactWinery(hay);
   if (!hay) return generic;
+  var house = palaciosHouse(hay, compactHay);
   var best = null;
   var bestLen = 0;
   (WINERY_LIBRARY || []).forEach(function (entry) {
+    if (house.blocksAlvaro && foldWinery(entry.name) === "alvaro palacios") return;
     wineryNeedles(entry).forEach(function (needle) {
       if (needle.length <= bestLen) return;
       if (!wineryNeedleHits(needle, hay, compactHay)) return;
@@ -150,6 +161,9 @@ function wineryImageFor(w) {
       bestLen = needle.length;
     });
   });
+  if (!best && house.signal) {
+    best = (WINERY_LIBRARY || []).find(function (entry) { return entry.file === "bodega-descendientes-de-j-palacios.jpg"; }) || null;
+  }
   return best && best.file ? best.file : generic;
 }
 
@@ -1971,6 +1985,41 @@ var WINERY_CARDS = [
     "sources": [
       "https://www.dominiodelchallao.com/",
       "https://www.ideavinos.com/blog/post/bodega-destacada-25-dominio-del-challao"
+    ]
+  },
+  {
+    "id": "descendientes-de-j-palacios",
+    "name": "Descendientes de J. Palacios",
+    "aliases": [
+      "J. Palacios",
+      "Descendientes de José Palacios"
+    ],
+    "country": "España",
+    "zone": "Bierzo",
+    "zoneText": "DO Bierzo",
+    "town": "Corullón",
+    "web": "https://www.djpalacios.com/",
+    "address": "C/ Chao do Pando, 1, 24514 Corullón, León",
+    "lat": null,
+    "lng": null,
+    "precision": "",
+    "founded": 1999,
+    "about": "Homenaje al padre de Álvaro Palacios y al abuelo de Ricardo Pérez Palacios. Los dos comparten el proyecto en el Bierzo: empezaron en una bodega de piedra restaurada en Villafranca del Bierzo. La bodega actual es un edificio de Rafael Moneo excavado en la montaña, con un mirador hacia Moncerbal y Las Lamas. El viñedo suma 23 ha.",
+    "wines": [
+      "Pétalos",
+      "Villa de Corullón",
+      "Las Lamas",
+      "Moncerbal",
+      "La Faraona",
+      "Valdafoz",
+      "Al Chelo",
+      "Fontelas"
+    ],
+    "file": "bodega-descendientes-de-j-palacios.jpg",
+    "sources": [
+      "https://www.bodeboca.com/bodegas/descendientes-j-palacios",
+      "https://www.crdobierzo.es/es/bodegas-y-vinos/descendientes-de-j-palacios-sl/44/",
+      "http://www.laesenciadelvino.com/bodegas/detalles/descendientes_de_j_palacios"
     ]
   }
 ];

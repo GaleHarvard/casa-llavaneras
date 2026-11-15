@@ -40,7 +40,7 @@ eval(extractFunction(v91, "fuzzyWineryHit"));
 const zoneSrc = vinoteca.slice(0, vinoteca.indexOf("const ZONE_DO"));
 const zoneNames = new Set(Array.from(zoneSrc.matchAll(/name: "([^"]+)"/g)).map(hit => hit[1]));
 
-assert.strictEqual(WINERY_CARDS.length, 61);
+assert.strictEqual(WINERY_CARDS.length, 62);
 const files = {};
 const missing = [];
 WINERY_CARDS.forEach(card => {
