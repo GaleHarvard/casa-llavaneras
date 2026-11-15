@@ -277,13 +277,13 @@ assert.ok(i18n.includes("Gemini did not respond: network failure."));
 assert.ok(i18n.includes("La réponse de Gemini a été coupée."));
 assert.ok(i18n.includes("O Gemini não respondeu: falha de rede."));
 
-assert.ok(app.includes('APP_VERSION = "v112"'));
-assert.ok(sw.includes("casa-llavaneras-ios-v112"));
+assert.ok(app.includes('APP_VERSION = "v113"'));
+assert.ok(sw.includes("casa-llavaneras-ios-v113"));
 assert.ok(sw.includes("./casa-v89.js"));
 assert.ok(sw.includes("zxing"));
 assert.ok(!sw.includes("./vendor/zxing/zxing.min.js"));
-assert.ok(html.includes('content="v112"'));
-assert.ok(html.includes("casa-v89.js?v=112"));
+assert.ok(html.includes('content="v113"'));
+assert.ok(html.includes("casa-v89.js?v=113"));
 assert.ok(!html.includes("?v=88"));
 assert.ok(fs.existsSync(path.join(root, "vendor/zxing/zxing.min.js")));
 assert.ok(fs.existsSync(path.join(root, "tests/fixtures/juve-contraetiqueta.png")));

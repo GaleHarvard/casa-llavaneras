@@ -47,7 +47,7 @@ function pngSize(file) {
     openWine(wine.id);
     return { version: APP_VERSION, image: wineryImageFor(wine) };
   });
-  assert.strictEqual(info.version, "v112");
+  assert.strictEqual(info.version, "v113");
   assert.strictEqual(info.image, "bodega-chateau-beychevelle.jpg");
   await page.waitForFunction(() => {
     const img = document.querySelector("#wine-body img");

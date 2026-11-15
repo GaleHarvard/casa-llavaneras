@@ -512,9 +512,11 @@ function intakeSlug(producer, name, vintage) {
 }
 
 function applyKnownWinery(wine) {
+  if (!wine) return;
+  wine.geo = wine.geo || {};
+  if (typeof applyOfficialCatalogWeb === "function") applyOfficialCatalogWeb(wine);
   const lib = typeof estateHit === "function" ? estateHit(wine) : null;
   if (!lib) return;
-  wine.geo = wine.geo || {};
   if (!wine.geo.web && lib.web) wine.geo.web = lib.web;
   if (!wine.geo.address && lib.address) wine.geo.address = lib.address;
   if (!wine.geo.zone && lib.zone) wine.geo.zone = lib.zone;

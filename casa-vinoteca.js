@@ -779,11 +779,14 @@ function openExternal(url) {
 }
 function zoneStrip(w) {
   const g = bodegaGeo(w);
+  const web = typeof bodegaWeb === "function" ? bodegaWeb(g.web) : (g.web || "");
+  const host = String(web || "").replace(/^https?:\/\//i, "").replace(/\/$/, "");
   return `<div class="zone-card" role="button" onclick="openWineSub('mapa')">
     <div>
       <p class="tiny">${t("map.zone")}</p>
       <strong>${g.zone}</strong>
       <p class="muted">${escHtml(typeof shownAppellation === "function" ? shownAppellation(w) : (w.appellation || ""))}</p>
+      ${host ? `<p class="tiny">${escHtml(host)}</p>` : ""}
     </div>
     <span class="tiny">${t("map.web")}</span>
   </div>`;
@@ -834,7 +837,7 @@ function mapaBlock(w) {
     <h3 style="font-size:17px;margin:2px 0 2px;line-height:1.2">${w.producer}</h3>
     <p class="muted" style="margin:0 0 12px;font-size:13px">${placeLine(w, g)}</p>
     ${mapLinks}
-    ${bodegaWeb(g.web) ? `<a class="btn btn-gold" style="width:100%;margin-top:8px;display:block;text-align:center" href="${bodegaWeb(g.web)}" target="_blank" rel="noopener noreferrer" onclick="return openExternal(this.href)">${t("map.webBtn")}</a>` : (w.provenance ? `<p class="muted" style="margin-top:8px">${t("map.webNone")}</p>` : "")}
+    ${bodegaWeb(g.web) ? `<a class="btn btn-gold" id="bodega-web" style="width:100%;margin-top:8px;display:block;text-align:center" href="${bodegaWeb(g.web)}" target="_blank" rel="noopener noreferrer" onclick="return openExternal(this.href)">${t("map.webBtn")}</a><p class="tiny" id="bodega-web-url" style="text-align:center;margin-top:6px;word-break:break-all">${escHtml(bodegaWeb(g.web))}</p>` : (w.provenance ? `<p class="muted" style="margin-top:8px">${t("map.webNone")}</p>` : "")}
     ${zoneCard}`;
 }
 function shopLinks(w) {

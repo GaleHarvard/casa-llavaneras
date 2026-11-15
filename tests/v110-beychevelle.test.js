@@ -98,10 +98,10 @@ assert.strictEqual(alone.producer, "Château Beychevelle");
 
 assert.ok(!v110.includes("localStorage.clear"));
 assert.ok(read("sw.js").includes("./casa-v110.js"));
-assert.ok(read("sw.js").includes('"casa-llavaneras-ios-v112"'));
-assert.ok(read("sw.js").includes('"casa-llavaneras-jesus-ios-v112"'));
-assert.ok(read("app.js").includes('APP_VERSION = "v112"'));
-assert.ok(read("index.html").includes("casa-v110.js?v=112"));
+assert.ok(read("sw.js").includes('"casa-llavaneras-ios-v113"'));
+assert.ok(read("sw.js").includes('"casa-llavaneras-jesus-ios-v113"'));
+assert.ok(read("app.js").includes('APP_VERSION = "v113"'));
+assert.ok(read("index.html").includes("casa-v110.js?v=113"));
 assert.ok(!ficha.includes('"valor por defecto": "src.default"'));
 assert.ok(ficha.includes('"catálogo": "src.catalog"'));
 

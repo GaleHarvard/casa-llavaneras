@@ -21,6 +21,11 @@ function wineryCardFor(w) {
       bestLen = needle.length;
     });
   });
+  const house = typeof palaciosHouse === "function" ? palaciosHouse(hay, compact) : null;
+  if (house && house.signal && (!best || best.id !== "descendientes-de-j-palacios")) {
+    const own = wineryCardById("descendientes-de-j-palacios");
+    if (own && (!best || bestLen < foldWinery(own.name).length)) best = own;
+  }
   return best;
 }
 
@@ -40,7 +45,23 @@ function fuzzyWineryHit(fields) {
       }
     });
   });
-  return best && bestScore >= 0.86 ? best : null;
+  const blobEarly = typeof foldWinery === "function" ? foldWinery(producer + " " + name) : "";
+  const houseEarly = typeof palaciosHouse === "function" ? palaciosHouse(blobEarly, typeof compactWinery === "function" ? compactWinery(blobEarly) : "") : null;
+  if (houseEarly && houseEarly.signal) {
+    const own = typeof wineryCardById === "function" ? wineryCardById("descendientes-de-j-palacios") : null;
+    if (own) return own;
+  }
+  if (!(best && bestScore >= 0.86)) return null;
+  if (best.id === "descendientes-de-j-palacios") {
+    const blob = typeof foldWinery === "function" ? foldWinery(producer + " " + name) : "";
+    const named = [best.name].concat(best.aliases || []).some(label => {
+      const folded = typeof foldWinery === "function" ? foldWinery(label) : "";
+      return folded && (blob === folded || blob.indexOf(folded) >= 0);
+    });
+    const house = typeof palaciosHouse === "function" ? palaciosHouse(blob, typeof compactWinery === "function" ? compactWinery(blob) : "") : null;
+    if (!named && !(house && house.signal)) return null;
+  }
+  return best;
 }
 
 function zoneByName(name) {
@@ -239,3 +260,13 @@ wineForIntake = function (fields, catalogHit) {
   }
   return wineForIntakeV91(fields, catalogHit);
 };
+
+(function () {
+  if (typeof state === "undefined" || !state || state._corrupt) return;
+  if (typeof cellarLocked !== "undefined" && cellarLocked) return;
+  try {
+    if (typeof migrateOfficialWebs === "function" && migrateOfficialWebs(state) && typeof save === "function") save();
+  } catch (err) {
+    console.warn("web catalogo", err);
+  }
+})();

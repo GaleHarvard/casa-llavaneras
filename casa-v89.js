@@ -831,7 +831,11 @@ wineForIntake = function (fields, catalogHit) {
   if (category) wine.provenance.category = category;
   alignWineWithGrapes(wine);
   const href = /^https?:\/\//i.test(web) ? web : (web ? ("https://" + web.replace(/^\/+/, "")) : "");
-  if (href && wine.geo && !wine.geo.web && !(typeof isShopUrl === "function" && isShopUrl(href))) wine.geo.web = href;
+  if (href && wine.geo && !(typeof isShopUrl === "function" && isShopUrl(href))) {
+    wine.geo.web = href;
+    wine.provenance = wine.provenance || {};
+    wine.provenance.web = "manual";
+  }
   return built;
 };
 

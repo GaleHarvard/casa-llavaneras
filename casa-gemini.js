@@ -1785,10 +1785,11 @@ function applyGeminiRecord(wine, raw) {
     if (raw.geo.zone) wine.geo.zone = clipText(raw.geo.zone, 80);
     if (raw.geo.address) wine.geo.address = clipText(raw.geo.address, 120);
     const web = clipText(raw.geo.web, 140);
-    if (/^https?:\/\//i.test(web) && !/google\.|duckduckgo\.|search-result/i.test(web) && !isShopUrl(web) && !wine.geo.web) {
+    if (/^https?:\/\//i.test(web) && !/google\.|duckduckgo\.|search-result/i.test(web) && !isShopUrl(web) && !wine.geo.web && (typeof webWrittenByHand !== "function" || !webWrittenByHand(wine))) {
       wine.geo.web = web;
-      if (wine.provenance.web !== "página") markWineSource(wine, "web", "estimación Gemini");
+      if (wine.provenance.web !== "página" && wine.provenance.web !== "manual" && wine.provenance.web !== "catálogo") markWineSource(wine, "web", "estimación Gemini");
     }
+    if (typeof applyOfficialCatalogWeb === "function") applyOfficialCatalogWeb(wine);
   }
 }
 function sealWineProvenance(wine) {
@@ -1900,7 +1901,10 @@ const GEMINI_MODELS = [
   { id: "gemini-3.5-flash-lite", read: true, ground: false },
   { id: "gemini-2.5-flash", read: true, ground: true },
   { id: "gemini-2.5-flash-lite", read: true, ground: true },
-  { id: "gemini-2.0-flash", read: true, ground: true }
+  { id: "gemini-2.0-flash", read: true, ground: true },
+  { id: "gemini-3-flash", read: true, ground: true },
+  { id: "gemini-3.5-flash", read: true, ground: true },
+  { id: "gemini-3-flash-preview", read: true, ground: true }
 ];
 const GEMINI_LIST_KEY = (typeof window !== "undefined" && window.CASA_EDITION === "jesus") ? "vinoteca-gemini-models-jesus" : "vinoteca-gemini-models";
 const GEMINI_LIST_TTL = 24 * 60 * 60 * 1000;
@@ -2782,7 +2786,8 @@ async function completeWineRecord(wine, pageUrl) {
     const bodega = hits.find(h => h && h.url && h.kind !== "tienda" && h.kind !== "buscar" && !isShopHost(h.url) && isReadableWineUrl(h.url) && !isOpinionPage(h.url, h.title));
     if (bodega) {
       wine.geo = wine.geo || {};
-      if (!wine.geo.web) {
+      const catalogWeb = typeof applyOfficialCatalogWeb === "function" && applyOfficialCatalogWeb(wine);
+      if (!catalogWeb && !wine.geo.web && (typeof webWrittenByHand !== "function" || !webWrittenByHand(wine))) {
         wine.geo.web = bodega.url;
         markWineSource(wine, "web", "página");
       }
