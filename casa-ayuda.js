@@ -1,4 +1,4 @@
-/* v114: pantalla Ayuda (infografía) y preguntas sobre cómo funciona la app. No toca datos de las vinotecas. */
+/* v115: pantalla Ayuda (infografía) y preguntas sobre cómo funciona la app. No toca datos de las vinotecas. */
 (function () {
   "use strict";
   var GUIA = [
@@ -24,7 +24,7 @@
     "Si falta información o hay un error en una ficha, se corrige con Editar."
   ].join("\n");
 
-  var IMG = "2-ayuda-infografia.jpg";
+  var IMGS = ["1-ayuda-hoja1.jpg", "2-ayuda-hoja2.jpg"];
   var CHIPS = ["¿Cómo doy de alta un vino?", "¿Cómo sé dónde está cada botella?", "¿Qué es 'Valor de mercado'?", "¿Cómo hago una copia de seguridad?"];
 
   function esc(s) {
@@ -55,7 +55,9 @@
     if (!body) return;
     body.innerHTML =
       '<div class="hero"><p class="eyebrow">Ayuda</p><h1>Cómo funciona la Vinoteca</h1><p>Guía de todas las funciones y una caja para preguntar tus dudas.</p></div>' +
-      '<div class="card"><img src="' + IMG + '" alt="Infografía con todas las funciones de la Vinoteca" style="width:100%;height:auto;border-radius:12px;display:block" loading="lazy" /></div>' +
+      IMGS.map(function (src, n) {
+        return '<div class="card"><button type="button" data-zoom="' + n + '" style="all:unset;display:block;width:100%;cursor:zoom-in" aria-label="Ampliar hoja ' + (n + 1) + ' de 2"><img src="' + src + '" alt="Infografía de la Vinoteca, hoja ' + (n + 1) + ' de 2" style="width:100%;height:auto;border-radius:12px;display:block" loading="lazy" /></button><p class="tiny" style="margin:8px 0 0;text-align:center">Toca la hoja para ampliarla</p></div>';
+      }).join("") +
       '<div class="card" id="ayuda-chat">' +
       '<h3>Pregunta lo que quieras</h3>' +
       '<p class="muted" style="margin:6px 0 10px">Te contesta Gemini con esta guía. Necesita tu clave de Gemini (Perfil).</p>' +
@@ -66,12 +68,41 @@
       '<button type="button" class="btn btn-gold" id="ayuda-send" style="width:100%;margin-top:8px">Preguntar</button>' +
       '<div id="ayuda-a" class="muted" style="margin-top:12px;white-space:pre-wrap" aria-live="polite"></div>' +
       "</div>";
+    Array.prototype.forEach.call(body.querySelectorAll("[data-zoom]"), function (b) {
+      b.addEventListener("click", function () { openZoom(Number(b.getAttribute("data-zoom"))); });
+    });
     var q = document.getElementById("ayuda-q");
     document.getElementById("ayuda-send").addEventListener("click", function () { ask(q.value); });
     q.addEventListener("keydown", function (ev) { if (ev.key === "Enter") { ev.preventDefault(); ask(q.value); } });
     Array.prototype.forEach.call(document.querySelectorAll("#ayuda-chips [data-chip]"), function (b) {
       b.addEventListener("click", function () { var text = CHIPS[Number(b.getAttribute("data-chip"))]; q.value = text; ask(text); });
     });
+  }
+
+  var zoomLevel = 1;
+  function openZoom(n) {
+    closeZoom();
+    zoomLevel = 1;
+    var ov = document.createElement("div");
+    ov.id = "ayuda-zoom";
+    ov.setAttribute("role", "dialog");
+    ov.setAttribute("aria-label", "Hoja ampliada");
+    ov.style.cssText = "position:fixed;inset:0;z-index:9999;background:#000;display:flex;flex-direction:column";
+    ov.innerHTML =
+      '<div style="display:flex;gap:8px;justify-content:space-between;align-items:center;padding:10px 12px;padding-top:calc(10px + env(safe-area-inset-top))">' +
+      '<span class="tiny">Hoja ' + (n + 1) + ' de ' + IMGS.length + '</span>' +
+      '<span style="display:flex;gap:8px"><button type="button" class="btn btn-ghost" id="az-out" aria-label="Alejar">−</button><button type="button" class="btn btn-ghost" id="az-in" aria-label="Acercar">+</button><button type="button" class="btn btn-gold" id="az-close">Cerrar</button></span></div>' +
+      '<div id="az-box" style="flex:1;overflow:auto;-webkit-overflow-scrolling:touch;touch-action:pan-x pan-y pinch-zoom"><img id="az-img" src="' + IMGS[n] + '" alt="Hoja ' + (n + 1) + ' ampliable" style="display:block;width:100%;height:auto;max-width:none" /></div>';
+    document.body.appendChild(ov);
+    function apply() { document.getElementById("az-img").style.width = (zoomLevel * 100) + "%"; }
+    document.getElementById("az-close").addEventListener("click", closeZoom);
+    document.getElementById("az-in").addEventListener("click", function () { zoomLevel = Math.min(4, zoomLevel + 0.5); apply(); });
+    document.getElementById("az-out").addEventListener("click", function () { zoomLevel = Math.max(1, zoomLevel - 0.5); apply(); });
+    document.getElementById("az-img").addEventListener("dblclick", function () { zoomLevel = zoomLevel > 1 ? 1 : 2.5; apply(); });
+  }
+  function closeZoom() {
+    var ov = document.getElementById("ayuda-zoom");
+    if (ov && ov.parentNode) ov.parentNode.removeChild(ov);
   }
 
   var busy = false;
@@ -115,6 +146,7 @@
   }
 
   function openAyuda() {
+    closeZoom();
     render();
     if (typeof show === "function") show("ayuda");
   }
