@@ -1,4 +1,4 @@
-/* v115: pantalla Ayuda (infografía) y preguntas sobre cómo funciona la app. No toca datos de las vinotecas. */
+/* v116: pantalla Ayuda (guías paso a paso, hojas) y preguntas sobre cómo funciona la app. No toca datos de las vinotecas. */
 (function () {
   "use strict";
   var GUIA = [
@@ -25,6 +25,27 @@
   ].join("\n");
 
   var IMGS = ["1-ayuda-hoja1.jpg", "2-ayuda-hoja2.jpg"];
+  function simg(a, b) { return ((a - 1) * 4 + b) + "-ayuda-s" + a + "-" + b + ".jpg"; }
+  var SERIES = [
+    { t: "Cómo añadir un vino con foto", k: /(alta|a[ñn]ad|introduc|meter|escane|foto|etiqueta|nuevo vino|registrar)/i },
+    { t: "Cómo introducir un vino a mano", k: /(a mano|manual|introduc|escrib|teclear|sin foto)/i },
+    { t: "Cómo buscar un vino", k: /(busc|encontr|localiz|filtr|lista)/i },
+    { t: "Cómo encontrar la botella en tu vinoteca", k: /(hueco|d[oó]nde est|ubicaci|vinoteca|estanter|mover|botella)/i },
+    { t: "Cómo ver puntuaciones, catas y favoritos", k: /(puntu|calific|cata|favorit|valor|nota|gu[ií]a)/i }
+  ];
+  SERIES.forEach(function (x, i) { x.n = i + 1; x.imgs = [1, 2, 3, 4].map(function (b) { return simg(i + 1, b); }); });
+  function seriesHtml(x) {
+    return '<div class="card"><h3 style="margin:0 0 8px">' + esc(x.t) + '</h3><div style="display:flex;gap:8px;overflow-x:auto;-webkit-overflow-scrolling:touch">' +
+      x.imgs.map(function (src, b) {
+        return '<button type="button" data-serie="' + (x.n - 1) + '" data-paso="' + b + '" style="all:unset;flex:0 0 38%;cursor:zoom-in" aria-label="' + esc(x.t) + ', paso ' + (b + 1) + ' de 4"><img src="' + src + '" alt="' + esc(x.t) + ', paso ' + (b + 1) + '" style="width:100%;height:auto;border-radius:10px;display:block" loading="lazy" /></button>';
+      }).join("") + '</div><p class="tiny" style="margin:8px 0 0;text-align:center">Toca un paso para verlo grande y deslizar</p></div>';
+  }
+  function bindSeries(root) {
+    Array.prototype.forEach.call(root.querySelectorAll("[data-serie]"), function (b) {
+      b.addEventListener("click", function () { openZoom(IMGS_SER(Number(b.getAttribute("data-serie"))), Number(b.getAttribute("data-paso")), SERIES[Number(b.getAttribute("data-serie"))].t); });
+    });
+  }
+  function IMGS_SER(i) { return SERIES[i].imgs; }
   var CHIPS = ["¿Cómo doy de alta un vino?", "¿Cómo sé dónde está cada botella?", "¿Qué es 'Valor de mercado'?", "¿Cómo hago una copia de seguridad?"];
 
   function esc(s) {
@@ -55,6 +76,8 @@
     if (!body) return;
     body.innerHTML =
       '<div class="hero"><p class="eyebrow">Ayuda</p><h1>Cómo funciona la Vinoteca</h1><p>Guía de todas las funciones y una caja para preguntar tus dudas.</p></div>' +
+      '<h2 style="margin:14px 0 8px">Guías paso a paso</h2>' + SERIES.map(seriesHtml).join("") +
+      '<h2 style="margin:14px 0 8px">Resumen general</h2>' +
       IMGS.map(function (src, n) {
         return '<div class="card"><button type="button" data-zoom="' + n + '" style="all:unset;display:block;width:100%;cursor:zoom-in" aria-label="Ampliar hoja ' + (n + 1) + ' de 2"><img src="' + src + '" alt="Infografía de la Vinoteca, hoja ' + (n + 1) + ' de 2" style="width:100%;height:auto;border-radius:12px;display:block" loading="lazy" /></button><p class="tiny" style="margin:8px 0 0;text-align:center">Toca la hoja para ampliarla</p></div>';
       }).join("") +
@@ -66,11 +89,12 @@
       "</div>" +
       '<label class="field"><span>Tu pregunta</span><input id="ayuda-q" type="text" autocomplete="off" placeholder="Por ejemplo: ¿cómo muevo una botella?" /></label>' +
       '<button type="button" class="btn btn-gold" id="ayuda-send" style="width:100%;margin-top:8px">Preguntar</button>' +
-      '<div id="ayuda-a" class="muted" style="margin-top:12px;white-space:pre-wrap" aria-live="polite"></div>' +
+      '<div id="ayuda-s"></div><div id="ayuda-a" class="muted" style="margin-top:12px;white-space:pre-wrap" aria-live="polite"></div>' +
       "</div>";
     Array.prototype.forEach.call(body.querySelectorAll("[data-zoom]"), function (b) {
-      b.addEventListener("click", function () { openZoom(Number(b.getAttribute("data-zoom"))); });
+      b.addEventListener("click", function () { openZoom(IMGS, Number(b.getAttribute("data-zoom")), "Hoja"); });
     });
+    bindSeries(body);
     var q = document.getElementById("ayuda-q");
     document.getElementById("ayuda-send").addEventListener("click", function () { ask(q.value); });
     q.addEventListener("keydown", function (ev) { if (ev.key === "Enter") { ev.preventDefault(); ask(q.value); } });
@@ -80,25 +104,48 @@
   }
 
   var zoomLevel = 1;
-  function openZoom(n) {
+  function openZoom(list, n, title) {
     closeZoom();
     zoomLevel = 1;
+    var total = list.length;
     var ov = document.createElement("div");
     ov.id = "ayuda-zoom";
     ov.setAttribute("role", "dialog");
-    ov.setAttribute("aria-label", "Hoja ampliada");
+    ov.setAttribute("aria-label", "Paso ampliado");
     ov.style.cssText = "position:fixed;inset:0;z-index:9999;background:#000;display:flex;flex-direction:column";
     ov.innerHTML =
       '<div style="display:flex;gap:8px;justify-content:space-between;align-items:center;padding:10px 12px;padding-top:calc(10px + env(safe-area-inset-top))">' +
-      '<span class="tiny">Hoja ' + (n + 1) + ' de ' + IMGS.length + '</span>' +
+      '<span class="tiny" id="az-lab"></span>' +
       '<span style="display:flex;gap:8px"><button type="button" class="btn btn-ghost" id="az-out" aria-label="Alejar">−</button><button type="button" class="btn btn-ghost" id="az-in" aria-label="Acercar">+</button><button type="button" class="btn btn-gold" id="az-close">Cerrar</button></span></div>' +
-      '<div id="az-box" style="flex:1;overflow:auto;-webkit-overflow-scrolling:touch;touch-action:pan-x pan-y pinch-zoom"><img id="az-img" src="' + IMGS[n] + '" alt="Hoja ' + (n + 1) + ' ampliable" style="display:block;width:100%;height:auto;max-width:none" /></div>';
+      '<div id="az-box" style="flex:1;overflow:auto;-webkit-overflow-scrolling:touch;touch-action:pan-x pan-y pinch-zoom"><img id="az-img" src="" alt="" style="display:block;width:100%;height:auto;max-width:none" /></div>' +
+      '<div style="display:flex;gap:8px;padding:10px 12px;padding-bottom:calc(10px + env(safe-area-inset-bottom))"><button type="button" class="btn btn-ghost" id="az-prev" style="flex:1">‹ Anterior</button><button type="button" class="btn btn-ghost" id="az-next" style="flex:1">Siguiente ›</button></div>';
     document.body.appendChild(ov);
     function apply() { document.getElementById("az-img").style.width = (zoomLevel * 100) + "%"; }
+    function go(m) {
+      n = Math.max(0, Math.min(total - 1, m));
+      zoomLevel = 1; apply();
+      var im = document.getElementById("az-img");
+      im.src = list[n]; im.alt = title + ", " + (n + 1) + " de " + total;
+      document.getElementById("az-lab").textContent = title + " · " + (n + 1) + " de " + total;
+      document.getElementById("az-prev").disabled = n === 0;
+      document.getElementById("az-next").disabled = n === total - 1;
+      document.getElementById("az-box").scrollTop = 0;
+    }
     document.getElementById("az-close").addEventListener("click", closeZoom);
     document.getElementById("az-in").addEventListener("click", function () { zoomLevel = Math.min(4, zoomLevel + 0.5); apply(); });
     document.getElementById("az-out").addEventListener("click", function () { zoomLevel = Math.max(1, zoomLevel - 0.5); apply(); });
+    document.getElementById("az-prev").addEventListener("click", function () { go(n - 1); });
+    document.getElementById("az-next").addEventListener("click", function () { go(n + 1); });
     document.getElementById("az-img").addEventListener("dblclick", function () { zoomLevel = zoomLevel > 1 ? 1 : 2.5; apply(); });
+    var x0 = null;
+    var box = document.getElementById("az-box");
+    box.addEventListener("touchstart", function (e) { x0 = e.touches.length === 1 ? e.touches[0].clientX : null; }, { passive: true });
+    box.addEventListener("touchend", function (e) {
+      if (x0 === null || zoomLevel > 1 || !e.changedTouches.length) return;
+      var dx = e.changedTouches[0].clientX - x0; x0 = null;
+      if (Math.abs(dx) > 70) go(dx < 0 ? n + 1 : n - 1);
+    }, { passive: true });
+    go(n);
   }
   function closeZoom() {
     var ov = document.getElementById("ayuda-zoom");
@@ -110,6 +157,12 @@
     text = String(text || "").trim();
     var out = document.getElementById("ayuda-a");
     if (!out || busy || !text) return;
+    var sh = document.getElementById("ayuda-s");
+    if (sh) {
+      var hits = SERIES.filter(function (x) { return x.k.test(text); }).slice(0, 2);
+      sh.innerHTML = hits.map(seriesHtml).join("");
+      bindSeries(sh);
+    }
     var k = key();
     if (!k) {
       out.textContent = "Falta la clave de Gemini en este dispositivo. Pégala en Inicio › Avisos › Precios de mercado (Clave Gemini) y vuelve a preguntar.";
