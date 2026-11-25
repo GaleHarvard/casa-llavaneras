@@ -24,7 +24,7 @@
     "Si falta información o hay un error en una ficha, se corrige con Editar."
   ].join("\n");
 
-  var IMG = "ayuda-infografia.jpg";
+  var IMG = "2-ayuda-infografia.jpg";
   var CHIPS = ["¿Cómo doy de alta un vino?", "¿Cómo sé dónde está cada botella?", "¿Qué es 'Valor de mercado'?", "¿Cómo hago una copia de seguridad?"];
 
   function esc(s) {
