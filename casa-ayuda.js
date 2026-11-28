@@ -232,3 +232,165 @@
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
   else boot();
 })();
+
+/* v118: corregir bodega/zona en Editar y traducir al español textos extranjeros */
+(function () {
+  "use strict";
+  function $id(x) { return document.getElementById(x); }
+  function esc(s) { return typeof escHtml === "function" ? escHtml(String(s == null ? "" : s)) : String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;" }[c]; }); }
+  function fold(s) { return typeof foldWinery === "function" ? foldWinery(s) : String(s || "").toLowerCase(); }
+
+  var ID_FIELDS = [["id-producer", "Bodega"], ["id-name", "Nombre del vino"], ["id-zone", "Zona"]];
+
+  function identityHtml(w) {
+    var vals = { "id-producer": w.producer || "", "id-name": w.name || "", "id-zone": w.appellation || w.region || "" };
+    return ID_FIELDS.map(function (f) {
+      return '<label class="field"><span>' + f[1] + '</span><input id="fact-in-' + f[0] + '" value="' + esc(vals[f[0]]) + '"></label>';
+    }).join("");
+  }
+
+  function readVal(key) {
+    var el = $id("fact-in-" + key);
+    return el ? String(el.value || "").replace(/\s+/g, " ").trim() : null;
+  }
+
+  function applyIdentity(w) {
+    var producer = readVal("id-producer"), name = readVal("id-name"), zone = readVal("id-zone");
+    if (producer === null) return false;
+    var oldProducer = w.producer || "", oldName = w.name || "", oldZone = w.appellation || w.region || "";
+    var sameNameAsProducer = fold(oldName) === fold(oldProducer);
+    var changedP = producer && producer !== oldProducer;
+    var changedZ = zone !== null && zone !== oldZone;
+    var newName = name;
+    if (changedP && name === oldName && sameNameAsProducer) newName = producer;
+    var changedN = newName && newName !== oldName;
+    if (!changedP && !changedN && !changedZ) return false;
+    w.provenance = w.provenance || {};
+    if (changedP) {
+      w.producer = producer;
+      w.provenance.producer = "usuario";
+      w.provenance.wineryText = "";
+      w.vintageFacts = {};
+      w.geo = {};
+      if (w.dossier && w.provenance.dossier !== "usuario") w.dossier.history = "";
+    }
+    if (changedN) { w.name = newName; w.provenance.name = "usuario"; }
+    if (changedZ) {
+      w.appellation = zone;
+      w.region = zone;
+      w.provenance.zoneText = "";
+      w.provenance.zone = "usuario";
+      var z = typeof zoneByName === "function" ? zoneByName(zone) : null;
+      w.provenance.zoneId = z && z.name ? z.name : "";
+      w.zoneAsset = z && z.map ? z.map : "";
+    }
+    if (changedP || changedN) {
+      var generic = typeof GENERIC_ESTATE !== "undefined" ? GENERIC_ESTATE : "vinedo.jpg";
+      var file = typeof wineryImageFor === "function" ? wineryImageFor(w) : generic;
+      w.wineryAsset = file || generic;
+      var card = typeof wineryCardFor === "function" ? wineryCardFor(w) : null;
+      w.provenance.wineryId = card ? card.id : "";
+      if (card) w.geo = { lat: card.lat, lng: card.lng, web: card.web, address: card.address, zone: card.town || "" };
+    }
+    return true;
+  }
+
+  if (typeof editWineFacts === "function") {
+    var editOrig = editWineFacts;
+    editWineFacts = function (wineId) {
+      editOrig(wineId);
+      try {
+        var w = wineById(wineId);
+        var box = document.querySelector("#wine-body #facts-v103");
+        if (w && box && !$id("fact-in-id-producer")) box.insertAdjacentHTML("afterbegin", identityHtml(w));
+      } catch (e) {}
+    };
+  }
+  if (typeof saveWineFactEdits === "function") {
+    var saveOrig = saveWineFactEdits;
+    saveWineFactEdits = function (wineId) {
+      try {
+        var w = wineById(wineId);
+        if (w && applyIdentity(w) && typeof save === "function") save();
+      } catch (e) { console.warn("identidad", e); }
+      return saveOrig(wineId);
+    };
+  }
+
+  /* Traducción al español de textos web en otro idioma */
+  var FR = /\b(les|des|du|aux|avec|et|une|est|sur|pour|dans|ar[oô]mes?|bouche|nez|notes?\s+de|fruits?\s+blancs?|p[eê]che|vigne|vin|fra[iî]cheur|finale?|sec|bois[eé]|tr[eè]s|belle|longue)\b|[êèëôûçœ]/gi;
+  var EN = /\b(the|and|with|of|aromas?|palate|finish|flavou?rs?|notes?\s+of|dry|crisp|fruit|hints?)\b/gi;
+  var ES = /\b(el|los|las|del|con|una|por|para|aromas?\s+de|notas?\s+de|boca|nariz|frutas?|blancas?|fresco|seco|largo|final)\b|[ñáíóú¿¡]/gi;
+  function isForeign(text) {
+    var s = String(text || "");
+    if (s.length < 24) return false;
+    var f = (s.match(FR) || []).length + (s.match(EN) || []).length;
+    var e = (s.match(ES) || []).length;
+    return f >= 3 && f > e;
+  }
+  var tried = {};
+  async function translateFor(wineId) {
+    var w = typeof wineById === "function" ? wineById(wineId) : null;
+    var lang = (typeof appLang !== "undefined" && appLang) || "es";
+    if (!w || lang !== "es" || tried[wineId]) return;
+    var key = typeof storedGeminiKey === "function" ? storedGeminiKey() : "";
+    if (!key) return;
+    var items = [];
+    if (w.tasting && isForeign(w.tasting) && !(w.provenance && w.provenance.tasting === "usuario")) items.push({ k: "tasting", text: w.tasting });
+    Object.keys(w.ratings || {}).forEach(function (r) {
+      var b = w.ratings[r];
+      if (b && b.note && isForeign(b.note) && !(typeof scoreIsUser === "function" && scoreIsUser(b))) items.push({ k: "r:" + r, text: b.note });
+    });
+    ["history", "soils", "vineyard", "vinification", "elevage"].forEach(function (f) {
+      var d = w.dossier;
+      if (d && d[f] && isForeign(d[f]) && w.provenance && w.provenance.dossier !== "usuario") items.push({ k: "d:" + f, text: d[f] });
+    });
+    if (!items.length) return;
+    tried[wineId] = true;
+    var payload = {};
+    items.forEach(function (it, i) { payload["t" + i] = it.text; });
+    var prompt = ["Traduce al español estas notas de vino, con prosa natural de sumiller.",
+      "Devuelve JSON {\"items\":[\"...\"]} con una traducción por cada entrada, en el mismo orden.",
+      "Mantén sin traducir nombres propios (bodega, cuvée, denominación, lugar, uva).",
+      "No inventes datos ni añadas nada.",
+      JSON.stringify(items.map(function (it) { return it.text; }))].join("\n");
+    var schema = { type: "OBJECT", properties: { items: { type: "ARRAY", items: { type: "STRING" } } }, required: ["items"] };
+    try {
+      var out = await geminiWithModel(key, prompt, schema, null, 2048);
+      var arr = out && out.parsed && out.parsed.items;
+      if (!Array.isArray(arr) || arr.length !== items.length) return;
+      items.forEach(function (it, i) {
+        var tr = String(arr[i] || "").trim();
+        if (!tr) return;
+        if (it.k === "tasting") w.tasting = tr;
+        else if (it.k.indexOf("r:") === 0) w.ratings[it.k.slice(2)].note = tr;
+        else w.dossier[it.k.slice(2)] = tr;
+        var host = $id("wine-body");
+        if (host) {
+          var all = host.querySelectorAll("p,b,span");
+          for (var j = 0; j < all.length; j++) {
+            var el = all[j];
+            if (!el.children.length && el.textContent.trim().indexOf(it.text.trim().slice(0, 40)) >= 0) el.textContent = el.textContent.replace(it.text, tr);
+          }
+        }
+      });
+      if (typeof save === "function") save();
+    } catch (e) { console.warn("traducción añada", e); }
+  }
+
+  if (typeof openWine === "function") {
+    var openOrig = openWine;
+    openWine = function (wineId, bottle) {
+      openOrig(wineId, bottle);
+      try { translateFor(wineId); } catch (e) {}
+    };
+  }
+  if (typeof openWineSub === "function") {
+    var subOrig = openWineSub;
+    openWineSub = function (kind) {
+      var r = subOrig(kind);
+      try { if (typeof currentWine !== "undefined" && currentWine) translateFor(currentWine.id); } catch (e) {}
+      return r;
+    };
+  }
+})();
