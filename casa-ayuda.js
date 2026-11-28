@@ -394,3 +394,99 @@
     };
   }
 })();
+
+/* v120: lo que el usuario corrige en Bodega, Nombre y Zona no se pisa al completar o ampliar datos */
+(function () {
+  "use strict";
+  var PROV = ["producer", "name", "zone", "region"];
+
+  function locked(w, k) {
+    return !!(w && w.provenance && w.provenance[k] === "usuario");
+  }
+
+  function snap(w) {
+    if (!w || !w.provenance) return null;
+    var lp = locked(w, "producer"), ln = locked(w, "name"), lz = locked(w, "zone");
+    if (!lp && !ln && !lz) return null;
+    var s = { prov: {} };
+    PROV.forEach(function (k) { s.prov[k] = w.provenance[k]; });
+    if (lp) {
+      s.producer = w.producer;
+      s.wineryAsset = w.wineryAsset;
+      s.wineryId = w.provenance.wineryId;
+      s.geo = w.geo ? JSON.parse(JSON.stringify(w.geo)) : w.geo;
+    }
+    if (ln) s.name = w.name;
+    if (lz) {
+      s.appellation = w.appellation;
+      s.region = w.region;
+      s.zoneAsset = w.zoneAsset;
+      s.zoneId = w.provenance.zoneId;
+    }
+    s.lp = lp; s.ln = ln; s.lz = lz;
+    return s;
+  }
+
+  function restore(w, s) {
+    if (!w || !s) return false;
+    w.provenance = w.provenance || {};
+    PROV.forEach(function (k) { if (s.prov[k] === "usuario") w.provenance[k] = "usuario"; });
+    if (s.lp) {
+      w.producer = s.producer;
+      w.wineryAsset = s.wineryAsset;
+      w.provenance.wineryId = s.wineryId;
+      w.geo = s.geo;
+    }
+    if (s.ln) w.name = s.name;
+    if (s.lz) {
+      w.appellation = s.appellation;
+      w.region = s.region;
+      w.zoneAsset = s.zoneAsset;
+      w.provenance.zoneId = s.zoneId;
+    }
+    return true;
+  }
+
+  function guard(fnName, getWine) {
+    if (typeof window[fnName] !== "function") return;
+    var orig = window[fnName];
+    window[fnName] = async function () {
+      var args = arguments;
+      var w = null;
+      try { w = getWine.apply(null, args); } catch (e) {}
+      var s = snap(w);
+      try {
+        return await orig.apply(this, args);
+      } finally {
+        try {
+          if (s && restore(w, s) && typeof save === "function") save();
+        } catch (e) {}
+      }
+    };
+  }
+
+  guard("completeWineRecord", function (wine) { return wine; });
+  guard("expandWineFacts", function (id) { return typeof wineById === "function" ? wineById(id) : null; });
+
+  /* Al corregir la identidad, olvidar la página y el título del vino antiguo */
+  if (typeof saveWineFactEdits === "function") {
+    var saveV119 = saveWineFactEdits;
+    saveWineFactEdits = function (wineId) {
+      var w = null, before = "";
+      try {
+        w = wineById(wineId);
+        before = w ? [w.producer, w.name].join("|") : "";
+      } catch (e) {}
+      var out = saveV119(wineId);
+      try {
+        if (w && locked(w, "producer") && [w.producer, w.name].join("|") !== before) {
+          var p = w.provenance;
+          ["pageUrl", "rawTitle", "pageExcerpt", "pageNote"].forEach(function (k) { if (p[k]) p[k] = ""; });
+          w.shops = [];
+          if (typeof save === "function") save();
+        }
+      } catch (e) {}
+      return out;
+    };
+  }
+})();
