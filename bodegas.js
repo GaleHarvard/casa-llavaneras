@@ -5,6 +5,7 @@ var WINERY_LIBRARY = [
   { name: "Château Beychevelle", file: "bodega-chateau-beychevelle.jpg", aliases: ["Beychevelle", "Ch. Beychevelle"] },
   { name: "Château Ausone", file: "bodega-chateau-ausone.jpg", aliases: ["Ausone"] },
   { name: "Château de Fonbel", file: "1-bodega-chateau-de-fonbel.jpg", aliases: ["Fonbel", "Chateau Fonbel", "Château Fonbel"] },
+  { name: "Château de Bellevue", file: "1-bodega-chateau-de-bellevue.jpg", aliases: ["Bellevue", "Chateau Bellevue", "Château Bellevue"] },
   { name: "Château Cheval Blanc", file: "bodega-chateau-cheval-blanc.jpg", aliases: ["Cheval Blanc"] },
   { name: "Château Massamier la Mignarde", file: "bodega-chateau-massamier-la-mignarde.jpg", aliases: ["Massamier"] },
   { name: "Domaine Leflaive", file: "bodega-domaine-leflaive.jpg", aliases: ["Leflaive"] },
